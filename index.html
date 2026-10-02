@@ -1,37 +1,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>菩提幣聯盟</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#3B2A20">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
 
 <style>
 /* ------------------------------------------------------------------
-   藍紙金泥寫經 —— indigo ground, gold ink.
-   Light theme: 冷麻紙。Dark theme: 夜藍。Hero band stays indigo in both.
+   深咖啡 × 淺綠 —— coffee ground, leaf-green ink（brand/README.md v1.0）.
+   Light theme: 米白紙。Dark theme: 夜咖啡。Hero band stays coffee in both.
+   變數名沿用舊稿（--gold 現為綠色強調色、--lapis 為青綠），以免動到下方規則。
 ------------------------------------------------------------------- */
 :root{
-  --ground:#EBEDF3;
-  --ground-raised:#F7F8FB;
-  --ground-sunk:#DFE3EC;
-  --ink:#141B33;
-  --ink-soft:#454E6B;
-  --ink-faint:#78809B;
-  --rule:#C7CCDA;
-  --rule-strong:#A3AAC0;
-  --gold:#8A6314;
-  --gold-dim:#B79A5C;
-  --lapis:#2A4A8F;
+  --ground:#F6F2E8;
+  --ground-raised:#FBF9F3;
+  --ground-sunk:#ECE5D6;
+  --ink:#3B2A20;
+  --ink-soft:#5E4C40;
+  --ink-faint:#6B5C4F;
+  --rule:#DDD3C2;
+  --rule-strong:#BFB29C;
+  --gold:#426631;
+  --gold-dim:#8DAE78;
+  --lapis:#3D6B5E;
   --crimson:#8E3546;
-  --crimson-wash:#F2E4E7;
+  --crimson-wash:#F4E3E2;
 
   /* hero band — deliberately fixed, identical in both themes */
-  --band:#121736;
-  --band-2:#1B2249;
-  --band-ink:#EEEFF6;
-  --band-soft:#A9AFCD;
-  --band-gold:#DFB45E;
-  --band-rule:#3A4170;
+  --band:#3B2A20;
+  --band-2:#4D392B;
+  --band-ink:#F6F2E8;
+  --band-soft:#CDBFAF;
+  --band-gold:#B8D8A0;
+  --band-rule:#5A4536;
 
   --wenkai:"LXGW WenKai TC","LXGW WenKai","Kaiti TC",KaiTi,"Noto Serif TC",serif;
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
@@ -39,35 +44,35 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ground:#0F1327;
-    --ground-raised:#171C38;
-    --ground-sunk:#0A0E1E;
-    --ink:#E8EAF4;
-    --ink-soft:#AFB6D2;
-    --ink-faint:#7D85A6;
-    --rule:#2A3055;
-    --rule-strong:#3E4670;
-    --gold:#E0B75C;
-    --gold-dim:#8C7536;
-    --lapis:#8AA6DE;
+    --ground:#1F1612;
+    --ground-raised:#2A1F19;
+    --ground-sunk:#17100C;
+    --ink:#F1ECE3;
+    --ink-soft:#CDBFAF;
+    --ink-faint:#9A8B7E;
+    --rule:#3D2F26;
+    --rule-strong:#554336;
+    --gold:#B8D8A0;
+    --gold-dim:#6F8A5E;
+    --lapis:#9FC7B8;
     --crimson:#D98494;
-    --crimson-wash:#2A1922;
+    --crimson-wash:#2E1D1E;
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0F1327;
-  --ground-raised:#171C38;
-  --ground-sunk:#0A0E1E;
-  --ink:#E8EAF4;
-  --ink-soft:#AFB6D2;
-  --ink-faint:#7D85A6;
-  --rule:#2A3055;
-  --rule-strong:#3E4670;
-  --gold:#E0B75C;
-  --gold-dim:#8C7536;
-  --lapis:#8AA6DE;
+  --ground:#1F1612;
+  --ground-raised:#2A1F19;
+  --ground-sunk:#17100C;
+  --ink:#F1ECE3;
+  --ink-soft:#CDBFAF;
+  --ink-faint:#9A8B7E;
+  --rule:#3D2F26;
+  --rule-strong:#554336;
+  --gold:#B8D8A0;
+  --gold-dim:#6F8A5E;
+  --lapis:#9FC7B8;
   --crimson:#D98494;
-  --crimson-wash:#2A1922;
+  --crimson-wash:#2E1D1E;
 }
 
 *{box-sizing:border-box}
@@ -148,6 +153,8 @@ em{font-style:normal;color:var(--gold);font-weight:500}
   height:1px;background:var(--band-rule);
   margin:28px 0;max-width:420px;
 }
+.mark{display:block;height:52px;width:auto;fill:var(--band-gold);margin:0 0 26px}
+.mark-sm{display:inline-block;height:15px;width:auto;fill:var(--gold);vertical-align:-2px;margin-right:8px}
 .hero-lede{
   color:var(--band-soft);font-size:17px;line-height:1.95;
   max-width:46ch;font-weight:300;
@@ -157,15 +164,15 @@ em{font-style:normal;color:var(--gold);font-weight:500}
 .btn{
   font-family:var(--sans);font-size:15px;font-weight:500;
   padding:13px 30px;border:1px solid var(--band-gold);
-  background:var(--band-gold);color:#161B33;
+  background:var(--band-gold);color:#3B2A20;
   text-decoration:none;cursor:pointer;border-radius:1px;
   letter-spacing:.06em;transition:background .18s,color .18s;
 }
-.btn:hover{background:#EFCB82}
+.btn:hover{background:#CBE5B6}
 .btn-ghost{
   background:transparent;color:var(--band-gold);
 }
-.btn-ghost:hover{background:rgba(223,180,94,.12)}
+.btn-ghost:hover{background:rgba(184,216,160,.14)}
 .hero-note{
   font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;
   color:var(--band-soft);margin-top:18px;
@@ -350,9 +357,9 @@ select{
   background-position:calc(100% - 13px) 19px,calc(100% - 8px) 19px;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat;
 }
-select option{color:#161B33;background:#EEEFF6}
+select option{color:#3B2A20;background:#F6F2E8}
 textarea{resize:vertical;min-height:92px;line-height:1.8}
-input::placeholder,textarea::placeholder{color:#6E76A0}
+input::placeholder,textarea::placeholder{color:#A89A8C}
 input:focus,select:focus,textarea:focus{
   outline:none;border-bottom-color:var(--band-gold);
   box-shadow:0 1px 0 0 var(--band-gold);
@@ -368,7 +375,7 @@ input:focus,select:focus,textarea:focus{
 }
 .receipt{
   margin-top:44px;border:1px solid var(--band-gold);
-  padding:26px 28px;background:rgba(223,180,94,.06);
+  padding:26px 28px;background:rgba(184,216,160,.07);
 }
 .receipt h3{color:var(--band-gold);margin-bottom:12px}
 .receipt p{color:var(--band-soft);font-size:15px;max-width:58ch}
@@ -444,6 +451,7 @@ footer a:hover{text-decoration:underline}
 <header class="hero">
   <div class="shell">
     <div class="hero-copy">
+      <svg class="mark" viewBox="0 0 187.2 231.6" role="img" aria-label="菩提幣 logo"><path d="M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z"/></svg>
       <p class="eyebrow">菩提幣聯盟 · 成員招募</p>
       <p class="oneline">一即一切<br>一切即一</p>
       <p class="oneline-en">All is One. One is All.</p>
@@ -759,7 +767,7 @@ footer a:hover{text-decoration:underline}
 
 <footer>
   <div class="shell">
-    <div class="fline">菩提幣聯盟 Bodhi Coin Alliance · 世界佛教教育協會 WEBA Sunnylife</div>
+    <div class="fline"><svg class="mark-sm" viewBox="0 0 187.2 231.6" aria-hidden="true"><path d="M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z"/></svg>菩提幣聯盟 Bodhi Coin Alliance · 世界佛教教育協會 WEBA Sunnylife</div>
     企劃書 v1.0 draft　2026-09-06　草案，未經執行委員會決議<br>
     幣不販售 · 不提領 · 不可兌現 · 非投資標的<br>
     <a href="https://www.sunnylife.world/" target="_blank" rel="noopener">www.sunnylife.world</a>　一即一切，一切即一
