@@ -7,6 +7,7 @@ type Group = {
   id?: string
   name: string
   region: string
+  center_id: string | null
   center_name: string
   schedule: string
   description: string
@@ -14,9 +15,10 @@ type Group = {
   is_listed: boolean
   sort_order: number
 }
-const blank = (): Group => ({ name: '', region: '', center_name: '', schedule: '', description: '', is_online: false, is_listed: true, sort_order: 0 })
+const blank = (): Group => ({ name: '', region: '', center_id: null, center_name: '', schedule: '', description: '', is_online: false, is_listed: true, sort_order: 0 })
 
 const groups = ref<Group[]>([])
+const centers = ref<{ id: string; name: string }[]>([])
 const editing = ref<Group | null>(null)
 
 const columns = [
@@ -29,7 +31,7 @@ const columns = [
 
 async function load() {
   try {
-    groups.value = await api.get<Group[]>('/api/admin/groups')
+    ;[groups.value, centers.value] = await Promise.all([api.get<Group[]>('/api/admin/groups'), api.get<{ id: string; name: string }[]>('/api/admin/centers')])
   } catch (e) {
     Notify.create({ type: 'negative', message: (e as Error).message })
   }
@@ -72,7 +74,17 @@ function remove(g: Group) {
         <q-card-section class="q-gutter-md">
           <q-input v-model="editing.name" label="小組名稱 *" outlined dense />
           <q-input v-model="editing.region" label="地區 *" outlined dense />
-          <q-input v-model="editing.center_name" label="所屬中心" outlined dense />
+          <q-select
+            v-model="editing.center_id"
+            :options="centers.map((c) => ({ label: c.name, value: c.id }))"
+            emit-value
+            map-options
+            clearable
+            outlined
+            dense
+            label="所屬中心"
+            hint="中心在「場域管理」新增"
+          />
           <q-input v-model="editing.schedule" label="共修時間（例如：每週三 19:30）" outlined dense />
           <q-input v-model="editing.description" type="textarea" autogrow label="介紹" outlined />
           <q-input v-model.number="editing.sort_order" type="number" label="排序（小的在前）" outlined dense />

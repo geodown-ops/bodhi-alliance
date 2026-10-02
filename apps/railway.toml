@@ -1,0 +1,7 @@
+# Railway：官網與後台兩個服務都指向這個檔案，各自設定變數 APP=web 或 APP=admin。
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"

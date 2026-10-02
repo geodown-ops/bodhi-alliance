@@ -23,9 +23,10 @@ const turns = [
 
     <h2>緣起</h2>
     <p>
-      太虛大師於 1923 年創立，旨在推動佛教國際化；後由弘化大和尚於 2011 年復辦並改名，現推動全球佛教交流、文化活動與和平倡議。
-      世界禪修中心、彌勒心流靜坐、1BN.AI 世界靜坐日，以及菩提幣與時間銀行，都在同一個宗旨底下。
+      世界佛教教育協會的源頭，可追溯至太虛大師於 1923 年發起的世界佛教聯合會，以推動佛教國際交流為宗旨。
+      協會今日致力於全球佛教交流、文化活動與和平倡議，並以「轉念、轉識、轉依」三轉作為日常修行的核心。
     </p>
+    <p class="text-caption text-grey-7">本頁為草稿，沿革、據點與聯絡方式待協會確認後補上。</p>
     <q-btn outline color="secondary" no-caps href="https://www.sunnylife.world" target="_blank" label="前往 sunnylife.world" icon-right="open_in_new" />
   </q-page>
 </template>

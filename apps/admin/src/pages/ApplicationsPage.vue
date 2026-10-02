@@ -67,6 +67,30 @@ async function save() {
   }
 }
 
+const centers = ref<{ id: string; name: string }[]>([])
+const convertCenter = ref<string | null>(null)
+onMounted(async () => {
+  try {
+    centers.value = await api.get('/api/admin/centers')
+  } catch {
+    /* 中心清單只影響「建立共好企業」的選項 */
+  }
+})
+
+async function toMerchant() {
+  const a = editing.value
+  if (!a) return
+  try {
+    await api.send('POST', `/api/admin/merchant-applications/${a.id}/merchant`, convertCenter.value ? { center_id: convertCenter.value } : {})
+    Notify.create({ type: 'positive', message: '已建立共好企業，狀態為審核中' })
+    editing.value = null
+    convertCenter.value = null
+    load()
+  } catch (e) {
+    Notify.create({ type: 'negative', message: (e as Error).message })
+  }
+}
+
 const details = (a: App) =>
   Object.entries(a).filter(([k, v]) => !['id', 'group_id', 'status', 'admin_note'].includes(k) && v !== '' && v !== null)
 const fieldLabel: Record<string, string> = {
@@ -110,6 +134,21 @@ const fieldLabel: Record<string, string> = {
         <q-card-section class="q-gutter-md">
           <q-select v-model="editing.status" :options="statuses.slice(1)" emit-value map-options label="狀態" outlined dense />
           <q-input v-model="editing.admin_note" type="textarea" autogrow label="內部備註" outlined />
+        </q-card-section>
+        <q-card-section v-if="tab === 'merchant'" class="q-gutter-sm">
+          <div class="text-subtitle2">建立成共好企業</div>
+          <q-select
+            v-if="editing.kind === 'center'"
+            v-model="convertCenter"
+            :options="centers.map((c) => ({ label: c.name, value: c.id }))"
+            emit-value
+            map-options
+            clearable
+            outlined
+            dense
+            label="所屬中心（選了就建成聯盟單位）"
+          />
+          <q-btn outline color="secondary" no-caps icon="storefront" label="建立共好企業" @click="toMerchant" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="取消" @click="editing = null" />

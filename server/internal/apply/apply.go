@@ -17,15 +17,16 @@ import (
 )
 
 type Group struct {
-	ID          string `json:"id"`
-	Name        string `json:"name" binding:"required,max=100"`
-	Region      string `json:"region" binding:"required,max=50"`
-	CenterName  string `json:"center_name" binding:"max=100"`
-	Schedule    string `json:"schedule" binding:"max=200"`
-	Description string `json:"description" binding:"max=2000"`
-	IsOnline    bool   `json:"is_online"`
-	IsListed    bool   `json:"is_listed"`
-	SortOrder   int    `json:"sort_order"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name" binding:"required,max=100"`
+	Region      string  `json:"region" binding:"required,max=50"`
+	CenterID    *string `json:"center_id" binding:"omitempty,uuid"`
+	CenterName  string  `json:"center_name" binding:"max=100"`
+	Schedule    string  `json:"schedule" binding:"max=200"`
+	Description string  `json:"description" binding:"max=2000"`
+	IsOnline    bool    `json:"is_online"`
+	IsListed    bool    `json:"is_listed"`
+	SortOrder   int     `json:"sort_order"`
 }
 
 type GroupApplication struct {
@@ -84,9 +85,11 @@ func (h *Handler) Routes(r *gin.RouterGroup) {
 func (h *Handler) listGroups(publicOnly bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rows, err := h.DB.Query(c, `
-			SELECT id, name, region, center_name, schedule, description, is_online, is_listed, sort_order
-			FROM practice_group WHERE is_listed OR NOT $1
-			ORDER BY sort_order, region, name`, publicOnly)
+			SELECT g.id, g.name, g.region, g.center_id, coalesce(c.name, g.center_name), g.schedule, g.description,
+			       g.is_online, g.is_listed, g.sort_order
+			FROM practice_group g LEFT JOIN center c ON c.id = g.center_id
+			WHERE g.is_listed OR NOT $1
+			ORDER BY g.sort_order, g.region, g.name`, publicOnly)
 		if err != nil {
 			httpx.Error(c, http.StatusInternalServerError, "讀取失敗")
 			return
@@ -110,16 +113,16 @@ func (h *Handler) saveGroup(c *gin.Context) {
 	var err error
 	if id == "" {
 		err = h.DB.QueryRow(c, `
-			INSERT INTO practice_group (name, region, center_name, schedule, description, is_online, is_listed, sort_order)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-			g.Name, g.Region, g.CenterName, g.Schedule, g.Description, g.IsOnline, g.IsListed, g.SortOrder).Scan(&g.ID)
+			INSERT INTO practice_group (name, region, center_id, center_name, schedule, description, is_online, is_listed, sort_order)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+			g.Name, g.Region, g.CenterID, g.CenterName, g.Schedule, g.Description, g.IsOnline, g.IsListed, g.SortOrder).Scan(&g.ID)
 	} else {
 		var tag interface{ RowsAffected() int64 }
 		tag, err = h.DB.Exec(c, `
-			UPDATE practice_group SET name = $2, region = $3, center_name = $4, schedule = $5, description = $6,
-			       is_online = $7, is_listed = $8, sort_order = $9, updated_at = now()
+			UPDATE practice_group SET name = $2, region = $3, center_id = $4, center_name = $5, schedule = $6,
+			       description = $7, is_online = $8, is_listed = $9, sort_order = $10, updated_at = now()
 			WHERE id = $1`,
-			id, g.Name, g.Region, g.CenterName, g.Schedule, g.Description, g.IsOnline, g.IsListed, g.SortOrder)
+			id, g.Name, g.Region, g.CenterID, g.CenterName, g.Schedule, g.Description, g.IsOnline, g.IsListed, g.SortOrder)
 		if err == nil && tag.RowsAffected() == 0 {
 			httpx.Error(c, http.StatusNotFound, "找不到這個小組")
 			return

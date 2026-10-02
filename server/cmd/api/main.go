@@ -1,5 +1,5 @@
 // Command api serves the official site's core API: admin login, 覺行小組 and
-// 共好企業 sign-ups. Ledger, vouchers and governance join here from M2 on.
+// 共好企業 sign-ups, 場域管理 and 共好企業管理. Ledger, vouchers and governance join here from M2 on.
 package main
 
 import (
@@ -14,6 +14,7 @@ import (
 	"github.com/geodown-ops/bodhi-alliance/server/internal/config"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/db"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/httpx"
+	"github.com/geodown-ops/bodhi-alliance/server/internal/org"
 )
 
 func main() {
@@ -44,5 +45,6 @@ func NewRouter(cfg config.Config, authSvc *auth.Service) *gin.Engine {
 	api := r.Group("/api")
 	authSvc.Routes(api.Group("/auth"))
 	(&apply.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
+	(&org.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
 	return r
 }

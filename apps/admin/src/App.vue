@@ -12,6 +12,8 @@ const items = computed(() => [
     ? [
         { to: '/applications', label: '報名與登記', icon: 'inbox' },
         { to: '/groups', label: '覺行小組', icon: 'groups' },
+        { to: '/venues', label: '場域管理', icon: 'place' },
+        { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
       ]
     : []),
   { to: '/knowledge', label: '知識庫', icon: 'menu_book' },

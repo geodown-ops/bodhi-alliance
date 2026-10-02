@@ -27,7 +27,7 @@ type Config struct {
 func Load(defaultAddr string) Config {
 	return Config{
 		DatabaseURL:            env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/bodhi?sslmode=disable"),
-		Addr:                   env("ADDR", defaultAddr),
+		Addr:                   env("ADDR", portAddr(defaultAddr)),
 		AllowedOrigins:         split(env("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174")),
 		TrustedProxies:         split(os.Getenv("TRUSTED_PROXIES")),
 		BootstrapAdminEmail:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
@@ -53,4 +53,12 @@ func split(s string) []string {
 		}
 	}
 	return out
+}
+
+// portAddr honours PORT (set by Railway and most hosts) when ADDR is not given.
+func portAddr(fallback string) string {
+	if p := strings.TrimSpace(os.Getenv("PORT")); p != "" {
+		return ":" + p
+	}
+	return fallback
 }
