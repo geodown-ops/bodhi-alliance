@@ -171,6 +171,8 @@ flowchart BT
 | --- | --- | --- | --- |
 | id | uuid | PK；UNIQUE (id, state) | |
 | activity_id, center_id | uuid | FK → activity(id, center_id) | |
+| funding_center_id | uuid | FK → center NOT NULL | 背書中心；預設為活動所屬中心，由決策小組審核時確認或改指定 |
+| funding_reason | text | 改指定時必填 | |
 | version | int | UNIQUE (activity_id, version) | 退回後重建 +1 |
 | previous_list_id | uuid | FK → issuance_list NULL | 保留版本鏈 |
 | tier_resolution_id | uuid | 已生效決議外鍵 | 造冊時生效的梯級表，不溯及既往 |
@@ -308,11 +310,13 @@ UNIQUE (issuance_line_id)  -- 一列只能入帳一次；沖正走 reverses_entr
 3. 全域：所有帳戶負債 + 金庫 + 各中心 + 各商家鏈上餘額 = total_supply。
 4. 每張券都有一筆 exchange 來源，以及核銷、轉贈或過期退回的去向。
 
-### 一個設計選擇：餘額依發行中心分帳
+### 跨中心服務：由決策小組指定背書中心
 
-> **待確認（未決）**：志工到別的中心服務，幣由服務所在的中心發行並背書（本節的分帳做法），還是應該算在志工自己的所屬中心？
+**已決定（2026-10-02）**：志工到別的中心服務時，幣由哪個中心背書，由世界佛教教育協會菩提幣決策小組決定。本稿先把決策小組視為 SPEC 的執委會。
 
-SPEC 要求每個中心的帳戶負債等於其鏈上餘額（§4.4 第 3 點），又禁止中心之間轉幣（§6）。志工在乙中心服務就是由乙中心核發，所以這筆幣必須記在乙中心名下，不能記在志工所屬的甲中心。因此 volunteer_balance 以 (志工, 中心) 分帳，券記錄出資中心。志工畫面只顯示合計；兌換時預設從最早入帳的分帳扣。若一張券需要跨分帳出資，funding_center_id 改成子表 voucher_funding (voucher_id, center_id, amount)。
+模型做法：issuance_list 新增 funding_center_id（FK → center，NOT NULL），預設為活動所屬中心，決策小組審核名單時確認或改指定；改指定時填 funding_reason，由核可紀錄留痕。該名單的入帳記在指定中心的分帳，也占用該中心的季度額度（D49）。
+
+SPEC 要求每個中心的帳戶負債等於其鏈上餘額（§4.4 第 3 點），又禁止中心之間轉幣（§6），所以每筆幣都要記在決策小組指定的那個中心名下。因此 volunteer_balance 以 (志工, 中心) 分帳，券記錄出資中心。志工畫面只顯示合計；兌換時預設從最早入帳的分帳扣。若一張券需要跨分帳出資，funding_center_id 改成子表 voucher_funding (voucher_id, center_id, amount)。
 
 ## 待決問題（Q17–Q23）
 
@@ -330,6 +334,6 @@ Q21 與 Q23 會直接改到 schema；其餘幾題多半只是多加欄位或關�
 
 ### 非法務、但定稿前要拍板
 
-- 餘額依發行中心分帳（上一節）是否符合各中心對「誰承擔這筆幣」的理解。**未決。**
+- 菩提幣決策小組是否就是 SPEC 的執委會；若是，全文的「執委會」應改名。
 - 志工登入方式與推播管道（手機、Email 或 LINE），決定 app_user 的欄位。
 - 核發沖正可能讓餘額為負（§9.7），所以 volunteer_balance.coins 沒有加 ≥ 0 的 CHECK；兌換時另檢查餘額。
