@@ -1,6 +1,6 @@
 # 菩提幣資料模型（草案）
 
-2026-09-30 草案 · 未經執委會決議 · 線上可編輯版本：[Bodhi Coin Data Model (Draft)](https://claude.ai/code/artifact/699a87ca-717d-4abe-bd00-019be6fcd103)
+2026-09-30 草案 · 未經決策小組決議 · 線上可編輯版本：[Bodhi Coin Data Model (Draft)](https://claude.ai/code/artifact/699a87ca-717d-4abe-bd00-019be6fcd103)
 
 ## 依據與範圍
 
@@ -121,7 +121,7 @@ flowchart BT
 | name | text | NOT NULL | |
 | onchain_address | text | NOT NULL UNIQUE | |
 | monthly_cap | bigint | NOT NULL | 每月核銷上限（贊助規模） |
-| cap_resolution_id | uuid | 已生效決議外鍵 | 執委會核定上架與額度 |
+| cap_resolution_id | uuid | 已生效決議外鍵 | 決策小組核定上架與額度 |
 | status | text | pending／active／suspended | |
 
 ### 治理
@@ -312,7 +312,7 @@ UNIQUE (issuance_line_id)  -- 一列只能入帳一次；沖正走 reverses_entr
 
 ### 跨中心服務：由決策小組指定背書中心
 
-**已決定（2026-10-02）**：志工到別的中心服務時，幣由哪個中心背書，由世界佛教教育協會菩提幣決策小組決定。本稿先把決策小組視為 SPEC 的執委會。
+**已決定（2026-10-02）**：志工到別的中心服務時，幣由哪個中心背書，由世界佛教教育協會菩提幣決策小組決定。決策小組即 SPEC 所稱的執委會（2026-10-02 確認），本稿一律稱決策小組。
 
 模型做法：issuance_list 新增 funding_center_id（FK → center，NOT NULL），預設為活動所屬中心，決策小組審核名單時確認或改指定；改指定時填 funding_reason，由核可紀錄留痕。該名單的入帳記在指定中心的分帳，也占用該中心的季度額度（D49）。
 
@@ -328,12 +328,11 @@ Q21 與 Q23 會直接改到 schema；其餘幾題多半只是多加欄位或關�
 | Q18 | 所得認定、扣繳與憑單、轉贈的贈與稅、收費場域的費用認列 | volunteer 可能要加加密的身分證字號；需要每人每年、依核發中心的彙總報表 | 不存身分證字號；彙總可從 ledger_entry 推出 |
 | Q19 | 是否落入多用途支付工具 | 無。模型已不允許幣在志工之間移轉，ledger_entry 沒有對應的 kind | 維持幣不可轉讓（D30） |
 | Q20 | 券是否構成商品（服務）禮券 | voucher_transfer 整張表、voucher.transfer_count、expires_at 與過期退回；若改由商家自行發券，voucher 要加 issuer；若須履約保證，merchant 要加保證欄位 | 轉贈做成參數開關；券的發行人視為聯盟 |
-| Q21 | 執委會席次、法定人數、表決門檻、任期；聯盟法律主體；多簽簽署人怎麼對應席次 | committee_seat、resolution_vote、alliance.legal_entity_type；法定人數與門檻要進 parameter_value。還有雞生蛋問題：第一批席次與第一張梯級表沒有決議可引用 | 先照 SPEC 建議：每中心 1 席加聯盟指定 2 席；用一筆 kind = founding 的創始決議收容初始參數 |
+| Q21 | 決策小組席次、法定人數、表決門檻、任期；聯盟法律主體；多簽簽署人怎麼對應席次 | committee_seat、resolution_vote、alliance.legal_entity_type；法定人數與門檻要進 parameter_value。還有雞生蛋問題：第一批席次與第一張梯級表沒有決議可引用 | 先照 SPEC 建議：每中心 1 席加聯盟指定 2 席；用一筆 kind = founding 的創始決議收容初始參數 |
 | Q22 | 首波成員、商家每月可承受規模、活動人數與頻率 | 影響種子資料與 alliance.total_supply、merchant.monthly_cap、center_quota，不動結構 | total_supply 暫定 5 億 |
-| Q23 | 1:1 平價若不可行，改回相對對價 | voucher_type_price 的 CHECK 拿掉；券價改由執委會核定，要加 voucher_type_price.resolution_id；報表不能再把幣當台幣讀 | 平價寫成單一一條 CHECK，退路只是一次 migration |
+| Q23 | 1:1 平價若不可行，改回相對對價 | voucher_type_price 的 CHECK 拿掉；券價改由決策小組核定，要加 voucher_type_price.resolution_id；報表不能再把幣當台幣讀 | 平價寫成單一一條 CHECK，退路只是一次 migration |
 
 ### 非法務、但定稿前要拍板
 
-- 菩提幣決策小組是否就是 SPEC 的執委會；若是，全文的「執委會」應改名。
 - 志工登入方式與推播管道（手機、Email 或 LINE），決定 app_user 的欄位。
 - 核發沖正可能讓餘額為負（§9.7），所以 volunteer_balance.coins 沒有加 ≥ 0 的 CHECK；兌換時另檢查餘額。
