@@ -111,7 +111,6 @@ em{font-style:normal;color:var(--gold);font-weight:500}
   font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--band-soft);
 }
-.org b{color:var(--band-gold);font-weight:500}
 .topbar a{
   font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
   color:var(--band-soft);text-decoration:none;white-space:nowrap;
@@ -138,11 +137,6 @@ em{font-style:normal;color:var(--gold);font-weight:500}
   font-size:clamp(38px,6.4vw,64px);
   line-height:1.24;letter-spacing:.04em;
   margin:20px 0 0;color:var(--band-ink);
-}
-.oneline-en{
-  font-family:var(--wenkai);font-weight:400;
-  font-size:clamp(15px,1.9vw,19px);letter-spacing:.06em;
-  color:var(--band-gold);margin:8px 0 0;
 }
 .hairline{
   height:1px;background:var(--band-rule);
@@ -435,7 +429,7 @@ footer a:hover{text-decoration:underline}
 
 <div class="topbar">
   <div class="shell">
-    <span class="org">世界佛教教育協會 <b>WEBA Sunnylife</b></span>
+    <span class="org">世界佛教教育協會</span>
     <a href="https://www.sunnylife.world/" target="_blank" rel="noopener">sunnylife.world ↗</a>
   </div>
 </div>
@@ -446,7 +440,6 @@ footer a:hover{text-decoration:underline}
     <div class="hero-copy">
       <p class="eyebrow">菩提幣聯盟 · 成員招募</p>
       <p class="oneline">一即一切<br>一切即一</p>
-      <p class="oneline-en">All is One. One is All.</p>
       <div class="hairline"></div>
       <p class="hero-lede">
         一個人的服務，回到所有人身上；所有人的供養，回到每一個人身上。<b>菩提幣</b>把禪修中心的服務時數，變成聯盟共通的記帳單位——志工與禪修教練以服務換幣，在聯盟單位與贊助商家兌換住宿、餐飲與療程。
@@ -767,11 +760,17 @@ footer a:hover{text-decoration:underline}
 </footer>
 
 <script>
-// 想改成直接送出？把下面兩個值填上其中一個即可。
+// 想改成直接送出？把下面的值填上即可。
 // CONTACT_EMAIL：填了會多出一個「用郵件軟體寄出」按鈕。
-// FORM_ENDPOINT：填了會直接 POST 到該網址（Google 表單／Formspree 等）。
+// FORM_ENDPOINT：Google 表單的送出網址，格式為
+//   https://docs.google.com/forms/d/e/<表單ID>/formResponse
+// FORM_ENTRIES：頁面欄位對應到 Google 表單的 entry 編號（從「取得預先填入的連結」可看到）。
+//   沒對應到的欄位不會送出；若用 Formspree 等服務，留空即以欄位原名送出。
 const CONTACT_EMAIL = "";
 const FORM_ENDPOINT = "";
+const FORM_ENTRIES = {
+  // role: "entry.0000000000",
+};
 
 const form = document.getElementById("joinForm");
 const receipt = document.getElementById("receipt");
@@ -822,7 +821,12 @@ form.addEventListener("submit", function (e) {
   copied.hidden = true;
 
   if (FORM_ENDPOINT) {
-    const data = new FormData(form);
+    const data = new URLSearchParams();
+    const mapped = Object.keys(FORM_ENTRIES).length > 0;
+    for (const [id] of FIELDS) {
+      const key = mapped ? FORM_ENTRIES[id] : id;
+      if (key) data.append(key, document.getElementById(id).value.trim());
+    }
     fetch(FORM_ENDPOINT, { method: "POST", body: data, mode: "no-cors" }).catch(function () {});
   }
   receipt.scrollIntoView({ behavior: "smooth", block: "start" });
