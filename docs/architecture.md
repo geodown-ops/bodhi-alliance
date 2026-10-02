@@ -1,6 +1,6 @@
 # 菩提幣官網系統架構（草案）
 
-2026-10-02 草案 · 待確認技術棧後才開始寫程式
+2026-10-02 草案 · 技術棧與單一 repo 已確認，階段 A 已開始實作
 
 ## 一句話
 
@@ -78,7 +78,7 @@ flowchart TB
     jobs[排程：決議生效、每週結算、每月歸集、每日錨定、對帳]
   end
   subgraph 資料
-    pg[(PostgreSQL<br/>帳本、券、組織、決議<br/>pgvector 知識向量)]
+    pg[(PostgreSQL<br/>帳本、券、組織、決議<br/>知識庫)]
     redis[(Redis<br/>QR 輪替、限流、佇列)]
     files[(物件儲存<br/>知識原始檔、加密快照)]
   end
@@ -165,7 +165,7 @@ flowchart LR
 **技術**
 
 - 模型走 Claude API，金鑰只放在伺服器環境變數。
-- 檢索用 PostgreSQL + pgvector，不另架向量資料庫；中文切段後產生向量（嵌入模型待選），並搭配關鍵字比對補強專有名詞。
+- 知識庫在 15 萬字以內時，整份放進系統提示並啟用提示快取，回答品質最好、重複提問也便宜；超過時改成依最新問題挑出最相關的段落（中文雙字詞比對，不需要另外的嵌入模型）。知識量真的很大時再加 pgvector。
 - 依使用者與 IP 限流，每月費用上限可在後台設定，超過就暫停對話並顯示公告。
 
 ## 技術棧（建議，待確認）
@@ -173,27 +173,30 @@ flowchart LR
 | 層 | 建議 | 依據 |
 | --- | --- | --- |
 | 後端 API | Go + Gin、PostgreSQL、Redis | SPEC §14 |
-| AI 組長服務 | Go（與 API 同語言、共用登入）＋ pgvector | 本文 |
+| AI 組長服務 | Go（與 API 同語言、共用登入）＋ Claude API | 本文 |
 | 前台三個 PWA | Vue 3 + TypeScript + Vite + Pinia + Quasar | SPEC §14 |
 | 公開頁 | 由 `bodhi-web` 預先產生靜態頁（SEO） | 本文 |
 | 合約 | Solidity + Foundry + OpenZeppelin，Polygon Amoy → mainnet | SPEC §6、§14 |
 | 金鑰 | AWS KMS + 獨立簽章服務 | SPEC §7 |
 | 部署 | Railway（dev／prod 兩個 project） | SPEC §14 |
 
-**Repo 結構：建議改成單一 repo（就是本 repo）**，取代 SPEC §14 的六個 repo。一到兩位開發者時，前後端共用型別、一次 PR 改完一個功能比較省事；之後真的要拆再拆。
+**Repo 結構：單一 repo（就是本 repo，2026-10-02 確認）**，取代 SPEC §14 的六個 repo。一到兩位開發者時，一次 PR 改完一個功能比較省事；之後真的要拆再拆。
 
 ```
 bodhi-alliance/
-  docs/            架構、資料模型、規格摘要
-  apps/web/        官網＋志工錢包 PWA（含公開頁）
-  apps/merchant/   共好企業 PWA
-  apps/admin/      管理後台（審核小組、聯盟、中心、知識庫）
-  services/api/    核心 API
-  services/guide/  AI 組長服務
-  services/signer/ 簽章服務
-  contracts/       合約＋verifier CLI
-  index.html       現有招募頁，正式站上線前保留在 GitHub Pages
+  docs/              架構、資料模型
+  apps/web/          官網＋志工錢包 PWA（含公開頁）
+  apps/admin/        管理後台（報名、小組、知識庫、AI 組長設定；之後加審核小組、中心）
+  apps/merchant/     共好企業 PWA（M5 再建）
+  server/cmd/api/    核心 API
+  server/cmd/guide/  AI 組長服務
+  server/cmd/signer/ 簽章服務（M1 再建）
+  server/internal/   兩個服務共用的登入、資料庫與遷移
+  contracts/         合約＋verifier CLI（M1 再建）
+  index.html         現有招募頁，正式站上線前保留在 GitHub Pages
 ```
+
+兩個 Go 服務放在同一個 Go module，共用登入與資料庫遷移，但各自編譯、各自部署。
 
 ## 分期
 
@@ -216,6 +219,5 @@ Phase 0 的法務問題（Q17 志工定性、Q20 禮券定性）會影響**幣�
 1. **主辦審核小組＝執委會？** 本文假設是。若主辦審核小組只負責審核核發名單、制定標準另有其人，角色表要拆開。
 2. **覺行小組的定位**：本文假設是「中心底下的共修小組，共修場次可作為核發活動」。若小組跨中心，或共修不發幣，資料模型要改。
 3. **協會名稱**：現有招募頁寫「世界佛教教育協會」，選單需求寫「學會」。本文先用「協會」。
-4. **技術棧與單一 repo**：見上節，確認後才開始建專案骨架。
-5. **AI 組長是否開放訪客使用**：本文假設訪客可對話、帶領共修；若只給已報名的志工，要先登入。
-6. 沿用 data-model 的未決題：志工到別的中心服務時由哪個中心背書。
+4. **AI 組長是否開放訪客使用**：本文假設訪客可對話、帶領共修；若只給已報名的志工，要先登入。
+5. 沿用 data-model 的未決題：志工到別的中心服務時由哪個中心背書。
