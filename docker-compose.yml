@@ -1,0 +1,35 @@
+# 本機開發：docker compose up 會起資料庫、核心 API（:8081）與 AI 組長服務（:8082）。
+# 前台與後台另外用 npm run dev:web／dev:admin 啟動（見 README）。
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bodhi
+    ports: ['5432:5432']
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 2s
+      retries: 20
+
+  api:
+    build: { context: server, args: { SERVICE: api } }
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/bodhi?sslmode=disable
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.org}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-change-me-please}
+    ports: ['8081:8081']
+    depends_on: { db: { condition: service_healthy } }
+
+  guide:
+    build: { context: server, args: { SERVICE: guide } }
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/bodhi?sslmode=disable
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GUIDE_NAME: ${GUIDE_NAME:-Sunny}
+    ports: ['8082:8082']
+    depends_on: { db: { condition: service_healthy } }
+
+volumes:
+  dbdata:

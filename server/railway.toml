@@ -1,0 +1,8 @@
+# Railway：api 與 guide 兩個服務都指向這個檔案，各自設定變數 SERVICE=api 或 SERVICE=guide。
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/healthz"
+restartPolicyType = "ON_FAILURE"
