@@ -31,6 +31,11 @@ func main() {
 	if err := store.EnsurePersona(ctx, cfg.GuideName); err != nil {
 		log.Fatalf("seed persona: %v", err)
 	}
+	if n, err := store.SeedDocuments(ctx, guide.SeedFiles); err != nil {
+		log.Fatalf("seed knowledge: %v", err)
+	} else if n > 0 {
+		log.Printf("published %d bundled knowledge documents", n)
+	}
 
 	h := &guide.Handler{Store: store, Auth: &auth.Service{DB: pool}}
 	if cfg.AnthropicAPIKey != "" {

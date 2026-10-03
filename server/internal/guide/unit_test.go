@@ -3,6 +3,7 @@ package guide
 import (
 	"archive/zip"
 	"bytes"
+	"io/fs"
 	"strings"
 	"testing"
 )
@@ -134,5 +135,35 @@ func TestEstimateCost(t *testing.T) {
 	// 1M input + 1M output on Opus 5.5 = $4 + $20
 	if got := estimateCost("claude-opus-5-5", 1e6, 1e6, 0, 0); got != 24 {
 		t.Errorf("got %v, want 24", got)
+	}
+}
+
+func TestParseSeed(t *testing.T) {
+	title, cat, body, err := parseSeed("---\r\ntitle: 世界佛教教育協會\r\ncategory: association\r\n---\r\n# 推動單位\r\n\r\n內文\r\n")
+	if err != nil || title != "世界佛教教育協會" || cat != "association" || body != "# 推動單位\n\n內文" {
+		t.Errorf("got %q %q %q %v", title, cat, body, err)
+	}
+	for _, bad := range []string{"# 沒有表頭", "---\ntitle: x\n", "---\ncategory: coin\n---\nx", "---\ntitle: x\ncategory: misc\n---\nx"} {
+		if _, _, _, err := parseSeed(bad); err == nil {
+			t.Errorf("parseSeed(%q) accepted", bad)
+		}
+	}
+}
+
+// The bundled files must parse and use the decision group's current name.
+func TestBundledSeedFiles(t *testing.T) {
+	files, err := fs.Glob(SeedFiles, "seed/*.md")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no seed files: %v", err)
+	}
+	for _, name := range files {
+		raw, _ := fs.ReadFile(SeedFiles, name)
+		_, _, body, err := parseSeed(string(raw))
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+		if strings.Contains(body, "執委會") || strings.Contains(body, "執行委員會") {
+			t.Errorf("%s still says 執委會; use 菩提幣決策小組", name)
+		}
 	}
 }

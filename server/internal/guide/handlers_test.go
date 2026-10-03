@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/gin-gonic/gin"
 
@@ -237,5 +239,52 @@ func TestChatStreams(t *testing.T) {
 	want := "event:delta\ndata:{\"text\":\"好\"}\n\nevent:delta\ndata:{\"text\":\"的\"}\n\nevent:done\ndata:{\"reply\":\"好的\"}\n\n"
 	if w.Body.String() != want {
 		t.Errorf("body = %q", w.Body.String())
+	}
+}
+
+func TestSeedDocumentsOnce(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	fsys := fstest.MapFS{
+		"seed/coin.md": {Data: []byte("---\ntitle: 菩提幣與共好企業\ncategory: coin\n---\n# 梯級\n\n半日服務：1,500 幣")},
+	}
+	if n, err := e.store.SeedDocuments(ctx, fsys); err != nil || n != 1 {
+		t.Fatalf("first seed: n=%d err=%v", n, err)
+	}
+	msg := map[string]any{"messages": []Message{{Role: "user", Content: "半日服務幾幣？"}}}
+	e.do(http.MethodPost, "/guide/chat", msg, false)
+	if !strings.Contains(e.llm.last.Knowledge, "1,500 幣") || !strings.Contains(e.llm.last.Knowledge, `title="菩提幣與共好企業"`) {
+		t.Fatalf("seeded doc not live: %q", e.llm.last.Knowledge)
+	}
+
+	// An admin archiving it is not undone by the next start.
+	docs, err := e.store.ListDocuments(ctx)
+	if err != nil || len(docs) != 1 || docs[0].SourceName != "seed/coin.md" {
+		t.Fatalf("docs = %+v, %v", docs, err)
+	}
+	if err := e.store.SetStatus(ctx, docs[0].ID, "archived"); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := e.store.SeedDocuments(ctx, fsys); err != nil || n != 0 {
+		t.Fatalf("second seed: n=%d err=%v", n, err)
+	}
+	if docs, _ := e.store.ListDocuments(ctx); len(docs) != 0 {
+		t.Errorf("archived seed came back: %+v", docs)
+	}
+	if id, _ := e.store.Setting(ctx, "seed:coin.md"); id == "" {
+		t.Error("seed key has no document id")
+	}
+}
+
+func TestBundledSeedPublishes(t *testing.T) {
+	e := setup(t)
+	files, _ := fs.Glob(SeedFiles, "seed/*.md")
+	if n, err := e.store.SeedDocuments(context.Background(), SeedFiles); err != nil || n != len(files) {
+		t.Fatalf("seed: n=%d err=%v", n, err)
+	}
+	msg := map[string]any{"messages": []Message{{Role: "user", Content: "誰審核核發名單？"}}}
+	e.do(http.MethodPost, "/guide/chat", msg, false)
+	if !strings.Contains(e.llm.last.Knowledge, "菩提幣決策小組") {
+		t.Error("bundled knowledge not live")
 	}
 }
