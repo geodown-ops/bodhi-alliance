@@ -56,9 +56,7 @@ const drawer = ref(false)
     </q-page-container>
 
     <q-footer class="footer">
-      <div>Sunny life · 世界佛教教育協會</div>
-      <div>幣不販售 · 不提領 · 不可兌現 · 非投資標的</div>
-      <a href="https://www.sunnylife.world" target="_blank" rel="noopener">www.sunnylife.world</a>
+      <div>一即一切，一切即一</div>
     </q-footer>
   </q-layout>
 </template>
@@ -81,8 +79,5 @@ const drawer = ref(false)
   padding: 20px 16px;
   line-height: 1.9;
   font-size: 0.9rem;
-}
-.footer a {
-  color: var(--leaf);
 }
 </style>

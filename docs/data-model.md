@@ -61,7 +61,7 @@ flowchart BT
 | 欄位 | 型別 | 約束 | 說明 |
 | --- | --- | --- | --- |
 | id | smallint | PK | |
-| name | text | NOT NULL | 菩提幣聯盟 |
+| name | text | NOT NULL | Sunny life |
 | legal_entity_type | text | NULL，CHECK 協會／基金會／契約聯盟 | Q21 定案前為 NULL |
 | total_supply | bigint | NOT NULL | D27 暫定 5 億 × 10² |
 | treasury_address | text | NOT NULL UNIQUE | Gnosis Safe 多簽 |
