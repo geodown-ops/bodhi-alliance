@@ -27,6 +27,50 @@ export type Group = {
 }
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
+export type ChatRequest = { messages: ChatMessage[]; mode: 'chat' | 'practice'; script_id?: string }
+export type ChatReply = { reply: string; refused?: boolean }
+
+// chatStream asks the guide and calls onText with each piece of the answer as it is
+// written. The resolved reply is the whole answer; on a refusal it replaces what was
+// streamed.
+async function chatStream(body: ChatRequest, onText: (text: string) => void): Promise<ChatReply> {
+  let res: Response
+  try {
+    res = await fetch(`${guideBase}/guide/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    throw new ApiError('連線失敗，請檢查網路後再試一次。')
+  }
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => undefined)
+    throw new ApiError(data?.error ?? '組長一時沒有回應，請再試一次。')
+  }
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buf = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (value) buf += value
+    let end
+    while ((end = buf.indexOf('\n\n')) >= 0) {
+      const raw = buf.slice(0, end)
+      buf = buf.slice(end + 2)
+      let event = 'message'
+      let data = ''
+      for (const line of raw.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) data += line.slice(5).trimStart()
+      }
+      const payload = data ? JSON.parse(data) : {}
+      if (event === 'delta') onText(payload.text)
+      else if (event === 'done') return payload as ChatReply
+      else if (event === 'error') throw new ApiError(payload.error ?? '組長一時沒有回應，請再試一次。')
+    }
+    if (done) throw new ApiError('組長的回答中斷了，請再試一次。')
+  }
+}
 
 export const api = {
   groups: () => request<Group[]>(`${apiBase}/api/groups`),
@@ -37,6 +81,7 @@ export const api = {
 
   guideInfo: () => request<{ name: string; available: boolean }>(`${guideBase}/guide/info`),
   scripts: () => request<{ id: string; title: string }[]>(`${guideBase}/guide/scripts`),
-  chat: (body: { messages: ChatMessage[]; mode: 'chat' | 'practice'; script_id?: string }) =>
-    request<{ reply: string }>(`${guideBase}/guide/chat`, { method: 'POST', body: JSON.stringify(body) }),
+  chat: (body: ChatRequest) =>
+    request<ChatReply>(`${guideBase}/guide/chat`, { method: 'POST', body: JSON.stringify(body) }),
+  chatStream,
 }

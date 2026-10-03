@@ -132,18 +132,40 @@ func (h *Handler) respond(c *gin.Context, req chatRequest, chunks []Chunk, scrip
 	}
 	ctx, cancel := context.WithTimeout(c, 2*time.Minute)
 	defer cancel()
-	reply, usage, err := h.LLM.Complete(ctx, turn)
+	stream := strings.Contains(c.GetHeader("Accept"), "text/event-stream")
+	var onText func(string)
+	if stream {
+		c.Header("Cache-Control", "no-cache")
+		c.Header("X-Accel-Buffering", "no")
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Status(http.StatusOK)
+		c.Writer.Flush()
+		onText = func(text string) {
+			c.SSEvent("delta", gin.H{"text": text})
+			c.Writer.Flush()
+		}
+	}
+	reply, usage, err := h.LLM.Complete(ctx, turn, onText)
 	if usage.Model != "" {
 		if err := h.Store.RecordUsage(context.WithoutCancel(c), usage.Model, usage.Input, usage.Output, usage.CacheRead, usage.CacheW); err != nil {
 			log.Printf("record usage: %v", err)
 		}
 	}
+	const failed = "線上組長一時沒有回應，請再試一次。"
 	if err != nil {
 		log.Printf("guide chat: %v", err)
-		httpx.Error(c, http.StatusBadGateway, "線上組長一時沒有回應，請再試一次。")
-		return
 	}
-	c.JSON(http.StatusOK, reply)
+	switch {
+	case stream && err != nil:
+		c.SSEvent("error", gin.H{"error": failed})
+	case stream:
+		// done carries the whole answer; on a refusal it replaces what was streamed.
+		c.SSEvent("done", reply)
+	case err != nil:
+		httpx.Error(c, http.StatusBadGateway, failed)
+	default:
+		c.JSON(http.StatusOK, reply)
+	}
 }
 
 // try answers a test question as the public chat would, optionally including one
