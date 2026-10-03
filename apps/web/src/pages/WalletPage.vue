@@ -3,6 +3,7 @@
     <h1>菩提幣錢包</h1>
     <p class="lead">服務換來的菩提幣、兌換的券、到店核銷用的身份 QR，都在這裡。</p>
     <p><span class="status-chip">籌備中，法務結論到齊後開放</span></p>
+    <p>現在就可以先<router-link to="/join">註冊志工</router-link>，讓所屬中心核對身分；錢包開放時，你的帳號就能直接使用。</p>
 
     <h2>開放後可以做什麼</h2>
     <div class="grid">

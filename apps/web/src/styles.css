@@ -33,6 +33,13 @@ body {
   line-height: 1.4;
   margin: 40px 0 12px;
 }
+.page h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
+  margin: 24px 0 8px;
+}
 .page p,
 .page li {
   font-size: 1.05rem;

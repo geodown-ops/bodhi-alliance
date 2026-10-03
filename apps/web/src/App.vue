@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { menu } from './router'
+import { account } from './account'
 
 const drawer = ref(false)
 </script>
@@ -18,6 +19,17 @@ const drawer = ref(false)
         <nav class="gt-sm row no-wrap">
           <q-btn v-for="item in menu" :key="item.path" :to="item.path" flat no-caps :label="item.label" />
         </nav>
+        <q-btn
+          :to="account.user ? '/me' : '/login'"
+          flat
+          round
+          dense
+          icon="account_circle"
+          class="q-ml-xs"
+          :aria-label="account.user ? '我的志工資料' : '志工登入'"
+        >
+          <q-tooltip>{{ account.user ? '我的志工資料' : '志工登入' }}</q-tooltip>
+        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -30,6 +42,11 @@ const drawer = ref(false)
         <q-item v-for="item in menu" :key="item.path" clickable :to="item.path" @click="drawer = false">
           <q-item-section avatar><q-icon :name="item.icon" /></q-item-section>
           <q-item-section>{{ item.label }}</q-item-section>
+        </q-item>
+        <q-separator />
+        <q-item clickable :to="account.user ? '/me' : '/login'" @click="drawer = false">
+          <q-item-section avatar><q-icon name="account_circle" /></q-item-section>
+          <q-item-section>{{ account.user ? '我的志工資料' : '志工登入／註冊' }}</q-item-section>
         </q-item>
       </q-list>
     </q-drawer>

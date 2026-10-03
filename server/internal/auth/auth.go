@@ -1,5 +1,5 @@
-// Package auth handles admin login, bearer-token sessions and role checks.
-// Volunteer and merchant accounts arrive in M2; phase A only has back-office users.
+// Package auth handles login, bearer-token sessions and role checks for back-office
+// users and volunteers. A volunteer is an account with no roles plus a volunteer row.
 package auth
 
 import (
@@ -23,6 +23,7 @@ import (
 const (
 	RoleAllianceAdmin    = "alliance_admin"
 	RoleKnowledgeManager = "knowledge_manager"
+	RoleCenterAdmin      = "center_admin"
 
 	ScopeAlliance = "alliance"
 	ScopeGuide    = "guide"
@@ -56,6 +57,28 @@ func (u *User) Has(role, scope string) bool {
 	return false
 }
 
+// CenterScope is the scope of a center admin role for one center.
+func CenterScope(centerID string) string { return "center:" + centerID }
+
+// IsAllianceAdmin reports whether the user administers the whole alliance.
+func (u *User) IsAllianceAdmin() bool { return u.Has(RoleAllianceAdmin, ScopeAlliance) }
+
+// CenterIDs lists the centers the user administers as a center admin.
+func (u *User) CenterIDs() []string {
+	var ids []string
+	for _, r := range u.Roles {
+		if id, ok := strings.CutPrefix(r.Scope, "center:"); ok && r.Role == RoleCenterAdmin {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// ManagesCenter reports whether the user may manage the center's volunteers.
+func (u *User) ManagesCenter(centerID string) bool {
+	return u.Has(RoleCenterAdmin, CenterScope(centerID))
+}
+
 type Service struct {
 	DB *pgxpool.Pool
 }
@@ -71,20 +94,38 @@ func (s *Service) CreateUser(ctx context.Context, email, name, password string, 
 	}
 	var id string
 	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx,
-			`INSERT INTO app_user (email, display_name, password_hash) VALUES (lower($1), $2, $3) RETURNING id`,
-			email, name, string(hash)).Scan(&id); err != nil {
-			return err
-		}
-		for _, r := range roles {
-			if _, err := tx.Exec(ctx,
-				`INSERT INTO role_assignment (user_id, role, scope) VALUES ($1, $2, $3)`, id, r.Role, r.Scope); err != nil {
-				return err
-			}
-		}
-		return nil
+		id, err = insertUser(ctx, tx, email, name, hash, roles)
+		return err
 	})
 	return id, err
+}
+
+// CreateUserTx is CreateUser inside the caller's transaction.
+func CreateUserTx(ctx context.Context, tx pgx.Tx, email, name, password string, roles ...Role) (string, error) {
+	if len(password) < 10 {
+		return "", errors.New("密碼至少 10 個字元")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return insertUser(ctx, tx, email, name, hash, roles)
+}
+
+func insertUser(ctx context.Context, tx pgx.Tx, email, name string, hash []byte, roles []Role) (string, error) {
+	var id string
+	if err := tx.QueryRow(ctx,
+		`INSERT INTO app_user (email, display_name, password_hash) VALUES (lower($1), $2, $3) RETURNING id`,
+		strings.TrimSpace(email), strings.TrimSpace(name), string(hash)).Scan(&id); err != nil {
+		return "", err
+	}
+	for _, r := range roles {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO role_assignment (user_id, role, scope) VALUES ($1, $2, $3)`, id, r.Role, r.Scope); err != nil {
+			return "", err
+		}
+	}
+	return id, nil
 }
 
 // Bootstrap creates the first alliance admin if that email does not exist yet.
@@ -124,14 +165,19 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, er
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return "", errBadLogin
 	}
+	return s.NewSession(ctx, id)
+}
+
+// NewSession signs the user in and returns the session token.
+func (s *Service) NewSession(ctx context.Context, userID string) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
-	_, err = s.DB.Exec(ctx,
+	_, err := s.DB.Exec(ctx,
 		`INSERT INTO user_session (token_hash, user_id, expires_at) VALUES ($1, $2, $3)`,
-		hashToken(token), id, time.Now().Add(sessionTTL))
+		hashToken(token), userID, time.Now().Add(sessionTTL))
 	return token, err
 }
 
@@ -177,6 +223,22 @@ func bearer(c *gin.Context) string {
 
 // Require lets the request through only if the bearer token's user holds role in scope.
 func (s *Service) Require(role, scope string) gin.HandlerFunc {
+	return s.RequireThat(func(u *User) bool { return u.Has(role, scope) })
+}
+
+// RequireUser lets any signed-in user through.
+func (s *Service) RequireUser() gin.HandlerFunc {
+	return s.RequireThat(func(*User) bool { return true })
+}
+
+// RequireCenterStaff lets alliance admins and center admins through; handlers still
+// check which centers a center admin may see.
+func (s *Service) RequireCenterStaff() gin.HandlerFunc {
+	return s.RequireThat(func(u *User) bool { return u.IsAllianceAdmin() || len(u.CenterIDs()) > 0 })
+}
+
+// RequireThat lets the request through only if the bearer token's user passes allowed.
+func (s *Service) RequireThat(allowed func(*User) bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := bearer(c)
 		if token == "" {
@@ -192,7 +254,7 @@ func (s *Service) Require(role, scope string) gin.HandlerFunc {
 			httpx.Error(c, http.StatusUnauthorized, "登入已過期，請重新登入")
 			return
 		}
-		if !u.Has(role, scope) {
+		if !allowed(u) {
 			httpx.Error(c, http.StatusForbidden, "沒有這個功能的權限")
 			return
 		}
@@ -248,7 +310,9 @@ func (s *Service) Routes(g *gin.RouterGroup) {
 			       coalesce(json_agg(json_build_object('role', r.role, 'scope', r.scope)) FILTER (WHERE r.role IS NOT NULL), '[]')
 			FROM app_user u LEFT JOIN role_assignment r ON r.user_id = u.id
 			WHERE u.disabled_at IS NULL
-			GROUP BY u.id ORDER BY u.created_at`)
+			GROUP BY u.id
+			HAVING count(r.role) > 0 -- 後台帳號；志工帳號在「志工名冊」
+			ORDER BY min(u.created_at)`)
 		if err != nil {
 			httpx.Error(c, http.StatusInternalServerError, "讀取失敗")
 			return
@@ -269,15 +333,30 @@ func (s *Service) Routes(g *gin.RouterGroup) {
 			Email       string `json:"email" binding:"required,email"`
 			DisplayName string `json:"display_name" binding:"required"`
 			Password    string `json:"password" binding:"required"`
-			Role        string `json:"role" binding:"required,oneof=alliance_admin knowledge_manager"`
+			Role        string `json:"role" binding:"required,oneof=alliance_admin knowledge_manager center_admin"`
+			CenterID    string `json:"center_id" binding:"omitempty,uuid"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			httpx.Error(c, http.StatusBadRequest, "請填寫電子郵件、名稱、密碼與角色")
 			return
 		}
-		scope := ScopeGuide
-		if req.Role == RoleAllianceAdmin {
+		var scope string
+		switch req.Role {
+		case RoleAllianceAdmin:
 			scope = ScopeAlliance
+		case RoleKnowledgeManager:
+			scope = ScopeGuide
+		case RoleCenterAdmin:
+			if req.CenterID == "" {
+				httpx.Error(c, http.StatusBadRequest, "中心管理員要選管理哪個中心")
+				return
+			}
+			var exists bool
+			if err := s.DB.QueryRow(c, `SELECT EXISTS (SELECT 1 FROM center WHERE id = $1)`, req.CenterID).Scan(&exists); err != nil || !exists {
+				httpx.Error(c, http.StatusBadRequest, "選的中心不存在")
+				return
+			}
+			scope = CenterScope(req.CenterID)
 		}
 		id, err := s.CreateUser(c, req.Email, req.DisplayName, req.Password, Role{req.Role, scope})
 		if err != nil {

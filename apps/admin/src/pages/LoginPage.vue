@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { login } from '../session'
+import { homePath, login, logout } from '../session'
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
-const loading = ref(false)
 const route = useRoute()
 const router = useRouter()
+const denied = '這個帳號沒有後台權限。志工請到官網的「我的志工資料」登入。'
+const error = ref(route.query.denied ? denied : '')
+const loading = ref(false)
+if (route.query.denied) logout()
 
 async function submit() {
   loading.value = true
   error.value = ''
   try {
     await login(email.value, password.value)
+    if (!homePath()) {
+      await logout()
+      error.value = denied
+      return
+    }
     router.replace((route.query.next as string) || '/')
   } catch (e) {
     error.value = (e as Error).message

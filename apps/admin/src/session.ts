@@ -23,6 +23,17 @@ export function isAdmin(u = session.user) {
 export function isKnowledgeManager(u = session.user) {
   return isAdmin(u) || !!u?.roles.some((r) => r.role === 'knowledge_manager' && r.scope === 'guide')
 }
+// 中心管理員：管理自己中心的志工名冊與小組成員
+export function isCenterStaff(u = session.user) {
+  return isAdmin(u) || !!u?.roles.some((r) => r.role === 'center_admin')
+}
+// 登入者能進後台的第一頁；沒有任何後台角色時回傳空字串
+export function homePath(u = session.user) {
+  if (isAdmin(u)) return '/applications'
+  if (isCenterStaff(u)) return '/volunteers'
+  if (isKnowledgeManager(u)) return '/knowledge'
+  return ''
+}
 
 function setToken(t: string) {
   session.token = t
