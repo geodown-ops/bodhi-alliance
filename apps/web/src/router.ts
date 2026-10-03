@@ -6,10 +6,10 @@ export const menu = [
   { path: '/coin', label: '菩提幣介紹', icon: 'eco' },
   { path: '/groups', label: '覺行小組', icon: 'self_improvement' },
   { path: '/partners', label: '共好企業', icon: 'storefront' },
-  { path: '/wallet', label: '菩提幣錢包', icon: 'account_balance_wallet' },
-  { path: '/committee', label: '主辦審核小組', icon: 'gavel' },
+  { path: '/wallet', label: '我的錢包', icon: 'account_balance_wallet' },
+  { path: '/maitreya', label: '彌勒心流', icon: 'spa' },
   { path: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
-  { path: '/guide', label: 'AI 組長', icon: 'forum' },
+  { path: '/guide', label: '線上問答', icon: 'forum' },
 ] as const
 
 const routes: RouteRecordRaw[] = [
@@ -17,10 +17,11 @@ const routes: RouteRecordRaw[] = [
   { path: '/coin', component: () => import('./pages/CoinPage.vue'), meta: { title: '菩提幣介紹' } },
   { path: '/groups', component: () => import('./pages/GroupsPage.vue'), meta: { title: '覺行小組介紹及參加' } },
   { path: '/partners', component: () => import('./pages/PartnersPage.vue'), meta: { title: '共好企業登記及管理' } },
-  { path: '/wallet', component: () => import('./pages/WalletPage.vue'), meta: { title: '菩提幣錢包' } },
-  { path: '/committee', component: () => import('./pages/CommitteePage.vue'), meta: { title: '主辦審核小組' } },
+  { path: '/wallet', component: () => import('./pages/WalletPage.vue'), meta: { title: '我的錢包' } },
+  { path: '/maitreya', component: () => import('./pages/MaitreyaPage.vue'), meta: { title: '彌勒心流' } },
+  { path: '/committee', redirect: '/maitreya' },
   { path: '/association', component: () => import('./pages/AssociationPage.vue'), meta: { title: '世界佛教教育協會介紹' } },
-  { path: '/guide', component: () => import('./pages/GuidePage.vue'), meta: { title: '線上覺行小組 AI 組長' } },
+  { path: '/guide', component: () => import('./pages/GuidePage.vue'), meta: { title: '線上問答' } },
   { path: '/join', component: () => import('./pages/JoinPage.vue'), meta: { title: '志工註冊' } },
   { path: '/login', component: () => import('./pages/LoginPage.vue'), meta: { title: '志工登入' } },
   { path: '/me', component: () => import('./pages/MePage.vue'), meta: { title: '我的志工資料', signedIn: true } },

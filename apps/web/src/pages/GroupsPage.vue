@@ -56,7 +56,7 @@ async function submit() {
     <p>
       參加小組不需要任何經驗。成為志工或禪修教練後，在中心活動中的服務會依梯級表核發
       <router-link to="/coin">菩提幣</router-link>。想先了解共修在做什麼，可以問問
-      <router-link to="/guide">線上覺行小組 AI 組長</router-link>。
+      <router-link to="/guide">線上問答</router-link>。
     </p>
 
     <div class="note q-mb-md">
