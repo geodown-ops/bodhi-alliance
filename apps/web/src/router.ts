@@ -42,5 +42,5 @@ router.beforeEach(async (to) => {
 
 router.afterEach((to) => {
   const t = to.meta.title as string
-  document.title = t ? `${t}｜菩提幣聯盟` : '菩提幣聯盟｜世界佛教教育協會'
+  document.title = t ? `${t}｜Sunny life` : 'Sunny life｜世界佛教教育協會'
 })
