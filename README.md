@@ -1,4 +1,4 @@
-# 菩提幣聯盟
+# Sunny life
 
 世界佛教教育協會菩提幣系統的官網、管理後台與後端服務。架構見 [docs/architecture.md](docs/architecture.md)，資料模型見 [docs/data-model.md](docs/data-model.md)。
 

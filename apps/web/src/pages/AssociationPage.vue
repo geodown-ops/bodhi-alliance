@@ -19,7 +19,7 @@ const turns = [
         <p class="q-mb-none">{{ t.text }}</p>
       </div>
     </div>
-    <p class="q-mt-md">菩提幣聯盟是這三轉在「共同生活」這一層的實作，讓服務、供養與受用在同一個身體裡循環。</p>
+    <p class="q-mt-md">Sunny life 是這三轉在「共同生活」這一層的實作，讓服務、供養與受用在同一個身體裡循環。</p>
 
     <h2>緣起</h2>
     <p>
