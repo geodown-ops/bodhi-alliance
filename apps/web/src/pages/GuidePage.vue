@@ -14,6 +14,7 @@ const thinking = ref(false)
 const streaming = ref('')
 const error = ref('')
 const subtitle = ref<HTMLElement>()
+const scene = ref<InstanceType<typeof GuideScene>>()
 
 const storeKey = 'bodhi.guide.v1'
 try {
@@ -71,16 +72,20 @@ async function send(text = input.value) {
   input.value = ''
   streaming.value = ''
   thinking.value = true
+  scene.value?.think()
   try {
     const res = await api.chatStream(
       { messages: messages.value, mode: mode.value, script_id: scriptId.value ?? undefined },
       (t) => {
         streaming.value += t
+        scene.value?.speak(t)
         follow()
       },
     )
     messages.value.push({ role: 'assistant', content: res.reply })
+    scene.value?.finish()
   } catch (e) {
+    scene.value?.rest()
     messages.value.pop()
     input.value = text
     error.value = e instanceof ApiError ? e.message : '組長一時沒有回應，請再試一次。'
@@ -108,7 +113,7 @@ const pageHeight = () => ({ height: "calc(100svh - 50px)" })
 
 <template>
   <q-page class="stage" :style-fn="pageHeight">
-    <GuideScene :state="sceneState" />
+    <GuideScene ref="scene" :state="sceneState" />
     <h1 class="sr-only">線上覺行小組 AI 組長</h1>
 
     <section class="dialog" aria-label="和組長對話">

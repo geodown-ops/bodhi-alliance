@@ -1,11 +1,48 @@
 <script setup lang="ts">
-// 組長所在的畫境。目前是 CSS／SVG 的暮色湖景與靜坐剪影；
-// 解說員的 3D 湖景與人物模型到位後，換掉這個元件的內容即可，props 不變。
+// 組長所在的畫境：解說員的 3D 黃昏湖景與 VRM 人物（three.js）。
+// 下面的 CSS／SVG 插畫是底圖：模型載入前、或瀏覽器不支援 WebGL 時看到的就是它。
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import type { Avatar } from '../guide3d/avatar.js'
+
 defineProps<{ state: 'idle' | 'listening' | 'speaking' }>()
+
+const canvas = ref<HTMLCanvasElement>()
+const progress = ref(0)
+const phase = ref<'loading' | 'ready' | 'fallback'>('loading')
+let avatar: Avatar | null = null
+let gone = false
+
+onMounted(async () => {
+  try {
+    const { createAvatar } = await import('../guide3d/avatar.js')
+    const a = await createAvatar(canvas.value!, '/models/bodhi.vrm', { onProgress: (p) => (progress.value = p) })
+    if (gone) return a.dispose()
+    avatar = a
+    phase.value = 'ready'
+  } catch (e) {
+    console.error('guide avatar', e)
+    phase.value = 'fallback'
+  }
+})
+onBeforeUnmount(() => {
+  gone = true
+  avatar?.dispose()
+})
+
+// 給 AI 組長頁呼叫：思考時半閉眼、回答時對嘴走動、結束後回到冥想
+const leaf =
+  'M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z'
+
+defineExpose({
+  think: () => avatar?.setState('thinking'),
+  speak: (text: string) => avatar?.speak(text),
+  finish: () => avatar?.finish(),
+  rest: () => avatar?.setState('idle'),
+})
 </script>
 
 <template>
-  <div :class="['scene', state]" aria-hidden="true">
+  <div :class="['scene', state, phase]" aria-hidden="true">
     <div class="sun" />
     <svg class="hills" viewBox="0 0 1200 200" preserveAspectRatio="none">
       <path d="M0 140 C150 90 260 120 380 100 S620 60 760 95 S1020 70 1200 110 V200 H0Z" fill="#b99a7a" opacity=".55" />
@@ -44,6 +81,12 @@ defineProps<{ state: 'idle' | 'listening' | 'speaking' }>()
         <ellipse cx="126" cy="108" rx="3.5" ry="13" transform="rotate(-20 126 108)" />
       </g>
     </svg>
+    <canvas ref="canvas" class="stage3d" />
+    <div class="loading">
+      <svg viewBox="0 0 188 232"><path :d="leaf" /></svg>
+      <span>覺行小組線上組長準備中…</span>
+      <span class="bar"><span :style="{ width: `${Math.round(progress * 100)}%` }" /></span>
+    </div>
   </div>
 </template>
 
@@ -142,8 +185,61 @@ defineProps<{ state: 'idle' | 'listening' | 'speaking' }>()
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 }
+
+.stage3d {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+.ready .stage3d {
+  opacity: 1;
+}
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #3b2a20;
+  color: #cfc3b5;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  transition: opacity 0.9s;
+}
+.ready .loading,
+.fallback .loading {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading svg {
+  width: 64px;
+  height: 79px;
+  fill: #b8d8a0;
+  animation: leaf 2.4s ease-in-out infinite;
+}
+.bar {
+  width: 160px;
+  height: 2px;
+  background: #5c4738;
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  background: #b8d8a0;
+  transition: width 0.2s;
+}
+@keyframes leaf {
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .guide, .glint, .speaking .halo {
+  .guide, .glint, .speaking .halo, .loading svg {
     animation: none;
   }
 }
