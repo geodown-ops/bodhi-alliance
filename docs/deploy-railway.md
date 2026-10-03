@@ -13,7 +13,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `api` | `/server` | （自動找 `server/Dockerfile`） | `/healthz` | `/server/**` | `SERVICE=api`、`DATABASE_URL=${{Postgres.DATABASE_URL}}`、`BOOTSTRAP_ADMIN_EMAIL`、`BOOTSTRAP_ADMIN_PASSWORD`、`ALLOWED_ORIGINS`、`TRUSTED_PROXIES` |
 | `guide` | `/server` | （同上） | `/healthz` | `/server/**` | `SERVICE=guide`、`DATABASE_URL=${{Postgres.DATABASE_URL}}`、`ANTHROPIC_API_KEY`、`ALLOWED_ORIGINS`、`TRUSTED_PROXIES` |
-| `web` | （留空，用 repo 根目錄） | `apps/Dockerfile` | — | `/apps/**`、`/package.json`、`/package-lock.json` | `APP=web`、`VITE_API_BASE=https://${{api.RAILWAY_PUBLIC_DOMAIN}}`、`VITE_GUIDE_BASE=https://${{guide.RAILWAY_PUBLIC_DOMAIN}}` |
+| `web` | （留空，用 repo 根目錄） | `apps/Dockerfile` | — | `/apps/**`、`/package.json`、`/package-lock.json`、`/index.html` | `APP=web`、`VITE_API_BASE=https://${{api.RAILWAY_PUBLIC_DOMAIN}}`、`VITE_GUIDE_BASE=https://${{guide.RAILWAY_PUBLIC_DOMAIN}}` |
 | `admin` | （留空） | `apps/Dockerfile` | — | （同 web） | `APP=admin`、`VITE_API_BASE`、`VITE_GUIDE_BASE`（同上） |
 
    四個服務的 Restart Policy 都設 On Failure。`SERVICE`、`APP`、`VITE_*` 會被 Railway 當成同名的 build arg 傳進 Dockerfile。
@@ -28,4 +28,4 @@
 - `VITE_*` 變數是在建置時寫進網頁的，改了之後要重新部署 `web`／`admin` 才會生效。
 - AI 組長的費用上限在後台「AI 組長設定」調整，預設每月 50 美元。
 - 資料庫遷移由 `api` 與 `guide` 啟動時自動執行，不需要手動操作。
-- 原本的招募頁（根目錄 `index.html`）仍由 GitHub Pages 提供；正式站上線後可以把網域指向 `web`，再決定招募頁要不要下架。
+- 官網 `web` 的首頁就是根目錄原本整頁的招募頁 `index.html`（建置時複製成 `recruit.html`，由 `apps/Caddyfile` 在 `/` 提供），其他頁面照常走 Vue。GitHub Pages 也仍提供同一份招募頁。

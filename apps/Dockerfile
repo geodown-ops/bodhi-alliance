@@ -11,7 +11,10 @@ COPY apps/web/package.json apps/web/
 COPY apps/admin/package.json apps/admin/
 RUN npm ci
 COPY apps apps
-RUN npm run build -w apps/${APP} && cp -r apps/${APP}/dist /out
+# 官網首頁是 repo 根目錄原本整頁的招募頁，複製成 recruit.html，由 Caddyfile 在 / 提供
+COPY index.html recruit.html
+RUN npm run build -w apps/${APP} && cp -r apps/${APP}/dist /out \
+ && if [ "$APP" = web ]; then cp recruit.html /out/recruit.html; fi
 
 FROM caddy:2-alpine
 COPY --from=build /out /srv

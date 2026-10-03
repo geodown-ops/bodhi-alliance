@@ -3,6 +3,14 @@
 	encode zstd gzip
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
-	try_files {path} /index.html
+	route {
+		# 官網首頁是原本整頁的招募頁（只有 web 有 recruit.html；admin 沒有就照常走 SPA）
+		@home {
+			path /
+			file /recruit.html
+		}
+		rewrite @home /recruit.html
+		try_files {path} /index.html
+	}
 	file_server
 }

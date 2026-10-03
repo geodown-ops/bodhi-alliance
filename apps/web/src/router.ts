@@ -13,7 +13,17 @@ export const menu = [
 ] as const
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', component: () => import('./pages/HomePage.vue'), meta: { title: '' } },
+  // 正式站的首頁是原本整頁的招募頁（Caddy 直接提供 recruit.html），在站內點回首頁時整頁載入；開發時仍顯示 HomePage
+  {
+    path: '/',
+    component: () => import('./pages/HomePage.vue'),
+    meta: { title: '' },
+    beforeEnter: () => {
+      if (import.meta.env.DEV) return true
+      window.location.assign('/')
+      return false
+    },
+  },
   { path: '/coin', component: () => import('./pages/CoinPage.vue'), meta: { title: '菩提幣介紹' } },
   { path: '/groups', component: () => import('./pages/GroupsPage.vue'), meta: { title: '覺行小組介紹及參加' } },
   { path: '/partners', component: () => import('./pages/PartnersPage.vue'), meta: { title: '共好企業登記及管理' } },
