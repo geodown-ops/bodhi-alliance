@@ -1,0 +1,81 @@
+
+/* ================= 覺行小組線上組長：首頁開頭 ================= */
+.guide{
+  position:relative;height:100vh;height:100svh;min-height:560px;overflow:hidden;
+  background:linear-gradient(180deg,#9fbfd6,#f4d3a6 55%,#c79c63);
+  color:#F6F2E8;
+}
+.guide canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.g-top{
+  position:absolute;left:0;right:0;top:0;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:18px clamp(18px,4vw,40px);
+  background:linear-gradient(180deg,rgba(59,42,32,.72),rgba(59,42,32,.28) 65%,rgba(59,42,32,0));
+}
+.g-brand{display:flex;align-items:center;gap:12px;color:#F6F2E8;text-decoration:none}
+.g-brand svg{width:26px;height:32px;fill:#B8D8A0;flex:none}
+.g-names{display:flex;flex-direction:column;line-height:1.15}
+.g-sub{font-family:var(--sans);font-size:11px;letter-spacing:.3em;color:#ECE5D6;margin-top:2px}
+.g-org{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:#ECE5D6;text-decoration:none;white-space:nowrap}
+.g-org b{color:#B8D8A0;font-weight:500}
+.g-org:hover{color:#fff}
+
+.g-loading{
+  position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:#3B2A20;color:#CFC3B5;font-size:13px;letter-spacing:.08em;transition:opacity .9s;
+}
+.g-loading svg{width:64px;height:79px;fill:#B8D8A0;animation:g-breathe 2.4s ease-in-out infinite}
+.g-loading.done{opacity:0;pointer-events:none}
+.g-bar{width:160px;height:2px;background:#5C4738;overflow:hidden}
+.g-bar span{display:block;height:100%;width:0;background:#B8D8A0;transition:width .2s}
+@keyframes g-breathe{50%{transform:scale(1.05);opacity:.85}}
+
+/* 置中下方：字幕＋單一輸入框 */
+.g-dock{
+  position:absolute;left:50%;bottom:clamp(54px,9vh,88px);transform:translateX(-50%);z-index:2;
+  width:min(640px,calc(100% - 32px));display:flex;flex-direction:column;align-items:stretch;gap:14px;
+}
+.g-caption{
+  background:rgba(59,42,32,.68);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(207,195,181,.22);border-radius:18px;padding:14px 20px 16px;
+  max-height:34vh;overflow-y:auto;
+}
+.g-caption[hidden]{display:none}
+.g-q{font-size:12.5px;color:#CFC3B5;margin:0 0 6px;max-width:none}
+.g-q::before{content:"你問　";color:#B8D8A0}
+.g-a{font-size:16px;line-height:1.85;color:#F6F2E8;margin:0;max-width:none;white-space:pre-wrap}
+.g-a.err{color:#F3C4B8}
+.g-a .dots::after{content:"…";animation:g-dots 1.2s steps(3,end) infinite}
+@keyframes g-dots{0%{content:"．"}33%{content:"．．"}66%{content:"．．．"}}
+.g-ask{
+  display:flex;align-items:center;gap:6px;margin:0;
+  background:rgba(246,242,232,.94);border-radius:999px;padding:6px 6px 6px 22px;
+  box-shadow:0 10px 34px rgba(59,42,32,.28);
+}
+.g-ask input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font-family:var(--sans);font-size:16px;color:#3B2A20;padding:10px 0;
+}
+.g-ask input::placeholder{color:#7A6B60}
+.g-ask button{
+  flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;
+  background:#3B2A20;color:#B8D8A0;display:grid;place-items:center;transition:transform .15s,opacity .15s;
+}
+.g-ask button svg{width:20px;height:20px}
+.g-ask button:hover{transform:translateX(2px)}
+.g-ask button:disabled,.g-ask input:disabled{opacity:.5;cursor:default}
+.g-ask:focus-within{outline:2px solid #B8D8A0;outline-offset:3px}
+
+.g-cue{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:2;
+  color:#F6F2E8;opacity:.8;width:32px;height:32px;display:grid;place-items:center;
+  animation:g-bob 2.4s ease-in-out infinite;
+}
+.g-cue svg{width:24px;height:24px}
+@keyframes g-bob{50%{transform:translate(-50%,4px)}}
+
+@media (max-width:680px){
+  .g-org{display:none}
+  .g-a{font-size:15px}
+  .g-dock{bottom:52px}
+}

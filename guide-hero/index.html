@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sunny life｜菩提幣共好企業</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%22-20%20-6%20228%20244%22%3E%3Crect%20x%3D%22-20%22%20y%3D%22-6%22%20width%3D%22228%22%20height%3D%22244%22%20rx%3D%2240%22%20fill%3D%22%233B2A20%22%2F%3E%3Cpath%20d%3D%22M93.6%200C91.2%2016.8%2085.2%2031.2%2075.6%2040.8C45.6%2069.6%200%20100.8%200%20153.6C0%20204%2048%20230.4%2084%20231.6C88.8%20231.6%2092.4%20228%2093.6%20224.4C94.8%20228%2098.4%20231.6%20103.2%20231.6C139.2%20230.4%20187.2%20204%20187.2%20153.6C187.2%20100.8%20141.6%2069.6%20111.6%2040.8C102%2031.2%2096%2016.8%2093.6%200Z%22%20fill%3D%22%23B8D8A0%22%2F%3E%3C%2Fsvg%3E">
+<meta name="theme-color" content="#3B2A20">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+    "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.5/lib/three-vrm.module.js"
+  }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+:root{--sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+html,body{margin:0;background:#3B2A20;font-family:var(--sans)}
+
+/* ================= 覺行小組線上組長：首頁開頭 ================= */
+.guide{
+  position:relative;height:100vh;height:100svh;min-height:560px;overflow:hidden;
+  background:linear-gradient(180deg,#9fbfd6,#f4d3a6 55%,#c79c63);
+  color:#F6F2E8;
+}
+.guide canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.g-top{
+  position:absolute;left:0;right:0;top:0;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:18px clamp(18px,4vw,40px);
+  background:linear-gradient(180deg,rgba(59,42,32,.72),rgba(59,42,32,.28) 65%,rgba(59,42,32,0));
+}
+.g-brand{display:flex;align-items:center;gap:12px;color:#F6F2E8;text-decoration:none}
+.g-brand svg{width:26px;height:32px;fill:#B8D8A0;flex:none}
+.g-names{display:flex;flex-direction:column;line-height:1.15}
+.g-sub{font-family:var(--sans);font-size:11px;letter-spacing:.3em;color:#ECE5D6;margin-top:2px}
+.g-org{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:#ECE5D6;text-decoration:none;white-space:nowrap}
+.g-org b{color:#B8D8A0;font-weight:500}
+.g-org:hover{color:#fff}
+
+.g-loading{
+  position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:#3B2A20;color:#CFC3B5;font-size:13px;letter-spacing:.08em;transition:opacity .9s;
+}
+.g-loading svg{width:64px;height:79px;fill:#B8D8A0;animation:g-breathe 2.4s ease-in-out infinite}
+.g-loading.done{opacity:0;pointer-events:none}
+.g-bar{width:160px;height:2px;background:#5C4738;overflow:hidden}
+.g-bar span{display:block;height:100%;width:0;background:#B8D8A0;transition:width .2s}
+@keyframes g-breathe{50%{transform:scale(1.05);opacity:.85}}
+
+/* 置中下方：字幕＋單一輸入框 */
+.g-dock{
+  position:absolute;left:50%;bottom:clamp(54px,9vh,88px);transform:translateX(-50%);z-index:2;
+  width:min(640px,calc(100% - 32px));display:flex;flex-direction:column;align-items:stretch;gap:14px;
+}
+.g-caption{
+  background:rgba(59,42,32,.68);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(207,195,181,.22);border-radius:18px;padding:14px 20px 16px;
+  max-height:34vh;overflow-y:auto;
+}
+.g-caption[hidden]{display:none}
+.g-q{font-size:12.5px;color:#CFC3B5;margin:0 0 6px;max-width:none}
+.g-q::before{content:"你問　";color:#B8D8A0}
+.g-a{font-size:16px;line-height:1.85;color:#F6F2E8;margin:0;max-width:none;white-space:pre-wrap}
+.g-a.err{color:#F3C4B8}
+.g-a .dots::after{content:"…";animation:g-dots 1.2s steps(3,end) infinite}
+@keyframes g-dots{0%{content:"．"}33%{content:"．．"}66%{content:"．．．"}}
+.g-ask{
+  display:flex;align-items:center;gap:6px;margin:0;
+  background:rgba(246,242,232,.94);border-radius:999px;padding:6px 6px 6px 22px;
+  box-shadow:0 10px 34px rgba(59,42,32,.28);
+}
+.g-ask input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font-family:var(--sans);font-size:16px;color:#3B2A20;padding:10px 0;
+}
+.g-ask input::placeholder{color:#7A6B60}
+.g-ask button{
+  flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;
+  background:#3B2A20;color:#B8D8A0;display:grid;place-items:center;transition:transform .15s,opacity .15s;
+}
+.g-ask button svg{width:20px;height:20px}
+.g-ask button:hover{transform:translateX(2px)}
+.g-ask button:disabled,.g-ask input:disabled{opacity:.5;cursor:default}
+.g-ask:focus-within{outline:2px solid #B8D8A0;outline-offset:3px}
+
+.g-cue{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:2;
+  color:#F6F2E8;opacity:.8;width:32px;height:32px;display:grid;place-items:center;
+  animation:g-bob 2.4s ease-in-out infinite;
+}
+.g-cue svg{width:24px;height:24px}
+@keyframes g-bob{50%{transform:translate(-50%,4px)}}
+
+@media (max-width:680px){
+  .g-org{display:none}
+  .g-a{font-size:15px}
+  .g-dock{bottom:52px}
+}
+</style>
+<!-- ============ 覺行小組線上組長：首頁開頭 ============ -->
+<section class="guide" id="guide" aria-label="菩提幣覺行小組線上組長">
+  <canvas id="avatar" aria-hidden="true"></canvas>
+
+  <div class="g-top">
+    <a class="g-brand" href="#guide" aria-label="Sunny life 菩提幣共好企業">
+      <svg viewBox="0 0 188 232" aria-hidden="true"><path d="M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z"/></svg>
+      <span class="g-names"><span class="g-sub">菩提幣共好企業</span></span>
+    </a>
+    <a class="g-org" href="https://www.sunnylife.world/" target="_blank" rel="noopener">世界佛教教育協會 <b>WEBA Sunnylife</b> ↗</a>
+  </div>
+
+  <div class="g-loading" id="loading">
+    <svg viewBox="0 0 188 232" aria-hidden="true"><path d="M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z"/></svg>
+    <span id="loadText">覺行小組線上組長準備中…</span>
+    <span class="g-bar" id="barWrap"><span id="bar"></span></span>
+  </div>
+
+  <div class="g-dock">
+    <div class="g-caption" id="caption" aria-live="polite" hidden>
+      <p class="g-q" id="capQ"></p>
+      <p class="g-a" id="capA"></p>
+    </div>
+    <form class="g-ask" id="ask" autocomplete="off">
+      <input id="askInput" maxlength="500" placeholder="向覺行小組線上組長提問（AI 回答・請勿輸入個人資料）" aria-label="向覺行小組線上組長提問">
+      <button type="submit" id="askBtn" aria-label="送出">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <a class="g-cue" href="#intro" aria-label="往下了解菩提幣共好企業">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</section>
+<script>
+// 單獨預覽用：未設定時，/api/chat 指向同源（需有 bodhi-guide 後端代理）
+// window.BODHI_GUIDE_API = 'https://your-guide-backend.example';
+</script>
+<script type="module" src="guide.js"></script>
