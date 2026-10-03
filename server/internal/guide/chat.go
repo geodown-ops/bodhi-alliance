@@ -59,9 +59,11 @@ type Turn struct {
 	Messages  []Message
 }
 
-// LLM is the model behind the guide; tests use a fake.
+// LLM is the model behind the guide; tests use a fake. onText receives the answer as
+// it is generated and may be nil. On a refusal, text already sent should be discarded
+// in favor of the returned Reply.
 type LLM interface {
-	Complete(ctx context.Context, t Turn) (Reply, Usage, error)
+	Complete(ctx context.Context, t Turn, onText func(string)) (Reply, Usage, error)
 }
 
 type Usage struct {
@@ -172,7 +174,7 @@ func practiceInstructions(s *Script) string {
 </script>`, s.Title, s.Body)
 }
 
-func (c *Claude) Complete(ctx context.Context, t Turn) (Reply, Usage, error) {
+func (c *Claude) Complete(ctx context.Context, t Turn, onText func(string)) (Reply, Usage, error) {
 	// Persona and knowledge are stable between requests, so they are cached; the script
 	// (practice mode only) comes after the breakpoint.
 	system := []anthropic.BetaTextBlockParam{
@@ -193,17 +195,31 @@ func (c *Claude) Complete(ctx context.Context, t Turn) (Reply, Usage, error) {
 			Content: []anthropic.BetaContentBlockParamUnion{anthropic.NewBetaTextBlock(m.Content)},
 		})
 	}
-	resp, err := c.Client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
+	stream := c.Client.Beta.Messages.NewStreaming(ctx, anthropic.BetaMessageNewParams{
 		Model:        c.Model,
 		MaxTokens:    4096,
 		System:       system,
 		Messages:     msgs,
 		OutputConfig: anthropic.BetaOutputConfigParam{Effort: c.Effort},
-		// On a safety refusal the API re-serves the request on a fallback model.
+		// On a safety refusal the API re-serves the request on a fallback model, on the
+		// same stream; text already streamed stays valid and the answer continues.
 		Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
 		Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
 	})
-	if err != nil {
+	defer stream.Close()
+	var resp anthropic.BetaMessage
+	for stream.Next() {
+		ev := stream.Current()
+		if err := resp.Accumulate(ev); err != nil {
+			return Reply{}, Usage{}, err
+		}
+		if d, ok := ev.AsAny().(anthropic.BetaRawContentBlockDeltaEvent); ok && onText != nil {
+			if td, ok := d.Delta.AsAny().(anthropic.BetaTextDelta); ok {
+				onText(td.Text)
+			}
+		}
+	}
+	if err := stream.Err(); err != nil {
 		return Reply{}, Usage{}, err
 	}
 	u := Usage{

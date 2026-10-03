@@ -18,7 +18,11 @@ import (
 
 type fakeLLM struct{ last Turn }
 
-func (f *fakeLLM) Complete(_ context.Context, t Turn) (Reply, Usage, error) {
+func (f *fakeLLM) Complete(_ context.Context, t Turn, onText func(string)) (Reply, Usage, error) {
+	if onText != nil {
+		onText("好")
+		onText("的")
+	}
 	f.last = t
 	return Reply{Text: "好的"}, Usage{Model: "claude-opus-5-5", Input: 1000, Output: 100}, nil
 }
@@ -216,5 +220,22 @@ func TestTryDraftScriptRunsPractice(t *testing.T) {
 	}
 	if strings.Contains(e.llm.last.Knowledge, "慢步") {
 		t.Error("script leaked into knowledge")
+	}
+}
+
+func TestChatStreams(t *testing.T) {
+	e := setup(t)
+	body, _ := json.Marshal(map[string]any{"messages": []Message{{Role: "user", Content: "你好"}}})
+	req := httptest.NewRequest(http.MethodPost, "/guide/chat", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+	w := httptest.NewRecorder()
+	e.r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/event-stream") {
+		t.Fatalf("status %d, type %q", w.Code, w.Header().Get("Content-Type"))
+	}
+	want := "event:delta\ndata:{\"text\":\"好\"}\n\nevent:delta\ndata:{\"text\":\"的\"}\n\nevent:done\ndata:{\"reply\":\"好的\"}\n\n"
+	if w.Body.String() != want {
+		t.Errorf("body = %q", w.Body.String())
 	}
 }

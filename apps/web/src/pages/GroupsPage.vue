@@ -59,6 +59,11 @@ async function submit() {
       <router-link to="/guide">線上覺行小組 AI 組長</router-link>。
     </p>
 
+    <div class="note q-mb-md">
+      想在中心服務、領取菩提幣？先<router-link to="/join">註冊志工</router-link>，登入後可以直接在「<router-link to="/me">我的志工資料</router-link>」加入小組。
+      只想參加共修，用下面的表單報名就好。
+    </div>
+
     <h2>找一個小組</h2>
     <q-select
       v-if="regions.length > 1"

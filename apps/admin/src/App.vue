@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { isAdmin, logout, session } from './session'
+import { isAdmin, isCenterStaff, isKnowledgeManager, logout, session } from './session'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,8 +16,13 @@ const items = computed(() => [
         { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
       ]
     : []),
-  { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
-  { to: '/guide-settings', label: 'AI 組長設定', icon: 'tune' },
+  ...(isCenterStaff() ? [{ to: '/volunteers', label: '志工名冊', icon: 'badge' }] : []),
+  ...(isKnowledgeManager()
+    ? [
+        { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
+        { to: '/guide-settings', label: 'AI 組長設定', icon: 'tune' },
+      ]
+    : []),
   ...(isAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),
 ])
 

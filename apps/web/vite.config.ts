@@ -11,5 +11,7 @@ export default defineConfig({
       '/guide/': 'http://localhost:8082',
     },
   },
+  // AI 組長頁的 3D 場景（three.js + VRM）約 900 kB，只在進入該頁時才載入
+  build: { chunkSizeWarningLimit: 1000 },
   test: { environment: 'jsdom' },
 })

@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Dialog, Notify } from 'quasar'
 import { api, session, type User } from '../session'
 
 const users = ref<User[]>([])
-const roleLabel: Record<string, string> = { alliance_admin: '聯盟管理員', knowledge_manager: '知識管理員' }
+const centers = ref<{ id: string; name: string }[]>([])
+const centerName = (scope: string) => centers.value.find((c) => `center:${c.id}` === scope)?.name ?? ''
+const roleLabel: Record<string, string> = { alliance_admin: '聯盟管理員', knowledge_manager: '知識管理員', center_admin: '中心管理員' }
+const describe = (r: { role: string; scope: string }) =>
+  r.role === 'center_admin' ? `${roleLabel[r.role]}（${centerName(r.scope)}）` : (roleLabel[r.role] ?? r.role)
 const columns = [
   { name: 'display_name', label: '名稱', field: 'display_name' },
   { name: 'email', label: '電子郵件', field: 'email' },
-  { name: 'roles', label: '角色', field: (u: User) => u.roles.map((r) => roleLabel[r.role] ?? r.role).join('、') },
+  { name: 'roles', label: '角色', field: (u: User) => (u.roles.length ? u.roles.map(describe).join('、') : '志工') },
   { name: 'actions', label: '', field: 'id' },
 ]
 
 async function load() {
   try {
-    users.value = await api.get<User[]>('/api/auth/users')
+    ;[users.value, centers.value] = await Promise.all([api.get<User[]>('/api/auth/users'), api.get<{ id: string; name: string }[]>('/api/admin/centers')])
   } catch (e) {
     Notify.create({ type: 'negative', message: (e as Error).message })
   }
@@ -22,10 +26,11 @@ async function load() {
 onMounted(load)
 
 const show = ref(false)
-const form = reactive({ email: '', display_name: '', password: '', role: 'knowledge_manager' })
+const form = reactive({ email: '', display_name: '', password: '', role: 'knowledge_manager', center_id: '' })
+const centerOptions = computed(() => centers.value.map((c) => ({ label: c.name, value: c.id })))
 async function create() {
   try {
-    await api.send('POST', '/api/auth/users', form)
+    await api.send('POST', '/api/auth/users', { ...form, center_id: form.role === 'center_admin' ? form.center_id : undefined })
     show.value = false
     Object.assign(form, { email: '', display_name: '', password: '' })
     load()
@@ -66,17 +71,38 @@ function disable(u: User) {
           <q-input v-model="form.password" type="password" label="初始密碼（至少 10 個字元）" outlined dense />
           <q-select
             v-model="form.role"
-            :options="[{ label: '知識管理員：只能管理 AI 組長與知識庫', value: 'knowledge_manager' }, { label: '聯盟管理員：全部功能', value: 'alliance_admin' }]"
+            :options="[
+              { label: '知識管理員：只能管理 AI 組長與知識庫', value: 'knowledge_manager' },
+              { label: '中心管理員：核可自己中心的志工、管理小組成員', value: 'center_admin' },
+              { label: '聯盟管理員：全部功能', value: 'alliance_admin' },
+            ]"
             emit-value
             map-options
             label="角色"
             outlined
             dense
           />
+          <q-select
+            v-if="form.role === 'center_admin'"
+            v-model="form.center_id"
+            :options="centerOptions"
+            emit-value
+            map-options
+            label="管理哪個中心"
+            outlined
+            dense
+          />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="取消" v-close-popup />
-          <q-btn color="secondary" unelevated no-caps label="建立" :disable="!form.email || !form.display_name || form.password.length < 10" @click="create" />
+          <q-btn
+            color="secondary"
+            unelevated
+            no-caps
+            label="建立"
+            :disable="!form.email || !form.display_name || form.password.length < 10 || (form.role === 'center_admin' && !form.center_id)"
+            @click="create"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
