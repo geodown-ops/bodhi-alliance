@@ -14,7 +14,7 @@ const sections = [
   <q-page>
     <section class="hero">
       <div class="page">
-        <p class="kicker">世界佛教教育協會 · 菩提幣聯盟</p>
+        <p class="kicker">世界佛教教育協會 · Sunny life</p>
         <h1>一即一切，一切即一</h1>
         <p class="lead">一個人的服務，回到所有人身上；所有人的供養，回到每一個人身上。</p>
         <div class="row q-gutter-sm q-mt-md">

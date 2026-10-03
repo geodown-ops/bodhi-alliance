@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>菩提幣聯盟</title>
+<title>Sunny life</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -438,7 +438,7 @@ footer a:hover{text-decoration:underline}
 <header class="hero">
   <div class="shell">
     <div class="hero-copy">
-      <p class="eyebrow">菩提幣聯盟 · 成員招募</p>
+      <p class="eyebrow">Sunny life · 成員招募</p>
       <p class="oneline">一即一切<br>一切即一</p>
       <div class="hairline"></div>
       <p class="hero-lede">
@@ -516,7 +516,7 @@ footer a:hover{text-decoration:underline}
     <div class="sec-head">
       <p class="eyebrow">宗旨</p>
       <h2>實修唯識三轉</h2>
-      <p>世界佛教教育協會的修行核心，是把覺察落在日常裡：轉念、轉識、轉依。菩提幣聯盟是這三轉在「共同生活」這一層的實作——讓服務、供養與受用在同一個身體裡循環。</p>
+      <p>世界佛教教育協會的修行核心，是把覺察落在日常裡：轉念、轉識、轉依。Sunny life 是這三轉在「共同生活」這一層的實作——讓服務、供養與受用在同一個身體裡循環。</p>
     </div>
 
     <div class="triad">
@@ -752,7 +752,7 @@ footer a:hover{text-decoration:underline}
 
 <footer>
   <div class="shell">
-    <div class="fline">菩提幣聯盟 Bodhi Coin Alliance · 世界佛教教育協會 WEBA Sunnylife</div>
+    <div class="fline">Sunny life · 世界佛教教育協會 WEBA Sunnylife</div>
     企劃書 v1.0 draft　2026-09-06　草案，未經執行委員會決議<br>
     幣不販售 · 不提領 · 不可兌現 · 非投資標的<br>
     <a href="https://www.sunnylife.world/" target="_blank" rel="noopener">www.sunnylife.world</a>　一即一切，一切即一
@@ -790,7 +790,7 @@ const FIELDS = [
 ];
 
 function compose() {
-  const lines = ["菩提幣聯盟 · 加入登記", "—".repeat(14)];
+  const lines = ["Sunny life · 加入登記", "—".repeat(14)];
   for (const [id, label] of FIELDS) {
     const v = document.getElementById(id).value.trim();
     if (v) lines.push(label + "：" + v);
@@ -869,7 +869,7 @@ if (CONTACT_EMAIL) {
   b.textContent = "用郵件軟體寄出";
   b.addEventListener("click", function () {
     b.href = "mailto:" + CONTACT_EMAIL +
-      "?subject=" + encodeURIComponent("菩提幣聯盟加入登記") +
+      "?subject=" + encodeURIComponent("Sunny life 加入登記") +
       "&body=" + encodeURIComponent(out.textContent);
   });
   document.querySelector("#receipt .r-row").insertBefore(b, document.getElementById("againBtn"));

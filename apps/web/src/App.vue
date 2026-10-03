@@ -13,7 +13,7 @@ const drawer = ref(false)
         <q-btn flat round dense icon="menu" class="lt-md" aria-label="選單" @click="drawer = !drawer" />
         <router-link to="/" class="brand">
           <img src="/favicon.svg" alt="" width="32" height="32" />
-          <span>菩提幣聯盟</span>
+          <span>Sunny life</span>
         </router-link>
         <q-space />
         <nav class="gt-sm row no-wrap">
@@ -56,7 +56,7 @@ const drawer = ref(false)
     </q-page-container>
 
     <q-footer class="footer">
-      <div>菩提幣聯盟 · 世界佛教教育協會</div>
+      <div>Sunny life · 世界佛教教育協會</div>
       <div>幣不販售 · 不提領 · 不可兌現 · 非投資標的</div>
       <a href="https://www.sunnylife.world" target="_blank" rel="noopener">www.sunnylife.world</a>
     </q-footer>
