@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { buildScene, WATER_Y, STAND_Z, SHORE_Z } from './scene.js';
+import { buildScene, WATER_Y, STAND_Z, SHORE_Z, REFLECT_LAYER } from './scene.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
@@ -44,7 +44,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = buildScene(scene);
+  const env = buildScene(scene, camera);
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
@@ -52,7 +52,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const vrm = gltf.userData.vrm;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);
   VRMUtils.rotateVRM0(vrm);
-  vrm.scene.traverse(o => { o.frustumCulled = false; });
+  vrm.scene.traverse(o => { o.frustumCulled = false; o.layers.enable(REFLECT_LAYER); });   // 人物也映在水面上
   scene.add(vrm.scene);
 
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
@@ -76,6 +76,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   };
 
   const cup = makeTeaCup();
+  cup.group.traverse(o => o.layers.enable(REFLECT_LAYER));
   scene.add(cup.group);
   const cupPos = new THREE.Vector3();
 
@@ -89,7 +90,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   vrm.scene.updateMatrixWorld(true);
 
   // 蘆葦最高只到肩膀（上臂骨的起點）
-  env.addVegetation(B.leftUpperArm.getWorldPosition(new THREE.Vector3()).y);
+  env.addVegetation(B.leftUpperArm.getWorldPosition(new THREE.Vector3()).y, WATER_Y - kneeY - 0.01);   // 湖底就在腳底
   const headOffset = B.head.getWorldPosition(new THREE.Vector3()).y - vrm.scene.position.y;   // 頭部相對腳底的高度
 
   // 視線目標（睜眼時看鏡頭）
@@ -122,6 +123,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     // 鏡頭平移（不傾斜）：把畫面往上挪，角色落在中上方，下方留給字幕與輸入框
     camera.setViewOffset(w, h, 0, Math.round(h * 0.14), w, h);
     camera.updateProjectionMatrix();
+    env.resize(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
   };
   const resizeObs = new ResizeObserver(resize);
   resizeObs.observe(canvas);
@@ -136,7 +138,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const widePos = new THREE.Vector3(), closePos = new THREE.Vector3(), dirBody = new THREE.Vector3(), hipsW = new THREE.Vector3();
   // 除錯用：?cam=x,y,z,lookX,lookY,lookZ 固定鏡頭
   const debugCam = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
-  if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera, ARMS, ARM_TWIST, CUP_OFFSET, setState: s => { state = s; } };
+  if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera, env, ARMS, ARM_TWIST, CUP_OFFSET, setState: s => { state = s; } };
   camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
   const clock = new THREE.Clock();
   let t = 0, charClock = 0;
@@ -147,6 +149,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     t += dt;
     env.uTime.value = t;
     const m = reduceMotion ? 0.3 : 1;
+    env.update(t, dt, m);   // 游魚、天鵝、燕子
 
     // ---- 站在原地，慢慢轉身面向鏡頭 ----
     const faceYaw = Math.atan2(camera.position.x - body.x, camera.position.z - body.z);
@@ -256,6 +259,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
       visibleObs.disconnect();
       VRMUtils.deepDispose(vrm.scene);
       cup.dispose();
+      env.dispose();
       scene.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); });
       renderer.dispose();
     },

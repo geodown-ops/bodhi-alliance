@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 組長所在的畫境：解說員的 3D 黃昏湖景與 VRM 人物（three.js）。
+// 組長所在的畫境：解說員的 3D 湖景（藍天白雲、清澈湖水、綠色蘆葦）與 VRM 人物（three.js）。
 // 下面的 CSS／SVG 插畫是底圖：模型載入前、或瀏覽器不支援 WebGL 時看到的就是它。
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Avatar } from '../guide3d/avatar.js'
@@ -46,8 +46,8 @@ defineExpose({
   <div :class="['scene', state, phase]" aria-hidden="true">
     <div class="sun" />
     <svg class="hills" viewBox="0 0 1200 200" preserveAspectRatio="none">
-      <path d="M0 140 C150 90 260 120 380 100 S620 60 760 95 S1020 70 1200 110 V200 H0Z" fill="#b99a7a" opacity=".55" />
-      <path d="M0 165 C200 130 330 150 520 135 S860 120 1000 140 S1130 135 1200 145 V200 H0Z" fill="#8f7357" opacity=".7" />
+      <path d="M0 140 C150 90 260 120 380 100 S620 60 760 95 S1020 70 1200 110 V200 H0Z" fill="#9cbf86" opacity=".6" />
+      <path d="M0 165 C200 130 330 150 520 135 S860 120 1000 140 S1130 135 1200 145 V200 H0Z" fill="#6f9a56" opacity=".75" />
     </svg>
     <div class="lake">
       <div class="glint" />
@@ -59,25 +59,25 @@ defineExpose({
       <ellipse cx="60" cy="98" rx="44" ry="5" fill="#3b2a20" opacity=".25" />
     </svg>
     <svg class="reeds left" viewBox="0 0 200 260" preserveAspectRatio="xMinYMax meet">
-      <g stroke="#f6f2e8" stroke-width="2" fill="none" opacity=".85">
+      <g stroke="#5e8f3c" stroke-width="2" fill="none" opacity=".85">
         <path d="M20 260 C24 180 30 120 46 40" />
         <path d="M44 260 C46 190 56 140 70 80" />
         <path d="M70 260 C70 200 74 170 92 120" />
         <path d="M8 260 C8 210 4 170 0 130" />
       </g>
-      <g fill="#f6f2e8" opacity=".9">
+      <g fill="#a8cc6e" opacity=".9">
         <ellipse cx="46" cy="38" rx="4" ry="16" transform="rotate(14 46 38)" />
         <ellipse cx="70" cy="78" rx="4" ry="14" transform="rotate(18 70 78)" />
         <ellipse cx="92" cy="118" rx="3.5" ry="12" transform="rotate(24 92 118)" />
       </g>
     </svg>
     <svg class="reeds right" viewBox="0 0 200 260" preserveAspectRatio="xMaxYMax meet">
-      <g stroke="#f6f2e8" stroke-width="2" fill="none" opacity=".85">
+      <g stroke="#5e8f3c" stroke-width="2" fill="none" opacity=".85">
         <path d="M180 260 C176 190 168 130 150 60" />
         <path d="M156 260 C154 200 142 160 126 110" />
         <path d="M196 260 C198 220 200 190 200 160" />
       </g>
-      <g fill="#f6f2e8" opacity=".9">
+      <g fill="#a8cc6e" opacity=".9">
         <ellipse cx="150" cy="58" rx="4" ry="16" transform="rotate(-14 150 58)" />
         <ellipse cx="126" cy="108" rx="3.5" ry="13" transform="rotate(-20 126 108)" />
       </g>
@@ -96,7 +96,7 @@ defineExpose({
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(180deg, #9fbfd6 0%, #d9cbbb 38%, #f4d3a6 52%, #c79c63 100%);
+  background: linear-gradient(180deg, #3f86d6 0%, #8fbfe8 38%, #cfe5f3 52%, #6f9a56 100%);
 }
 .sun {
   position: absolute;
@@ -106,7 +106,7 @@ defineExpose({
   height: 46vmin;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 236, 200, 0.9) 0%, rgba(255, 220, 170, 0.35) 40%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.3) 40%, transparent 70%);
 }
 .hills {
   position: absolute;
@@ -122,7 +122,7 @@ defineExpose({
   right: 0;
   top: 52%;
   bottom: 0;
-  background: linear-gradient(180deg, #e7c99c 0%, #b6a48c 35%, #7f8a8c 100%);
+  background: linear-gradient(180deg, #bfe0ea 0%, #7fb2bf 35%, #4f8a92 100%);
 }
 .glint {
   position: absolute;
@@ -131,7 +131,7 @@ defineExpose({
   width: 18vmin;
   height: 60%;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(255, 240, 210, 0.75), transparent);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent);
   filter: blur(6px);
   animation: shimmer 6s ease-in-out infinite;
 }
