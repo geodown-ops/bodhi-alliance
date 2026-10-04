@@ -142,7 +142,7 @@ async function send(text = input.value) {
     scene.value?.rest()
     messages.value.pop()
     input.value = text
-    error.value = e instanceof ApiError ? e.message : '組長一時沒有回應，請再試一次。'
+    error.value = e instanceof ApiError ? e.message : 'Sunny沒有回應，請再試一次。'
   } finally {
     thinking.value = false
     streaming.value = ''
@@ -152,7 +152,7 @@ async function send(text = input.value) {
 
 function startPractice() {
   messages.value = []
-  send('我準備好了，請帶我開始共修。')
+  send('我準備好了，一起開始吧。')
 }
 
 function reset() {
@@ -191,16 +191,16 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
         <template v-if="question">
           <div class="asked"><span class="label">你問</span>{{ question }}</div>
           <p class="answer">
-            {{ answer }}<span v-if="thinking && !streaming" class="dots" aria-label="組長思考中"><i>．</i><i>．</i><i>．</i></span>
+            {{ answer }}<span v-if="thinking && !streaming" class="dots" aria-label="Sunny思考中"><i>．</i><i>．</i><i>．</i></span>
           </p>
-          <p v-if="compact" class="hint">AI 組長只根據協會提供的資料回答，可能會出錯。重要的事請再向真人組長確認。</p>
+          <p v-if="compact" class="hint">Sunny可能會出錯。非常重要的問題請洽詢本站。</p>
         </template>
         <template v-else-if="compact" />
         <template v-else-if="!available">
-          <p class="answer">線上組長目前休息中，請稍後再來，或到<router-link to="/groups">覺行小組</router-link>頁面聯絡真人組長。</p>
+          <p class="answer">Sunny休息中，請稍後再來，或到<router-link to="/groups">覺行小組</router-link>頁面聯絡我們。</p>
         </template>
         <template v-else-if="mode === 'practice'">
-          <p class="answer">選一套共修流程，我一步一步帶你。每一步完成後回我「好了」，我們再往下走。</p>
+          <p class="answer">選一組覺行練習，我一步一步帶你。每一步完成後回我「好了」，我們再往下走。</p>
           <div class="row items-center q-gutter-sm">
             <q-select
               v-model="scriptId"
@@ -216,12 +216,12 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
               class="col"
               :disable="!scripts.length"
             />
-            <q-btn color="light-green-3" text-color="brown-10" unelevated rounded no-caps label="開始共修" :disable="!scriptId" @click="startPractice" />
+            <q-btn color="light-green-3" text-color="brown-10" unelevated rounded no-caps label="開始靜坐" :disable="!scriptId" @click="startPractice" />
           </div>
-          <p v-if="!scripts.length" class="hint q-mt-sm q-mb-none">共修流程還在準備中。</p>
+          <p v-if="!scripts.length" class="hint q-mt-sm q-mb-none">靜坐流程還在準備中。</p>
         </template>
         <template v-else>
-          <p class="answer">我是線上覺行小組組長{{ name }}。可以問我覺行與共修的問題，也可以請我帶你共修一段。</p>
+          <p class="answer">我是線上覺行小組組長{{ name }}。可以問我覺行小組的問題，也可以請我帶你進行一段茶禪靜坐。</p>
           <div class="chips">
             <button v-for="s in suggestions" :key="s" type="button" @click="send(s)">{{ s }}</button>
           </div>
@@ -232,7 +232,7 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
         <input
           v-model="input"
           :maxlength="2000"
-          :placeholder="compact && !available ? '線上組長目前休息中，請稍後再來' : mode === 'practice' ? '回應組長，例如「好了」「下一步」' : '輸入你的問題'"
+          :placeholder="compact && !available ? 'Sunny目前休息中，請稍後再來' : mode === 'practice' ? '回應Sunny，例如「好了」「下一步」' : '輸入你的問題'"
           :disabled="!available"
           aria-label="輸入訊息"
         />
@@ -241,7 +241,7 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
         </button>
       </form>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <p v-if="!compact" class="hint">AI 組長只根據協會提供的資料回答，可能會出錯。重要的事請再向真人組長確認。</p>
+      <p v-if="!compact" class="hint">AI Sunny可能會出錯。非常重要的問題請洽詢本站。</p>
     </section>
   </div>
 </template>
