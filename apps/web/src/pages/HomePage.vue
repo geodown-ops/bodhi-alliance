@@ -74,17 +74,17 @@ function again() {
           <p class="oneline">一即一切<br />一切即一</p>
           <div class="hairline"></div>
           <p class="hero-lede">
-            一個人的服務，回到所有人身上；所有人的供養，回到每一個人身上。<b>菩提幣</b>把禪修中心的服務時數，變成聯盟共通的記帳單位——志工與禪修教練以服務換幣，在聯盟單位與贊助商家兌換住宿、餐飲與療程。
+            一個人的服務，回到所有人身上；所有人的供養，回到每一個人身上。<b>菩提幣</b>把禪修中心的服務時數，變成共好企業共通的記帳單位——志工與禪修教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
           </p>
           <div class="cta-row">
             <a class="btn" href="#join" @click.prevent="go('join')">加入共好企業</a>
             <a class="btn btn-ghost" href="#how" @click.prevent="go('how')">先看看怎麼運作</a>
           </div>
-          <p class="hero-note">幣不販售 · 不提領 · 不可兌現 · 只在聯盟內循環</p>
+          <p class="hero-note">幣不販售 · 不提領 · 不可兌現 · 只在共好企業間循環</p>
         </div>
 
         <figure class="ring">
-          <svg viewBox="0 0 560 560" role="img" aria-label="菩提幣的四段循環：服務、核發、菩提幣入帳、兌換成券、核銷、每月歸集，幣總量固定只在聯盟內循環">
+          <svg viewBox="0 0 560 560" role="img" aria-label="菩提幣的四段循環：服務、核發、菩提幣入帳、兌換成券、核銷、每月歸集，幣總量固定只在共好企業間循環">
             <defs>
               <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" style="fill: var(--band-rule)" />
@@ -102,7 +102,7 @@ function again() {
             <text class="r-actsub" x="418" y="159" text-anchor="middle">決策小組審核名單</text>
 
             <text class="r-act" x="418" y="412" text-anchor="middle">兌換</text>
-            <text class="r-actsub" x="418" y="430" text-anchor="middle">聯盟官網・幾秒完成</text>
+            <text class="r-actsub" x="418" y="430" text-anchor="middle">在官網換券・幾秒完成</text>
 
             <text class="r-act" x="142" y="412" text-anchor="middle">核銷</text>
             <text class="r-actsub" x="142" y="430" text-anchor="middle">現場掃身份 QR</text>
@@ -124,8 +124,8 @@ function again() {
 
             <circle class="r-node" cx="130" cy="280" r="48" />
             <text class="r-name" x="130" y="270" text-anchor="middle">供應方</text>
-            <text class="r-sub" x="130" y="290" text-anchor="middle">聯盟單位</text>
-            <text class="r-sub" x="130" y="304" text-anchor="middle">贊助商家</text>
+            <text class="r-sub" x="130" y="290" text-anchor="middle">共好企業</text>
+            <text class="r-sub" x="130" y="304" text-anchor="middle">中心・贊助商家</text>
 
             <text class="r-mid" x="280" y="272" text-anchor="middle">幣總量固定</text>
             <text class="r-mid" x="280" y="296" text-anchor="middle">全程無新台幣流動</text>
@@ -137,7 +137,7 @@ function again() {
           <div><span class="rs">核發</span><span><span class="rn">菩提幣入帳</span><br /><span class="rd">決策小組審核名單</span></span></div>
           <div><span class="rs">兌換</span><span><span class="rn">在官網換成券</span><br /><span class="rd">住宿・餐飲・課程</span></span></div>
           <div><span class="rs">核銷</span><span><span class="rn">現場掃身份 QR</span><br /><span class="rd">供應方提供服務</span></span></div>
-          <div><span class="rs">歸集</span><span><span class="rn">每月回到聯盟金庫</span><br /><span class="rd">純贊助・不換現金</span></span></div>
+          <div><span class="rs">歸集</span><span><span class="rn">每月回到共好企業金庫</span><br /><span class="rd">純贊助・不換現金</span></span></div>
         </div>
       </div>
     </header>
@@ -165,7 +165,7 @@ function again() {
           <div>
             <div class="glyph">轉依</div>
             <div class="romaji">zhuǎn yī</div>
-            <p>觀想與身心覺知統合，進入與法界合一。一間中心的量能，成為全聯盟的量能。</p>
+            <p>觀想與身心覺知統合，進入與法界合一。一間中心的量能，成為所有共好企業的量能。</p>
           </div>
         </div>
 
@@ -182,7 +182,7 @@ function again() {
     <section class="band" id="why">
       <div class="shell">
         <div class="sec-head">
-          <p class="eyebrow">為什麼需要一個聯盟</p>
+          <p class="eyebrow">為什麼需要共好企業</p>
           <h2>感謝說得再多，<br />都補不上三個缺口</h2>
         </div>
 
@@ -193,7 +193,7 @@ function again() {
           </div>
           <div>
             <h3>各中心各自為政</h3>
-            <p>甲中心的志工到乙中心支援，時數不被承認、也換不到任何東西。聯盟的整體量能因此無法互相調度。</p>
+            <p>甲中心的志工到乙中心支援，時數不被承認、也換不到任何東西。共好企業的整體量能因此無法互相調度。</p>
           </div>
           <div>
             <h3>資源明明就閒置著</h3>
@@ -201,7 +201,7 @@ function again() {
           </div>
         </div>
 
-        <p class="pull">用一個聯盟共通的記帳單位，把「服務時間」與「閒置量能」對接起來。</p>
+        <p class="pull">用一個共好企業共通的記帳單位，把「服務時間」與「閒置量能」對接起來。</p>
       </div>
     </section>
 
@@ -270,19 +270,19 @@ function again() {
           <div>
             <div class="rk">Role 一</div>
             <h3>禪修中心與道場</h3>
-            <p>核發菩提幣給自己的志工與教練，同時把住宿、餐飲與課程名額開放給全聯盟使用。推派委員進入菩提幣決策小組，共同持有金庫的多簽鑰匙。</p>
+            <p>核發菩提幣給自己的志工與教練，同時把住宿、餐飲與課程名額開放給所有共好企業使用。推派委員進入菩提幣決策小組，共同持有金庫的多簽鑰匙。</p>
             <div class="gives"><span>核發額度</span><span>決策小組席次</span><span>自主查帳工具</span><span>開放供應</span></div>
           </div>
           <div>
             <div class="rk">Role 二</div>
             <h3>贊助商家</h3>
-            <p>飯店、水療、餐飲、實體商店。在後台自行建立券種與每月贊助額度，額度用罄即暫停接受新兌換，已在志工手上的券照常核銷。不計入任何中心的配額，屬全聯盟共享的紅利。</p>
+            <p>飯店、水療、餐飲、實體商店。在後台自行建立券種與每月贊助額度，額度用罄即暫停接受新兌換，已在志工手上的券照常核銷。不計入任何中心的配額，屬所有共好企業共享的紅利。</p>
             <div class="gives"><span>自建券種</span><span>每月額度自訂</span><span>掃碼核銷</span><span>對帳單</span></div>
           </div>
           <div>
             <div class="rk">Role 三</div>
             <h3>志工與禪修教練</h3>
-            <p>在任一中心服務，時數全聯盟通認。核准當下入帳、手機收到通知；在官網把幣換成券，到店出示身份 QR 即可核銷。</p>
+            <p>在任一中心服務，時數在所有共好企業通認。核准當下入帳、手機收到通知；在官網把幣換成券，到店出示身份 QR 即可核銷。</p>
             <div class="gives"><span>跨中心通認</span><span>手機兌換</span><span>券可轉贈</span><span>一鍵凍結</span></div>
           </div>
         </div>
@@ -299,7 +299,7 @@ function again() {
 
         <ol class="steps">
           <li><span><b>收到你的登記</b><span>籌備小組在七個工作日內回覆，確認身份與聯絡方式。</span></span></li>
-          <li><span><b>參加聯盟說明會</b><span>說明企劃書全文、菩提幣決策小組席次分配與表決規則，回答你的疑問。</span></span></li>
+          <li><span><b>參加共好企業說明會</b><span>說明企劃書全文、菩提幣決策小組席次分配與表決規則，回答你的疑問。</span></span></li>
           <li><span><b>填回可承受的規模</b><span>中心與商家回填每月可承受的贊助規模——經濟模型的所有數字都等這組資料校準。</span></span></li>
           <li><span><b>法務結論到齊後啟動</b><span>志工定性與券的定性兩題取得律師結論、首波成員名單確認，才決定是否啟動。</span></span></li>
         </ol>
