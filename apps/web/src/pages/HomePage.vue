@@ -1,7 +1,27 @@
 <script setup lang="ts">
 // 首頁沿用原本的招募頁（GitHub Pages 版），配色換成官網的深咖啡 × 淺綠。
-import { nextTick, reactive, ref } from 'vue'
+import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { api, ApiError } from '../api'
+
+// 線上問答的 Sunny：捲到附近才載入 3D 畫境，首頁一打開不必先下載模型
+const GuideChat = defineAsyncComponent(() => import('../components/GuideChat.vue'))
+const askStage = ref<HTMLElement>()
+const showGuide = ref(false)
+let watcher: IntersectionObserver | undefined
+onMounted(() => {
+  if (!('IntersectionObserver' in window)) {
+    showGuide.value = true
+    return
+  }
+  watcher = new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting)) {
+      showGuide.value = true
+      watcher?.disconnect()
+    }
+  }, { rootMargin: '400px 0px' })
+  watcher.observe(askStage.value!)
+})
+onBeforeUnmount(() => watcher?.disconnect())
 
 const roles = [
   { label: '禪修中心／道場', kind: 'center' },
@@ -141,6 +161,20 @@ function again() {
         </div>
       </div>
     </header>
+
+    <!-- ============ 線上問答 ============ -->
+    <section class="band" id="ask">
+      <div class="shell">
+        <div class="sec-head">
+          <p class="eyebrow">線上問答</p>
+          <h2>有問題，先問 Sunny</h2>
+          <p>Sunny 是線上覺行小組組長，可以回答覺行、共修與菩提幣的問題，也可以帶你共修一段。</p>
+        </div>
+        <div ref="askStage" class="ask-stage">
+          <GuideChat v-if="showGuide" />
+        </div>
+      </div>
+    </section>
 
     <!-- ============ 宗旨 ============ -->
     <section class="band" id="purpose">
@@ -614,6 +648,17 @@ section.band > .shell {
 .sec-head p:not(.eyebrow) {
   margin-top: 16px;
   color: var(--ink-soft);
+}
+
+/* 線上問答：Sunny 的畫境與對話框 */
+.ask-stage {
+  position: relative;
+  margin-top: 40px;
+  height: min(78svh, 720px);
+  min-height: 560px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--band);
 }
 
 /* 唯識三轉 */
