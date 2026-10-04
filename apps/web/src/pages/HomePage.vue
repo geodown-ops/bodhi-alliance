@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// 首頁沿用原本的招募頁（GitHub Pages 版），配色換成官網的深咖啡 × 淺綠。
+// 首頁：最上面是線上問答的 Sunny（畫境＋單一對話框），往下捲是原本的招募頁（GitHub Pages 版），配色換成官網的深咖啡 × 淺綠。
 import { nextTick, reactive, ref } from 'vue'
 import { api, ApiError } from '../api'
+import GuideStage from '../components/GuideStage.vue'
 
 const roles = [
   { label: '禪修中心／道場', kind: 'center' },
@@ -63,6 +64,11 @@ function again() {
 
 <template>
   <q-page class="recruit">
+    <!-- ============ 線上問答 Sunny ============ -->
+    <section class="home-guide" aria-label="線上問答">
+      <GuideStage />
+    </section>
+
     <!-- ============ 開頭 ============ -->
     <header class="hero">
       <div class="shell">
@@ -381,6 +387,10 @@ function again() {
 </template>
 
 <style scoped>
+.home-guide {
+  height: calc(100svh - 50px);
+  min-height: 560px;   /* 和畫境的最小高度一致，矮螢幕上才不會蓋到下面的招募內容 */
+}
 /* 深咖啡 × 淺綠（brand/coffee-green）。變數名沿用招募頁：--gold 是綠色強調色。 */
 .recruit {
   --ground: #f6f2e8;
