@@ -4,6 +4,9 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { api, ApiError, type ChatMessage } from '../api'
 import GuideScene from './GuideScene.vue'
 
+// simple：首頁用，只留一個輸入欄位；問過之後才在上方顯示最近一問一答
+const props = defineProps<{ simple?: boolean }>()
+
 const name = ref('Sunny')
 const available = ref(true)
 const mode = ref<'chat' | 'practice'>('chat')
@@ -28,6 +31,8 @@ try {
 } catch {
   /* 無法使用 sessionStorage 時就不保留對話 */
 }
+// 首頁只有問答，不接續共修模式
+if (props.simple) mode.value = 'chat'
 watch([messages, mode, scriptId], () => {
   try {
     sessionStorage.setItem(storeKey, JSON.stringify({ messages: messages.value, mode: mode.value, scriptId: scriptId.value }))
@@ -114,7 +119,29 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   <div class="stage">
     <GuideScene ref="scene" :state="sceneState" />
 
-    <section class="dialog" aria-label="和組長對話">
+    <section v-if="simple" :class="['dialog', 'simple', { bare: !question && !error }]" aria-label="向 Sunny 提問">
+      <div v-if="question" ref="subtitle" class="subtitle" aria-live="polite">
+        <div class="asked"><span class="label">你問</span>{{ question }}</div>
+        <p class="answer">
+          {{ answer }}<span v-if="thinking && !streaming" class="dots" aria-label="組長思考中"><i>．</i><i>．</i><i>．</i></span>
+        </p>
+      </div>
+      <form class="ask" @submit.prevent="send()">
+        <input
+          v-model="input"
+          :maxlength="2000"
+          :placeholder="available ? `向 ${name} 提問（AI 回答・請勿輸入個人資料）` : '線上組長目前休息中，請稍後再來'"
+          :disabled="!available"
+          aria-label="輸入問題"
+        />
+        <button type="submit" :disabled="!input.trim() || thinking || !available" aria-label="送出">
+          <q-icon name="arrow_upward" size="22px" />
+        </button>
+      </form>
+      <p v-if="error" class="error" role="alert">{{ error }}</p>
+    </section>
+
+    <section v-else class="dialog" aria-label="和組長對話">
       <div class="modes">
         <button :class="{ on: mode === 'chat' }" type="button" @click="mode = 'chat'">問問組長</button>
         <button :class="{ on: mode === 'practice' }" type="button" @click="mode = 'practice'">帶我共修</button>
@@ -201,6 +228,19 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   -webkit-backdrop-filter: blur(14px);
   color: #f6f2e8;
   box-shadow: 0 12px 40px rgba(59, 42, 32, 0.25);
+}
+.dialog.bare {
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+.dialog.bare .ask {
+  box-shadow: 0 10px 34px rgba(59, 42, 32, 0.28);
+}
+.dialog.simple .subtitle {
+  max-height: 30svh;
 }
 .modes {
   display: flex;
