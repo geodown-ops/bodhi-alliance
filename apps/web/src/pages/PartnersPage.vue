@@ -46,7 +46,7 @@ async function submit() {
     <div class="grid">
       <div class="card">
         <h3 class="q-mt-none">禪修中心與道場</h3>
-        <p class="q-mb-none">核發菩提幣給自己的志工與教練，同時把住宿、餐飲與課程名額開放給全聯盟使用，並推派委員進入主辦審核小組。</p>
+        <p class="q-mb-none">核發菩提幣給自己的志工與教練，同時把住宿、餐飲與課程名額開放給全聯盟使用，並推派委員進入菩提幣決策小組。</p>
       </div>
       <div class="card">
         <h3 class="q-mt-none">贊助商家</h3>

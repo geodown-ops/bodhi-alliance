@@ -114,7 +114,7 @@ const pageHeight = () => ({ height: "calc(100svh - 50px)" })
 <template>
   <q-page class="stage" :style-fn="pageHeight">
     <GuideScene ref="scene" :state="sceneState" />
-    <h1 class="sr-only">線上覺行小組 AI 組長</h1>
+    <h1 class="sr-only">線上問答</h1>
 
     <section class="dialog" aria-label="和組長對話">
       <div class="modes">

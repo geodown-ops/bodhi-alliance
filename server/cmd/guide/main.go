@@ -31,10 +31,10 @@ func main() {
 	if err := store.EnsurePersona(ctx, cfg.GuideName); err != nil {
 		log.Fatalf("seed persona: %v", err)
 	}
-	if n, err := store.SeedDocuments(ctx, guide.SeedFiles); err != nil {
+	if added, updated, err := store.SeedDocuments(ctx, guide.SeedFiles); err != nil {
 		log.Fatalf("seed knowledge: %v", err)
-	} else if n > 0 {
-		log.Printf("published %d bundled knowledge documents", n)
+	} else if added+updated > 0 {
+		log.Printf("bundled knowledge: %d published, %d updated", added, updated)
 	}
 
 	h := &guide.Handler{Store: store, Auth: &auth.Service{DB: pool}}

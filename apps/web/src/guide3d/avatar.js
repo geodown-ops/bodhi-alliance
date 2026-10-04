@@ -1,7 +1,7 @@
 // 來源：bodhi-guide 首頁的解說員（guide-hero-assets 分支 guide-hero/avatar.js）。
 // 官網版多了 dispose()，離開 AI 組長頁時停止繪製並釋放 WebGL 資源。
 // 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想。被提問時睜眼、鏡頭推近、依字幕對嘴；
-// 回答時在湖中蘆葦區隨機走動，雙手始終自然垂在身體兩側。回答結束後在原地停下、回到冥想。
+// 回答時在湖中蘆葦區隨機走動，右手始終端著一杯熱茶。回答結束後在原地停下、回到冥想。
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -11,14 +11,24 @@ const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 對嘴速度，之後接 TTS 時改由語音時間軸驅動
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
-// 手臂姿勢：雙手自然垂在身體兩側、手肘微彎（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）
-const ARMS_DOWN = {
+// 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
+// 左手自然垂在身側；右手前臂往前抬、掌心轉向身體，端著茶杯
+const ARMS = {
   leftUpperArm:  [0.24, -0.97, 0.02],     // 略往外張，避開寬鬆上衣
-  rightUpperArm: [-0.24, -0.97, 0.02],
+  rightUpperArm: [-0.14, -0.95, 0.28],
   leftLowerArm:  [0.2, -0.96, 0.15],      // 手掌落在大腿外側，不穿進短褲
-  rightLowerArm: [-0.2, -0.96, 0.15],
+  rightLowerArm: [0.22, 0.1, 0.97],
 };
-const ARM_BONES = Object.keys(ARMS_DOWN);
+const ARM_TWIST = { rightLowerArm: Math.PI / 2 };   // 沿前臂轉 90°，掌心朝內、拇指朝上
+const ARM_BONES = Object.keys(ARMS);
+// 握杯：四指繞著杯身彎曲
+const GRIP = {
+  rightIndexProximal: 0.95, rightIndexIntermediate: 1.0, rightIndexDistal: 0.5,
+  rightMiddleProximal: 1.0, rightMiddleIntermediate: 1.0, rightMiddleDistal: 0.5,
+  rightRingProximal: 1.05, rightRingIntermediate: 1.0, rightRingDistal: 0.5,
+  rightLittleProximal: 1.1, rightLittleIntermediate: 1.0, rightLittleDistal: 0.5,
+};
+const CUP_OFFSET = new THREE.Vector3(0.04, 0.0, 0.055);   // 杯子中心相對右手腕（身體座標）
 const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0] : [-1, 0, 0]));
 
 // 走動範圍與速度：只在湖中的蘆葦區。上限要讓跟拍鏡頭（角色前方 3.2 公尺）停在岸邊麥田之前
@@ -51,16 +61,25 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
     'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', ...ARM_BONES].map(n => [n, bone(n)]));
+  for (const [name, curl] of Object.entries(GRIP)) bone(name)?.rotation.set(0, 0, curl);
+  // 拇指收到杯子後側扶著，不往上翹
+  for (const [name, y] of [['rightThumbMetacarpal', 0.3], ['rightThumbProximal', 0.9], ['rightThumbDistal', 0.5]]) bone(name)?.rotation.set(0, y, 0);
+  const rawHand = vrm.humanoid.getRawBoneNode('rightHand');
 
   // 依「身體座標」中的目標方向擺手臂：扣掉整個角色的轉向，求出骨骼的區域旋轉
-  const qBodyInv = new THREE.Quaternion(), qParent = new THREE.Quaternion(), qTarget = new THREE.Quaternion();
-  const aimBody = (name, dirBody) => {
+  const qBodyInv = new THREE.Quaternion(), qParent = new THREE.Quaternion(), qTarget = new THREE.Quaternion(), qTwist = new THREE.Quaternion();
+  const aimBody = (name, dirBody, twist = 0) => {
     const b = B[name]; if (!b) return;
     b.parent.getWorldQuaternion(qParent).premultiply(qBodyInv);
     qTarget.setFromUnitVectors(restDir(name), dirBody);
+    if (twist) qTarget.multiply(qTwist.setFromAxisAngle(restDir(name), twist));
     b.quaternion.copy(qParent.invert().multiply(qTarget));
     b.updateMatrixWorld(true);
   };
+
+  const cup = makeTeaCup();
+  scene.add(cup.group);
+  const cupPos = new THREE.Vector3();
 
   // 站進水裡：讓水面剛好在膝蓋（小腿骨的起點）高度；走上岸時沿著坡度出水
   vrm.scene.position.set(0, 0, STAND_Z);
@@ -187,7 +206,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     if (B.chest) B.chest.rotation.x = -0.03 + breath * 0.02 * m;
     if (B.spine) B.spine.rotation.set(0.04 + body.walk * 0.05, -Math.sin(body.phase) * 0.05 * body.walk, 0);
     vrm.scene.updateMatrixWorld(true);
-    for (const name of ARM_BONES) aimBody(name, dirBody.set(...ARMS_DOWN[name]).normalize());
+    for (const name of ARM_BONES) aimBody(name, dirBody.set(...ARMS[name]).normalize(), ARM_TWIST[name]);
     let hx = state === 'idle' ? 0.12 : 0.02, hy = 0, hz = 0;
     if (state === 'thinking') { hz = 0.08; hx = 0.05; }
     if (state === 'talking') { hx += Math.sin(t * 2.3) * 0.025 * m; hy = Math.sin(t * 1.3) * 0.04 * m; }
@@ -250,6 +269,11 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     gaze.position.copy(camera.position);
 
     vrm.update(dt);
+    // 茶杯跟著右手，杯口始終朝上
+    rawHand.getWorldPosition(cupPos);
+    cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).applyQuaternion(vrm.scene.quaternion));
+    cup.group.quaternion.copy(vrm.scene.quaternion);
+    cup.update(t, m);
     renderer.render(scene, camera);
   });
 
@@ -266,8 +290,62 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
       resizeObs.disconnect();
       visibleObs.disconnect();
       VRMUtils.deepDispose(vrm.scene);
+      cup.dispose();
       scene.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); });
       renderer.dispose();
     },
+  };
+}
+
+// 一只米白瓷茶杯：杯身用旋轉體做出圈足與微微外撇的杯口，杯裡是茶湯，上方幾縷熱氣慢慢升起
+function makeTeaCup() {
+  const group = new THREE.Group();
+  const R = 0.034, H = 0.05;
+  const profile = [
+    [0, 0], [R * 0.55, 0], [R * 0.55, H * 0.08], [R * 0.62, H * 0.1],
+    [R * 0.86, H * 0.35], [R * 0.97, H * 0.75], [R, H],
+    [R * 0.93, H], [R * 0.9, H * 0.75], [R * 0.79, H * 0.35], [R * 0.52, H * 0.14], [0, H * 0.14],
+  ].map(([x, y]) => new THREE.Vector2(x, y));
+  // 夕陽在角色背後，杯子正面偏暗，加一點自發光讓米白釉色看得出來
+  const glaze = new THREE.MeshStandardMaterial({ color: 0xf2ead8, emissive: 0xf2ead8, emissiveIntensity: 0.5, roughness: 0.35 });
+  const body = new THREE.Mesh(new THREE.LatheGeometry(profile, 32), glaze);
+  body.position.y = -H / 2;
+  group.add(body);
+
+  const tea = new THREE.Mesh(new THREE.CircleGeometry(R * 0.9, 32),
+    new THREE.MeshStandardMaterial({ color: 0xa8743a, emissive: 0xa8743a, emissiveIntensity: 0.25, roughness: 0.15 }));
+  tea.rotation.x = -Math.PI / 2;
+  tea.position.y = -H / 2 + H * 0.72;
+  group.add(tea);
+
+  // 熱氣：柔邊的半透明貼片，各自錯開相位往上飄、淡出
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  const puffs = Array.from({ length: 4 }, (_, i) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 }));
+    sp.userData.offset = i / 4;
+    group.add(sp);
+    return sp;
+  });
+
+  return {
+    group,
+    update(t, m) {
+      for (const sp of puffs) {
+        const k = (t * 0.22 * (m < 1 ? 0.5 : 1) + sp.userData.offset) % 1;     // 0 → 1：從杯口升到上方
+        sp.position.set(Math.sin(t * 0.9 + sp.userData.offset * 6) * 0.01, H / 2 + k * 0.12, 0);
+        const size = 0.025 + k * 0.05;
+        sp.scale.set(size, size, 1);
+        sp.material.opacity = Math.sin(k * Math.PI) * 0.35;
+      }
+    },
+    dispose() { tex.dispose(); },
   };
 }

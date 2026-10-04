@@ -261,16 +261,40 @@ func (s *Store) SavePersona(ctx context.Context, name, prompt string, userID *st
 	return err
 }
 
-// EnsurePersona seeds the default persona the first time the service starts.
+// EnsurePersona seeds the default persona the first time the service starts, and moves a
+// persona nobody has edited to the current default text. A persona saved in the admin stays.
 func (s *Store) EnsurePersona(ctx context.Context, name string) error {
-	var n int
-	if err := s.DB.QueryRow(ctx, `SELECT count(*) FROM guide.persona_version`).Scan(&n); err != nil {
+	p, err := s.Persona(ctx)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return s.saveDefaultPersona(ctx, name)
+	}
+	if err != nil {
 		return err
 	}
-	if n > 0 {
+	sum, err := s.Setting(ctx, "seed:persona")
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		// Seeded before the digest was recorded: only the untouched first version is ours.
+		if p.Version != 1 || p.EditedBy != nil {
+			return nil
+		}
+	case err != nil:
+		return err
+	case sum != digest(p.Prompt):
 		return nil
 	}
-	return s.SavePersona(ctx, name, DefaultPersonaPrompt(name), nil)
+	if p.Prompt == DefaultPersonaPrompt(p.Name) {
+		return s.SetSetting(ctx, "seed:persona", digest(p.Prompt))
+	}
+	return s.saveDefaultPersona(ctx, p.Name)
+}
+
+func (s *Store) saveDefaultPersona(ctx context.Context, name string) error {
+	prompt := DefaultPersonaPrompt(name)
+	if err := s.SavePersona(ctx, name, prompt, nil); err != nil {
+		return err
+	}
+	return s.SetSetting(ctx, "seed:persona", digest(prompt))
 }
 
 func (s *Store) Setting(ctx context.Context, key string) (string, error) {

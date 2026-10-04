@@ -242,19 +242,29 @@ func TestChatStreams(t *testing.T) {
 	}
 }
 
+func seedFS(body string) fstest.MapFS {
+	return fstest.MapFS{"seed/coin.md": {Data: []byte("---\ntitle: 菩提幣與共好企業\ncategory: coin\n---\n" + body)}}
+}
+
+func (e *env) seed(fsys fs.FS, wantAdded, wantUpdated int) {
+	e.t.Helper()
+	if a, u, err := e.store.SeedDocuments(context.Background(), fsys); err != nil || a != wantAdded || u != wantUpdated {
+		e.t.Fatalf("seed: added=%d updated=%d err=%v, want %d %d", a, u, err, wantAdded, wantUpdated)
+	}
+}
+
+func (e *env) ask(q string) string {
+	e.t.Helper()
+	e.do(http.MethodPost, "/guide/chat", map[string]any{"messages": []Message{{Role: "user", Content: q}}}, false)
+	return e.llm.last.Knowledge
+}
+
 func TestSeedDocumentsOnce(t *testing.T) {
 	e := setup(t)
 	ctx := context.Background()
-	fsys := fstest.MapFS{
-		"seed/coin.md": {Data: []byte("---\ntitle: 菩提幣與共好企業\ncategory: coin\n---\n# 梯級\n\n半日服務：1,500 幣")},
-	}
-	if n, err := e.store.SeedDocuments(ctx, fsys); err != nil || n != 1 {
-		t.Fatalf("first seed: n=%d err=%v", n, err)
-	}
-	msg := map[string]any{"messages": []Message{{Role: "user", Content: "半日服務幾幣？"}}}
-	e.do(http.MethodPost, "/guide/chat", msg, false)
-	if !strings.Contains(e.llm.last.Knowledge, "1,500 幣") || !strings.Contains(e.llm.last.Knowledge, `title="菩提幣與共好企業"`) {
-		t.Fatalf("seeded doc not live: %q", e.llm.last.Knowledge)
+	e.seed(seedFS("# 梯級\n\n半日服務：1,500 幣"), 1, 0)
+	if k := e.ask("半日服務幾幣？"); !strings.Contains(k, "1,500 幣") || !strings.Contains(k, `title="菩提幣與共好企業"`) {
+		t.Fatalf("seeded doc not live: %q", k)
 	}
 
 	// An admin archiving it is not undone by the next start.
@@ -265,26 +275,100 @@ func TestSeedDocumentsOnce(t *testing.T) {
 	if err := e.store.SetStatus(ctx, docs[0].ID, "archived"); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := e.store.SeedDocuments(ctx, fsys); err != nil || n != 0 {
-		t.Fatalf("second seed: n=%d err=%v", n, err)
-	}
+	e.seed(seedFS("# 梯級\n\n半日服務：1,500 幣"), 0, 0)
 	if docs, _ := e.store.ListDocuments(ctx); len(docs) != 0 {
 		t.Errorf("archived seed came back: %+v", docs)
 	}
-	if id, _ := e.store.Setting(ctx, "seed:coin.md"); id == "" {
-		t.Error("seed key has no document id")
+}
+
+func TestSeedFileChangesFollowUntilEdited(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	e.seed(seedFS("# 審核\n\n由主辦審核小組審核。"), 1, 0)
+
+	// A changed file reaches the published document as a new version.
+	e.seed(seedFS("# 審核\n\n由菩提幣決策小組審核。"), 0, 1)
+	if k := e.ask("誰審核？"); !strings.Contains(k, "菩提幣決策小組") || strings.Contains(k, "主辦審核小組") {
+		t.Fatalf("seed change not live: %q", k)
+	}
+	docs, _ := e.store.ListDocuments(ctx)
+	if len(docs) != 1 || docs[0].CurrentVersion != 2 {
+		t.Fatalf("docs = %+v", docs)
+	}
+
+	// Once someone edits it in the admin, the file no longer touches it.
+	var userID string
+	if err := e.store.DB.QueryRow(ctx, `SELECT id FROM app_user WHERE email = 'km@example.org'`).Scan(&userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.UpdateDocument(ctx, docs[0].ID, docs[0].Title, "coin", "# 審核\n\n管理員改過的說明。", "edit", userID); err != nil {
+		t.Fatal(err)
+	}
+	e.seed(seedFS("# 審核\n\n第三版。"), 0, 0)
+	if k := e.ask("誰審核？"); !strings.Contains(k, "管理員改過的說明") {
+		t.Errorf("admin edit overwritten: %q", k)
+	}
+}
+
+func TestSeedDigestMissing(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	e.seed(seedFS("舊版"), 1, 0)
+	// Deployments seeded before the digest existed stored only the document id.
+	id, _ := e.store.Setting(ctx, "seed:coin.md")
+	id, _, _ = strings.Cut(id, " ")
+	if err := e.store.SetSetting(ctx, "seed:coin.md", id); err != nil {
+		t.Fatal(err)
+	}
+	e.seed(seedFS("新版"), 0, 1)
+	if v, _ := e.store.Setting(ctx, "seed:coin.md"); v != id+" "+digest("新版") {
+		t.Errorf("setting = %q", v)
 	}
 }
 
 func TestBundledSeedPublishes(t *testing.T) {
 	e := setup(t)
 	files, _ := fs.Glob(SeedFiles, "seed/*.md")
-	if n, err := e.store.SeedDocuments(context.Background(), SeedFiles); err != nil || n != len(files) {
-		t.Fatalf("seed: n=%d err=%v", n, err)
-	}
-	msg := map[string]any{"messages": []Message{{Role: "user", Content: "誰審核核發名單？"}}}
-	e.do(http.MethodPost, "/guide/chat", msg, false)
-	if !strings.Contains(e.llm.last.Knowledge, "菩提幣決策小組") {
+	e.seed(SeedFiles, len(files), 0)
+	if k := e.ask("誰審核核發名單？"); !strings.Contains(k, "菩提幣決策小組") {
 		t.Error("bundled knowledge not live")
+	}
+}
+
+func TestPersonaFollowsDefaultUntilEdited(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	p, _ := e.store.Persona(ctx)
+	if p.Prompt != DefaultPersonaPrompt("Sunny") {
+		t.Fatalf("fresh persona = %q", p.Prompt)
+	}
+
+	// A deployment seeded with an older default (and no digest) moves to the current one.
+	if _, err := e.store.DB.Exec(ctx, `DELETE FROM guide.persona_version; DELETE FROM guide.setting WHERE key = 'seed:persona';
+		ALTER SEQUENCE guide.persona_version_version_seq RESTART`); err != nil {
+		t.Fatal(err)
+	}
+	old := strings.ReplaceAll(DefaultPersonaPrompt("Sunny"), "「我的錢包」", "「菩提幣錢包」")
+	if err := e.store.SavePersona(ctx, "Sunny", old, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.EnsurePersona(ctx, "Sunny"); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := e.store.Persona(ctx); p.Version != 2 || p.Prompt != DefaultPersonaPrompt("Sunny") {
+		t.Fatalf("persona not upgraded: v%d %q", p.Version, p.Prompt)
+	}
+
+	// A persona saved in the admin stays.
+	var userID string
+	e.store.DB.QueryRow(ctx, `SELECT id FROM app_user WHERE email = 'km@example.org'`).Scan(&userID)
+	if err := e.store.SavePersona(ctx, "Sunny", "管理員寫的設定", &userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.store.EnsurePersona(ctx, "Sunny"); err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := e.store.Persona(ctx); p.Prompt != "管理員寫的設定" {
+		t.Errorf("admin persona replaced: %q", p.Prompt)
 	}
 }
