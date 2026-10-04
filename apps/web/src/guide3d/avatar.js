@@ -1,7 +1,7 @@
 // 來源：bodhi-guide 首頁的解說員（guide-hero-assets 分支 guide-hero/avatar.js）。
 // 官網版多了 dispose()，離開 AI 組長頁時停止繪製並釋放 WebGL 資源。
 // 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想。被提問時睜眼、鏡頭推近、依字幕對嘴；
-// 回答時在湖中蘆葦區隨機走動，雙手始終自然垂在身體兩側。回答結束後在原地停下、回到冥想。
+// 回答時在湖中蘆葦區隨機走動，右手始終端著一杯茶、左手自然垂下。回答結束後在原地停下、回到冥想。
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -11,14 +11,33 @@ const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 對嘴速度，之後接 TTS 時改由語音時間軸驅動
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
-// 手臂姿勢：雙手自然垂在身體兩側、手肘微彎（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）
-const ARMS_DOWN = {
+// 手臂姿勢：左手自然垂在身側，右手彎肘在胸前端著一杯茶（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）
+const ARMS = {
   leftUpperArm:  [0.24, -0.97, 0.02],     // 略往外張，避開寬鬆上衣
-  rightUpperArm: [-0.24, -0.97, 0.02],
+  rightUpperArm: [-0.2, -0.95, 0.2],
   leftLowerArm:  [0.2, -0.96, 0.15],      // 手掌落在大腿外側，不穿進短褲
-  rightLowerArm: [-0.2, -0.96, 0.15],
+  rightLowerArm: [0.3, 0.12, 0.95],       // 前臂往前、略往身體中線，茶杯在胸口下方
 };
-const ARM_BONES = Object.keys(ARMS_DOWN);
+const ARM_BONES = Object.keys(ARMS);
+const CUP = { along: 0.06, inward: 0.035, up: 0.0 };   // 茶杯中心相對右手腕：沿前臂、往身體中線、往上（公尺）
+const RIGHT_FINGERS = ['Index', 'Middle', 'Ring', 'Little'].flatMap(f => ['Proximal', 'Intermediate', 'Distal'].map(s => `right${f}${s}`));
+
+// 茶杯：無把手的陶瓷茶杯，杯裡是茶湯。全部程序化，不用貼圖
+function makeTeaCup() {
+  const cup = new THREE.Group();
+  const H = 0.06, RT = 0.03, RB = 0.022;
+  const glaze = new THREE.MeshStandardMaterial({ color: '#f2ead8', emissive: '#f2ead8', emissiveIntensity: 0.45, roughness: 0.35 });   // 夕陽在背後，自發光補一點亮度
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(RT, RB, H, 28, 1, true), glaze);
+  wall.material.side = THREE.DoubleSide;
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(RB, RB * 0.9, 0.006, 28), glaze);
+  foot.position.y = -H / 2;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(RT, 0.0025, 8, 32), glaze);
+  rim.rotation.x = Math.PI / 2; rim.position.y = H / 2;
+  const tea = new THREE.Mesh(new THREE.CircleGeometry(RT * 0.94, 28), new THREE.MeshStandardMaterial({ color: '#a8743a', emissive: '#a8743a', emissiveIntensity: 0.3, roughness: 0.15 }));
+  tea.rotation.x = -Math.PI / 2; tea.position.y = H / 2 - 0.012;
+  cup.add(wall, foot, rim, tea);
+  return cup;
+}
 const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0] : [-1, 0, 0]));
 
 // 走動範圍與速度：只在湖中的蘆葦區。上限要讓跟拍鏡頭（角色前方 3.2 公尺）停在岸邊麥田之前
@@ -50,7 +69,15 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
 
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
-    'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', ...ARM_BONES].map(n => [n, bone(n)]));
+    'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', 'rightHand', ...ARM_BONES].map(n => [n, bone(n)]));
+
+  // 右手握杯：手掌轉向身體中線、四指彎曲圍住杯身
+  if (B.rightHand) B.rightHand.rotation.x = -Math.PI / 2;
+  for (const n of RIGHT_FINGERS) { const f = bone(n); if (f) f.rotation.z = n.endsWith('Proximal') ? 0.9 : 0.7; }
+  for (const [n, x] of [['rightThumbProximal', 1.0], ['rightThumbIntermediate', 0.4]]) { const f = bone(n); if (f) f.rotation.x = x; }   // 拇指扣在杯緣外側
+  const cup = makeTeaCup();
+  scene.add(cup);
+  const handW = new THREE.Vector3(), forearmW = new THREE.Vector3(), inwardW = new THREE.Vector3();
 
   // 依「身體座標」中的目標方向擺手臂：扣掉整個角色的轉向，求出骨骼的區域旋轉
   const qBodyInv = new THREE.Quaternion(), qParent = new THREE.Quaternion(), qTarget = new THREE.Quaternion();
@@ -187,7 +214,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     if (B.chest) B.chest.rotation.x = -0.03 + breath * 0.02 * m;
     if (B.spine) B.spine.rotation.set(0.04 + body.walk * 0.05, -Math.sin(body.phase) * 0.05 * body.walk, 0);
     vrm.scene.updateMatrixWorld(true);
-    for (const name of ARM_BONES) aimBody(name, dirBody.set(...ARMS_DOWN[name]).normalize());
+    for (const name of ARM_BONES) aimBody(name, dirBody.set(...ARMS[name]).normalize());
     let hx = state === 'idle' ? 0.12 : 0.02, hy = 0, hz = 0;
     if (state === 'thinking') { hz = 0.08; hx = 0.05; }
     if (state === 'talking') { hx += Math.sin(t * 2.3) * 0.025 * m; hy = Math.sin(t * 1.3) * 0.04 * m; }
@@ -197,6 +224,16 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
 
     // ---- 身體走過的地方，蘆葦往兩旁分開 ----
     vrm.scene.updateMatrixWorld(true);
+
+    // ---- 茶杯跟著右手，但永遠保持直立、不灑出來 ----
+    if (B.rightHand) {
+      B.rightHand.getWorldPosition(handW);
+      forearmW.set(...ARMS.rightLowerArm).normalize().applyQuaternion(vrm.scene.quaternion);
+      inwardW.set(1, 0, 0).applyQuaternion(vrm.scene.quaternion);
+      cup.position.copy(handW).addScaledVector(forearmW, CUP.along).addScaledVector(inwardW, CUP.inward);
+      cup.position.y += CUP.up;
+      cup.rotation.set(0, body.yaw, 0);
+    }
     env.setPushers([{ position: B.hips.getWorldPosition(hipsW), radius: 0.5 }]);
     env.setRipple(body.x, body.z, depth / kneeY);
 
