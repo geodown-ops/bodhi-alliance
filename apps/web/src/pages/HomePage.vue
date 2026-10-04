@@ -389,6 +389,7 @@ function again() {
 <style scoped>
 .home-guide {
   height: calc(100svh - 50px);
+  min-height: 560px;   /* 和畫境的最小高度一致，矮螢幕上才不會蓋到下面的招募內容 */
 }
 /* 深咖啡 × 淺綠（brand/coffee-green）。變數名沿用招募頁：--gold 是綠色強調色。 */
 .recruit {
