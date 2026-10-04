@@ -1,8 +1,11 @@
 <script setup lang="ts">
 // 線上問答的畫境＋單一對話框：Sunny 站在黃昏湖景裡，下方一個對話框問答或共修。線上問答頁與首頁共用。
+// compact（首頁用）：只留一個輸入欄位，有問答時才在上方顯示最近一問一答。
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { api, ApiError, type ChatMessage } from '../api'
 import GuideScene from './GuideScene.vue'
+
+const props = defineProps<{ compact?: boolean }>()
 
 const name = ref('Sunny')
 const available = ref(true)
@@ -28,6 +31,7 @@ try {
 } catch {
   /* 無法使用 sessionStorage 時就不保留對話 */
 }
+if (props.compact) mode.value = 'chat'
 watch([messages, mode, scriptId], () => {
   try {
     sessionStorage.setItem(storeKey, JSON.stringify({ messages: messages.value, mode: mode.value, scriptId: scriptId.value }))
@@ -114,21 +118,23 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   <div class="stage">
     <GuideScene ref="scene" :state="sceneState" />
 
-    <section class="dialog" aria-label="和組長對話">
-      <div class="modes">
+    <section class="dialog" :class="{ compact }" aria-label="和組長對話">
+      <div v-if="!compact" class="modes">
         <button :class="{ on: mode === 'chat' }" type="button" @click="mode = 'chat'">問問組長</button>
         <button :class="{ on: mode === 'practice' }" type="button" @click="mode = 'practice'">帶我共修</button>
         <q-space />
         <button v-if="messages.length && !thinking" type="button" class="plain" @click="reset">重新開始</button>
       </div>
 
-      <div ref="subtitle" class="subtitle" aria-live="polite">
+      <div ref="subtitle" class="subtitle" :class="{ empty: compact && !question }" aria-live="polite">
         <template v-if="question">
           <div class="asked"><span class="label">你問</span>{{ question }}</div>
           <p class="answer">
             {{ answer }}<span v-if="thinking && !streaming" class="dots" aria-label="組長思考中"><i>．</i><i>．</i><i>．</i></span>
           </p>
+          <p v-if="compact" class="hint">AI 組長只根據協會提供的資料回答，可能會出錯。重要的事請再向真人組長確認。</p>
         </template>
+        <template v-else-if="compact" />
         <template v-else-if="!available">
           <p class="answer">線上組長目前休息中，請稍後再來，或到<router-link to="/groups">覺行小組</router-link>頁面聯絡真人組長。</p>
         </template>
@@ -165,7 +171,7 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
         <input
           v-model="input"
           :maxlength="2000"
-          :placeholder="mode === 'practice' ? '回應組長，例如「好了」「下一步」' : '輸入你的問題'"
+          :placeholder="compact && !available ? '線上組長目前休息中，請稍後再來' : mode === 'practice' ? '回應組長，例如「好了」「下一步」' : '輸入你的問題'"
           :disabled="!available"
           aria-label="輸入訊息"
         />
@@ -174,7 +180,7 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
         </button>
       </form>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <p class="hint">AI 組長只根據協會提供的資料回答，可能會出錯。重要的事請再向真人組長確認。</p>
+      <p v-if="!compact" class="hint">AI 組長只根據協會提供的資料回答，可能會出錯。重要的事請再向真人組長確認。</p>
     </section>
   </div>
 </template>
@@ -319,6 +325,38 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   font-size: 0.75rem;
   opacity: 0.7;
   margin: 8px 4px 0;
+}
+/* 首頁：對話框本身透明，只剩輸入欄；有問答時字幕自成一塊深色面板 */
+.dialog.compact {
+  max-width: 600px;
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+.compact .subtitle:not(.empty) {
+  padding: 14px 16px 10px;
+  border-radius: 18px;
+  background: rgba(59, 42, 32, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(59, 42, 32, 0.25);
+}
+.compact .subtitle.empty {
+  margin: 0;
+}
+.compact .hint {
+  margin: 0 0 4px;
+}
+.compact .ask {
+  box-shadow: 0 10px 30px rgba(59, 42, 32, 0.3);
+}
+.compact .error {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(59, 42, 32, 0.62);
 }
 @media (max-width: 599px) {
   .subtitle {

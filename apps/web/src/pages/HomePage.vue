@@ -66,7 +66,8 @@ function again() {
   <q-page class="recruit">
     <!-- ============ 線上問答 Sunny ============ -->
     <section class="home-guide" aria-label="線上問答">
-      <GuideStage />
+      <h1 class="home-title">一即一切<br />一切即一</h1>
+      <GuideStage compact />
     </section>
 
     <!-- ============ 開頭 ============ -->
@@ -77,7 +78,6 @@ function again() {
             <path d="M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z" />
           </svg>
           <p class="eyebrow">Sunny life · 成員招募</p>
-          <p class="oneline">一即一切<br />一切即一</p>
           <div class="hairline"></div>
           <p class="hero-lede">
             一個人的服務，回到所有人身上；所有人的供養，回到每一個人身上。<b>菩提幣</b>把禪修中心的服務時數，變成共好企業共通的記帳單位——志工與禪修教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
@@ -388,8 +388,25 @@ function again() {
 
 <style scoped>
 .home-guide {
+  position: relative;
   height: calc(100svh - 50px);
   min-height: 560px;   /* 和畫境的最小高度一致，矮螢幕上才不會蓋到下面的招募內容 */
+}
+/* 「一即一切／一切即一」放在 Sunny 畫境左側的天空，深咖啡字配上淡淡的光暈，壓在亮處也讀得清楚 */
+.home-title {
+  position: absolute;
+  z-index: 1;
+  left: clamp(22px, 6vw, 104px);
+  top: 14%;
+  margin: 0;
+  font-family: var(--wenkai);
+  font-weight: 700;
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-shadow: 0 0 18px rgba(251, 249, 243, 0.85), 0 0 4px rgba(251, 249, 243, 0.6);
+  pointer-events: none;
 }
 /* 深咖啡 × 淺綠（brand/coffee-green）。變數名沿用招募頁：--gold 是綠色強調色。 */
 .recruit {
@@ -489,15 +506,6 @@ header {
   width: auto;
   fill: var(--band-gold);
   margin: 0 0 26px;
-}
-.oneline {
-  font-family: var(--wenkai);
-  font-weight: 700;
-  font-size: clamp(38px, 6.4vw, 64px);
-  line-height: 1.24;
-  letter-spacing: 0.04em;
-  margin: 20px 0 0;
-  color: var(--band-ink);
 }
 .hairline {
   height: 1px;
@@ -1094,6 +1102,10 @@ textarea:focus {
 @media (max-width: 680px) {
   .recruit {
     font-size: 16px;
+  }
+  .home-title {
+    top: 22px;
+    font-size: 32px;
   }
   .shell {
     padding: 0 22px;
