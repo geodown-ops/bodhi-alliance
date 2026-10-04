@@ -2,7 +2,7 @@
 const turns = [
   { name: '轉念', pinyin: 'zhuǎn niàn', text: '放下壓力，回歸中道平衡。不以人情與虧欠維持一個團體。' },
   { name: '轉識', pinyin: 'zhuǎn shí', text: '透過呼吸覺察，安定身心。看清資源與付出真正流向哪裡。' },
-  { name: '轉依', pinyin: 'zhuǎn yī', text: '觀想與身心覺知統合，進入與法界合一。一間中心的量能，成為全聯盟的量能。' },
+  { name: '轉依', pinyin: 'zhuǎn yī', text: '觀想與身心覺知統合，進入與法界合一。一間中心的量能，成為全體共好企業的量能。' },
 ]
 </script>
 

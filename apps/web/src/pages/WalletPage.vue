@@ -9,14 +9,14 @@
     <div class="grid">
       <div class="card"><h3 class="q-mt-none">查看餘額</h3><p class="q-mb-none">核發名單核准當下入帳，手機收到通知。</p></div>
       <div class="card"><h3 class="q-mt-none">兌換券</h3><p class="q-mb-none">瀏覽共好企業提供的品項券與面額券，幾秒完成兌換。</p></div>
-      <div class="card"><h3 class="q-mt-none">轉贈</h3><p class="q-mb-none">券可以在聯盟內轉贈給家人或同修；幣本身不能轉讓。</p></div>
+      <div class="card"><h3 class="q-mt-none">轉贈</h3><p class="q-mb-none">券可以在共好企業內轉贈給家人或同修；幣本身不能轉讓。</p></div>
       <div class="card"><h3 class="q-mt-none">身份 QR</h3><p class="q-mb-none">到店出示會定時更新的身份 QR，店員掃碼核銷；手機遺失可一鍵凍結。</p></div>
     </div>
 
     <h2>錢包放在哪裡</h2>
     <p>
-      你的餘額與券記在聯盟官網的帳本裡，不需要自己保管私鑰，也不用付任何手續費。區塊鏈上只有聯盟金庫、各中心與各共好企業的地址；
-      聯盟每天把整本帳的摘要寫上鏈，各中心都能用查帳工具獨立核對，確保帳本沒有被改動。
+      你的餘額與券記在 Sunny life 官網的帳本裡，不需要自己保管私鑰，也不用付任何手續費。區塊鏈上只有共好企業金庫、各中心與各共好企業的地址；
+      共好企業每天把整本帳的摘要寫上鏈，各中心都能用查帳工具獨立核對，確保帳本沒有被改動。
     </p>
 
     <h2>錢包使用者管理</h2>
