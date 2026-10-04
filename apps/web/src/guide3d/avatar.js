@@ -1,7 +1,7 @@
 // 來源：bodhi-guide 首頁的解說員（guide-hero-assets 分支 guide-hero/avatar.js）。
 // 官網版多了 dispose()，離開 AI 組長頁時停止繪製並釋放 WebGL 資源。
 // 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想。被提問時睜眼、鏡頭推近、依字幕對嘴；
-// 回答時在湖中蘆葦區隨機走動，右手始終端著一杯熱茶。回答結束後在原地停下、回到冥想。
+// 回答時在湖中蘆葦區隨機走動，雙手始終捧著一杯熱茶。回答結束後在原地停下、回到冥想。
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -12,23 +12,22 @@ const CHARS_PER_SEC = 7;          // 對嘴速度，之後接 TTS 時改由語�
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
 // 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
-// 左手自然垂在身側；右手前臂往前抬、掌心轉向身體，端著茶杯
+// 雙手彎肘往前、往中間收，在胸口下方一起捧著熱茶杯，左右對稱
 const ARMS = {
-  leftUpperArm:  [0.24, -0.97, 0.02],     // 略往外張，避開寬鬆上衣
-  rightUpperArm: [-0.14, -0.95, 0.28],
-  leftLowerArm:  [0.2, -0.96, 0.15],      // 手掌落在大腿外側，不穿進短褲
-  rightLowerArm: [0.22, 0.1, 0.97],
+  leftUpperArm:  [0.12, -0.95, 0.28],
+  rightUpperArm: [-0.12, -0.95, 0.28],
+  leftLowerArm:  [-0.35, 0.15, 0.92],
+  rightLowerArm: [0.35, 0.15, 0.92],
 };
-const ARM_TWIST = { rightLowerArm: Math.PI / 2 };   // 沿前臂轉 90°，掌心朝內、拇指朝上
+const ARM_TWIST = { rightLowerArm: Math.PI / 2, leftLowerArm: -Math.PI / 2 };   // 沿前臂轉 90°，兩手掌心相對、拇指朝上
 const ARM_BONES = Object.keys(ARMS);
-// 握杯：四指繞著杯身彎曲
-const GRIP = {
-  rightIndexProximal: 0.95, rightIndexIntermediate: 1.0, rightIndexDistal: 0.5,
-  rightMiddleProximal: 1.0, rightMiddleIntermediate: 1.0, rightMiddleDistal: 0.5,
-  rightRingProximal: 1.05, rightRingIntermediate: 1.0, rightRingDistal: 0.5,
-  rightLittleProximal: 1.1, rightLittleIntermediate: 1.0, rightLittleDistal: 0.5,
-};
-const CUP_OFFSET = new THREE.Vector3(0.04, 0.0, 0.055);   // 杯子中心相對右手腕（身體座標）
+// 捧杯：兩手四指繞著杯身彎曲（左手鏡像，彎曲方向相反）
+const CURL = { IndexProximal: 0.95, IndexIntermediate: 1.0, IndexDistal: 0.5, MiddleProximal: 1.0, MiddleIntermediate: 1.0, MiddleDistal: 0.5,
+  RingProximal: 1.05, RingIntermediate: 1.0, RingDistal: 0.5, LittleProximal: 1.1, LittleIntermediate: 1.0, LittleDistal: 0.5 };
+const GRIP = Object.fromEntries(Object.entries(CURL).flatMap(([k, v]) => [[`right${k}`, v], [`left${k}`, -v]]));
+// 拇指：繞前臂扭轉後會朝上翹，改成往前彎、貼著杯身外側（繞 Z 軸彎，和四指一樣左手取負）
+const THUMBS = [['ThumbMetacarpal', 0.15], ['ThumbProximal', 0.35], ['ThumbDistal', 0.2]];
+const CUP_OFFSET = new THREE.Vector3(0, 0.025, 0.05);   // 杯子中心相對兩手腕中點（身體座標）：往前到掌心之間
 const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0] : [-1, 0, 0]));
 
 // 走動範圍與速度：只在湖中的蘆葦區。上限要讓跟拍鏡頭（角色前方 3.2 公尺）停在岸邊麥田之前
@@ -62,9 +61,9 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
     'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', ...ARM_BONES].map(n => [n, bone(n)]));
   for (const [name, curl] of Object.entries(GRIP)) bone(name)?.rotation.set(0, 0, curl);
-  // 拇指收到杯子後側扶著，不往上翹
-  for (const [name, y] of [['rightThumbMetacarpal', 0.3], ['rightThumbProximal', 0.9], ['rightThumbDistal', 0.5]]) bone(name)?.rotation.set(0, y, 0);
-  const rawHand = vrm.humanoid.getRawBoneNode('rightHand');
+  // 拇指扣在杯緣
+  for (const [name, z] of THUMBS) { bone(`right${name}`)?.rotation.set(0, 0, z); bone(`left${name}`)?.rotation.set(0, 0, -z); }
+  const rawHands = ['rightHand', 'leftHand'].map(n => vrm.humanoid.getRawBoneNode(n));
 
   // 依「身體座標」中的目標方向擺手臂：扣掉整個角色的轉向，求出骨骼的區域旋轉
   const qBodyInv = new THREE.Quaternion(), qParent = new THREE.Quaternion(), qTarget = new THREE.Quaternion(), qTwist = new THREE.Quaternion();
@@ -78,6 +77,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   };
 
   const cup = makeTeaCup();
+  cup.group.scale.setScalar(1.25);   // 雙手捧著，杯子比單手握時大一點
   scene.add(cup.group);
   const cupPos = new THREE.Vector3();
 
@@ -269,8 +269,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     gaze.position.copy(camera.position);
 
     vrm.update(dt);
-    // 茶杯跟著右手，杯口始終朝上
-    rawHand.getWorldPosition(cupPos);
+    // 茶杯在兩手之間，杯口始終朝上
+    rawHands[0].getWorldPosition(cupPos).add(rawHands[1].getWorldPosition(dirBody)).multiplyScalar(0.5);
     cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).applyQuaternion(vrm.scene.quaternion));
     cup.group.quaternion.copy(vrm.scene.quaternion);
     cup.update(t, m);
