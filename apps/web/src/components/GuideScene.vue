@@ -29,13 +29,14 @@ onBeforeUnmount(() => {
   avatar?.dispose()
 })
 
-// 給 AI 組長頁呼叫：思考時半閉眼、回答時對嘴走動、結束後回到冥想
+// 給對話框呼叫：思考時半閉眼、回答時鏡頭推近對嘴、結束後回到冥想
 const leaf =
   'M93.6 0C91.2 16.8 85.2 31.2 75.6 40.8C45.6 69.6 0 100.8 0 153.6C0 204 48 230.4 84 231.6C88.8 231.6 92.4 228 93.6 224.4C94.8 228 98.4 231.6 103.2 231.6C139.2 230.4 187.2 204 187.2 153.6C187.2 100.8 141.6 69.6 111.6 40.8C102 31.2 96 16.8 93.6 0Z'
 
 defineExpose({
   think: () => avatar?.setState('thinking'),
   speak: (text: string) => avatar?.speak(text),
+  voice: (on: boolean) => avatar?.voice(on),
   finish: () => avatar?.finish(),
   rest: () => avatar?.setState('idle'),
 })

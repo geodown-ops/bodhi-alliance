@@ -1,9 +1,11 @@
 export type Avatar = {
   /** idle | thinking | talking */
   setState(s: 'idle' | 'thinking' | 'talking'): void
-  /** 把剛串流到的字幕排進對嘴佇列 */
+  /** 沒有聲音時：把剛串流到的字幕排進對嘴佇列 */
   speak(text: string): void
-  /** 回答結束：唸完佇列裡的字後回到冥想 */
+  /** 語音開始／唸完一句：唸的時候嘴巴跟著開合 */
+  voice(on: boolean): void
+  /** 回答結束：嘴型停下後回到冥想 */
   finish(): void
   dispose(): void
 }

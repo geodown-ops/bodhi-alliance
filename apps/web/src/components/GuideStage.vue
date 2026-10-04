@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // 線上問答的畫境＋單一對話框：Sunny 站在黃昏湖景裡，下方一個對話框問答或共修。線上問答頁與首頁共用。
 // compact（首頁用）：只留一個輸入欄位，有問答時才在上方顯示最近一問一答。
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api, ApiError, type ChatMessage } from '../api'
+import { createVoice } from '../voice'
 import GuideScene from './GuideScene.vue'
 
 const props = defineProps<{ compact?: boolean }>()
@@ -39,6 +40,42 @@ watch([messages, mode, scriptId], () => {
     /* ignore */
   }
 }, { deep: true })
+
+// 回答時 Sunny 把回答唸出來；右上角可以關掉聲音，關掉時改看字幕對嘴
+const muted = ref(false)
+try {
+  muted.value = localStorage.getItem('bodhi.voice') === 'off'
+} catch {
+  /* ignore */
+}
+const voice = createVoice({
+  onStart: () => scene.value?.voice(true),
+  onEnd: () => scene.value?.voice(false),
+  onDone: () => scene.value?.finish(),
+  onFail: (text) => scene.value?.speak(text),
+})
+let voicing = false // 這一則回答是否用聲音唸
+
+function toggleVoice() {
+  muted.value = !muted.value
+  try {
+    localStorage.setItem('bodhi.voice', muted.value ? 'off' : 'on')
+  } catch {
+    /* ignore */
+  }
+  if (muted.value && voicing) {
+    voicing = false
+    voice.stop()
+    scene.value?.voice(false)
+    if (!thinking.value) scene.value?.finish()
+  }
+}
+
+function hush() {
+  voicing = false
+  voice.stop()
+}
+onBeforeUnmount(hush)
 
 onMounted(async () => {
   try {
@@ -77,19 +114,31 @@ async function send(text = input.value) {
   input.value = ''
   streaming.value = ''
   thinking.value = true
+  hush()
+  voicing = voice.supported && !muted.value
+  if (voicing) voice.unlock()
   scene.value?.think()
   try {
     const res = await api.chatStream(
       { messages: messages.value, mode: mode.value, script_id: scriptId.value ?? undefined },
       (t) => {
         streaming.value += t
-        scene.value?.speak(t)
+        if (voicing) voice.feed(t)
+        else scene.value?.speak(t)
         follow()
       },
     )
     messages.value.push({ role: 'assistant', content: res.reply })
-    scene.value?.finish()
+    if (voicing && res.refused) {
+      // 串流到一半被換成另一個回答：停掉唸到一半的，改唸最後的回答
+      voice.stop()
+      scene.value?.voice(false)
+      voice.feed(res.reply)
+    }
+    if (voicing) voice.end()
+    else scene.value?.finish()
   } catch (e) {
+    hush()
     scene.value?.rest()
     messages.value.pop()
     input.value = text
@@ -107,6 +156,8 @@ function startPractice() {
 }
 
 function reset() {
+  hush()
+  scene.value?.rest()
   messages.value = []
   error.value = ''
 }
@@ -117,6 +168,16 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
 <template>
   <div class="stage">
     <GuideScene ref="scene" :state="sceneState" />
+    <button
+      v-if="voice.supported"
+      type="button"
+      class="sound"
+      :aria-label="muted ? '打開 Sunny 的聲音' : '關掉 Sunny 的聲音'"
+      :title="muted ? '打開聲音' : '關掉聲音'"
+      @click="toggleVoice"
+    >
+      <q-icon :name="muted ? 'volume_off' : 'volume_up'" size="20px" />
+    </button>
 
     <section class="dialog" :class="{ compact }" aria-label="和組長對話">
       <div v-if="!compact" class="modes">
@@ -195,6 +256,23 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   align-items: flex-end;
   justify-content: center;
   padding: 0 16px 20px;
+}
+.sound {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(59, 42, 32, 0.55);
+  color: #f6f2e8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .dialog {
   position: relative;
