@@ -1,14 +1,14 @@
 // 來源：bodhi-guide 首頁的解說員（guide-hero-assets 分支 guide-hero/avatar.js）。
 // 官網版多了 dispose()，離開 AI 組長頁時停止繪製並釋放 WebGL 資源。
-// 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想。被提問時睜眼、鏡頭推近、依字幕對嘴；
-// 回答時在湖中蘆葦區隨機走動，雙手始終捧著一杯熱茶。回答結束後在原地停下、回到冥想。
+// 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想，雙手始終捧著一杯熱茶。
+// 被提問時睜眼、鏡頭推近到臉部；回答時站在原地、身體只微微晃動，依語音逐句對嘴。回答結束後回到冥想。
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { buildScene, WATER_Y, STAND_Z, SHORE_Z, channelHalfWidth } from './scene.js';
+import { buildScene, WATER_Y, STAND_Z, SHORE_Z } from './scene.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
-const CHARS_PER_SEC = 7;          // 對嘴速度，之後接 TTS 時改由語音時間軸驅動
+const CHARS_PER_SEC = 5;          // 對嘴速度：接近瀏覽器中文語音的語速，每句開始唸時才排進佇列
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
 // 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
@@ -32,11 +32,8 @@ const THUMB = { ThumbMetacarpal: [0.45, 0.1], ThumbProximal: [0.35, 0.3], ThumbD
 const CUP_OFFSET = new THREE.Vector3(0, 0, 0.025);   // 杯子中心相對兩手腕中點（身體座標）
 const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0] : [-1, 0, 0]));
 
-// 走動範圍與速度：只在湖中的蘆葦區。上限要讓跟拍鏡頭（角色前方 3.2 公尺）停在岸邊麥田之前
-const CLOSE_DIST = 3.2;
-const AREA = { xMin: -2.6, xMax: 2.6, zMin: -3.2, zMax: SHORE_Z - 0.05 - CLOSE_DIST };
-const WALK_SPEED = 0.36;          // 公尺／秒，在水中慢慢走
-const STRIDE = 0.9;               // 一個完整步伐循環走的距離
+// 回答時的臉部近景：鏡頭在臉前約 1.2 公尺，畫面是臉到肩膀
+const CLOSE_DIST = 1.2;
 
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const angleLerp = (a, b, k) => { let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
@@ -116,19 +113,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const face = { eyesClosed: 1, happy: 0, relaxed: 0 };
   let nextBlink = 3, blinkT = -1, shot = 0;   // shot: 0 = 遠景，1 = 近景
 
-  // 走動狀態
-  const body = { x: 0, z: STAND_Z, yaw: 0, walk: 0, phase: 0 };
-  let waypoint = null, pauseLeft = 0;
-  const pickWaypoint = () => {
-    for (let i = 0; i < 20; i++) {
-      // 在湖中走到視線通道邊緣附近，身旁就是蘆葦叢
-      const z = AREA.zMin + Math.random() * (AREA.zMax - AREA.zMin);
-      let x = Math.sign(Math.random() - 0.5) * Math.max(0.3, channelHalfWidth(z) - 0.2 - Math.random() * 0.6);
-      x = THREE.MathUtils.clamp(x, AREA.xMin, AREA.xMax);
-      if (Math.hypot(x - body.x, z - body.z) > 1.2) return { x, z };
-    }
-    return { x: 0, z: STAND_Z };
-  };
+  // 站在原地；sway：回答時身體輕輕晃動的強度（0 → 1）
+  const body = { x: 0, z: STAND_Z, yaw: 0, sway: 0 };
 
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -164,49 +150,21 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     env.uTime.value = t;
     const m = reduceMotion ? 0.3 : 1;
 
-    // ---- 走動：回答時在蘆葦與麥田間隨機走，停下時轉身面向觀眾 ----
-    let moving = false, faceYaw;
-    if (state === 'talking') {
-      if (!waypoint) {
-        pauseLeft -= dt;
-        if (pauseLeft <= 0) waypoint = pickWaypoint();
-      }
-      if (waypoint) {
-        const dx = waypoint.x - body.x, dz = waypoint.z - body.z, dist = Math.hypot(dx, dz);
-        if (dist < 0.08) { waypoint = null; pauseLeft = 0.8 + Math.random() * 1.6; }
-        else {
-          moving = true;
-          const step = Math.min(dist, WALK_SPEED * body.walk * dt * m);
-          body.x += dx / dist * step; body.z += dz / dist * step;
-          faceYaw = Math.atan2(dx, dz);
-        }
-      }
-    } else {
-      waypoint = null; pauseLeft = 0;
-    }
-    if (faceYaw === undefined) faceYaw = Math.atan2(camera.position.x - body.x, camera.position.z - body.z);
-    body.walk = ease(body.walk, moving ? 1 : 0, 3, dt);
-    body.yaw = angleLerp(body.yaw, faceYaw, Math.min(1, 2.5 * dt));
-    body.phase += dt * body.walk * (Math.PI * 2) * (WALK_SPEED / STRIDE) * m;
+    // ---- 站在原地面向鏡頭；回答時身體只微微晃動 ----
+    body.yaw = angleLerp(body.yaw, Math.atan2(camera.position.x - body.x, camera.position.z - body.z), Math.min(1, 2.5 * dt));
+    body.sway = ease(body.sway, state === 'talking' ? 1 : 0, 2, dt);
 
     const depth = depthAt(body.z);
-    vrm.scene.position.set(body.x, WATER_Y - depth + Math.abs(Math.sin(body.phase)) * 0.018 * body.walk, body.z);
+    vrm.scene.position.set(body.x, WATER_Y - depth, body.z);
     vrm.scene.rotation.y = body.yaw;
     vrm.scene.updateMatrixWorld(true);
     qBodyInv.copy(vrm.scene.quaternion).invert();
 
-    // ---- 腿：走路的擺動（在水裡步伐小一點）----
-    const sw = Math.sin(body.phase) * 0.34 * body.walk;
-    if (B.leftUpperLeg) B.leftUpperLeg.rotation.set(-sw, 0, 0);
-    if (B.rightUpperLeg) B.rightUpperLeg.rotation.set(sw, 0, 0);
-    if (B.leftLowerLeg) B.leftLowerLeg.rotation.set(Math.max(0, -Math.cos(body.phase)) * 0.55 * body.walk, 0, 0);
-    if (B.rightLowerLeg) B.rightLowerLeg.rotation.set(Math.max(0, Math.cos(body.phase)) * 0.55 * body.walk, 0, 0);
-    if (B.hips) B.hips.rotation.y = Math.sin(body.phase) * 0.06 * body.walk;
-
     // ---- 身體、頭、手臂 ----
     const breath = Math.sin(t * (state === 'idle' ? 1.1 : 1.6));
+    const sway = body.sway * m;
     if (B.chest) B.chest.rotation.x = -0.03 + breath * 0.02 * m;
-    if (B.spine) B.spine.rotation.set(0.04 + body.walk * 0.05, -Math.sin(body.phase) * 0.05 * body.walk, 0);
+    if (B.spine) B.spine.rotation.set(0.04, Math.sin(t * 0.9) * 0.03 * sway, Math.sin(t * 0.7) * 0.015 * sway);
     vrm.scene.updateMatrixWorld(true);
     for (const name of ARM_BONES) aimBody(name, dirBody.set(...ARMS[name]).normalize(), ARM_TWIST[name]);
     let hx = state === 'idle' ? 0.12 : 0.02, hy = 0, hz = 0;
@@ -216,7 +174,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     B.head.rotation.y = ease(B.head.rotation.y, hy, 3, dt);
     B.head.rotation.z = ease(B.head.rotation.z, hz, 3, dt);
 
-    // ---- 身體走過的地方，蘆葦往兩旁分開 ----
+    // ---- 身旁的蘆葦往兩旁分開 ----
     vrm.scene.updateMatrixWorld(true);
     env.setPushers([{ position: B.hips.getWorldPosition(hipsW), radius: 0.5 }]);
     env.setRipple(body.x, body.z, depth / kneeY);
@@ -254,16 +212,16 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     const gust = 0.06 + 0.05 * (Math.sin(t * 1.3) * 0.6 + Math.sin(t * 2.6) * 0.25 + 0.35) * m;
     for (const j of joints) { j.settings.gravityDir.copy(windDir); j.settings.gravityPower = gust; }
 
-    // ---- 鏡頭：跟著角色；回答時推近、冥想時拉遠，並緩慢漂移 ----
+    // ---- 鏡頭：冥想時遠景；思考與回答時推近到臉部，並緩慢漂移 ----
     const headY = vrm.scene.position.y + headOffset;
     widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
     wideLook.set(body.x, headY - 0.1, body.z - 1.5);
-    // 近景保持約 3.2 公尺：看得到全身動作與身旁的蘆葦，不貼臉
-    closePos.set(body.x + 0.5, headY + 0.05, body.z + CLOSE_DIST);
-    closeLook.set(body.x, headY - 0.38, body.z);
+    // 臉部近景：鏡頭略高於眼睛、稍微偏右，畫面裡是臉到肩膀
+    closePos.set(body.x + 0.1, headY + 0.05, body.z + CLOSE_DIST);
+    closeLook.set(body.x, headY - 0.05, body.z);
     shot = ease(shot, state === 'idle' ? 0 : 1, 1.2, dt);
     camPos.lerpVectors(widePos, closePos, shot);
-    camPos.x += Math.sin(t * 0.15) * 0.15 * m;
+    camPos.x += Math.sin(t * 0.15) * 0.15 * (1 - shot * 0.85) * m;   // 近景時漂移幅度小一點，臉不會晃出畫面
     camLook.lerpVectors(wideLook, closeLook, shot);
     camera.position.lerp(camPos, Math.min(1, dt * 3));
     camera.lookAt(camLook);
@@ -284,6 +242,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     setState(s) { state = s; pendingIdle = false; if (s !== 'talking') queue.length = 0; },
     /** 把剛串流到的字幕排進對嘴佇列 */
     speak(text) { state = 'talking'; pendingIdle = false; queue.push(...text); },
+    /** 語音開始唸某一句時呼叫：丟掉還沒對完的上一句，從這句重新對嘴，嘴型跟著聲音走 */
+    say(text) { state = 'talking'; pendingIdle = false; queue.length = 0; queue.push(...text); },
     /** 回答結束：唸完佇列裡的字後，在原地停下回到冥想 */
     finish() { if (queue.length === 0) { state = 'idle'; onIdle?.(); } else pendingIdle = true; },
     /** 停止繪製並釋放資源 */

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // 線上問答的畫境＋單一對話框：Sunny 站在黃昏湖景裡，下方一個對話框問答或共修。線上問答頁與首頁共用。
 // compact（首頁用）：只留一個輸入欄位，有問答時才在上方顯示最近一問一答。
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api, ApiError, type ChatMessage } from '../api'
+import { createSpeaker, hasChineseVoice, stopVoice, unlockVoice, voiceSupported } from '../voice'
 import GuideScene from './GuideScene.vue'
 
 const props = defineProps<{ compact?: boolean }>()
@@ -65,6 +66,29 @@ async function follow() {
   subtitle.value?.scrollTo({ top: subtitle.value.scrollHeight })
 }
 
+// 語音：預設開啟，靜音的選擇記在這個瀏覽器
+const muteKey = 'bodhi.guide.muted'
+const muted = ref(false)
+try {
+  muted.value = localStorage.getItem(muteKey) === '1'
+} catch {
+  /* ignore */
+}
+let speaker: ReturnType<typeof createSpeaker> | null = null
+function toggleMute() {
+  muted.value = !muted.value
+  try {
+    localStorage.setItem(muteKey, muted.value ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+  if (muted.value) stopVoice()
+}
+onBeforeUnmount(() => {
+  speaker?.cancel()
+  stopVoice()
+})
+
 async function send(text = input.value) {
   text = text.trim()
   if (!text || thinking.value || !available.value) return
@@ -78,18 +102,30 @@ async function send(text = input.value) {
   streaming.value = ''
   thinking.value = true
   scene.value?.think()
+  // 有聲音時：每一句開始唸才對嘴；靜音或瀏覽器不支援時，照字幕速度對嘴
+  speaker?.cancel()
+  speaker = null
+  if (voiceSupported && !muted.value && hasChineseVoice()) {
+    unlockVoice()
+    speaker = createSpeaker((s) => scene.value?.say(s))
+  }
+  const voice = speaker
   try {
     const res = await api.chatStream(
       { messages: messages.value, mode: mode.value, script_id: scriptId.value ?? undefined },
       (t) => {
         streaming.value += t
-        scene.value?.speak(t)
+        if (voice && !muted.value) voice.push(t)
+        else scene.value?.speak(t)
         follow()
       },
     )
     messages.value.push({ role: 'assistant', content: res.reply })
-    scene.value?.finish()
+    // 語音唸完最後一句就回到冥想，動作跟聲音同時結束
+    if (voice && !muted.value) voice.end(() => scene.value?.rest())
+    else scene.value?.finish()
   } catch (e) {
+    voice?.cancel()
     scene.value?.rest()
     messages.value.pop()
     input.value = text
@@ -107,6 +143,7 @@ function startPractice() {
 }
 
 function reset() {
+  speaker?.cancel()
   messages.value = []
   error.value = ''
 }
@@ -117,6 +154,16 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
 <template>
   <div class="stage">
     <GuideScene ref="scene" :state="sceneState" />
+    <button
+      v-if="voiceSupported"
+      type="button"
+      class="mute"
+      :aria-label="muted ? '開啟 Sunny 的聲音' : '關閉 Sunny 的聲音'"
+      :title="muted ? '開啟聲音' : '關閉聲音'"
+      @click="toggleMute"
+    >
+      <q-icon :name="muted ? 'volume_off' : 'volume_up'" size="20px" />
+    </button>
 
     <section class="dialog" :class="{ compact }" aria-label="和組長對話">
       <div v-if="!compact" class="modes">
@@ -195,6 +242,21 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
   align-items: flex-end;
   justify-content: center;
   padding: 0 16px 20px;
+}
+.mute {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(59, 42, 32, 0.55);
+  color: #f6f2e8;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 .dialog {
   position: relative;

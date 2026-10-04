@@ -36,6 +36,7 @@ const leaf =
 defineExpose({
   think: () => avatar?.setState('thinking'),
   speak: (text: string) => avatar?.speak(text),
+  say: (text: string) => avatar?.say(text),
   finish: () => avatar?.finish(),
   rest: () => avatar?.setState('idle'),
 })
