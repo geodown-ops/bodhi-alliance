@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { buildScene, WATER_Y, STAND_Z, SHORE_Z, REFLECT_LAYER } from './scene.js';
+import { buildDuskScene } from './scene-dusk.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
@@ -37,14 +38,14 @@ const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const angleLerp = (a, b, k) => { let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
 
-export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
+export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'day' } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = buildScene(scene, camera);
+  const env = (time === 'dusk' ? buildDuskScene : buildScene)(scene, camera);   // 白天藍天湖景、其餘時間黃昏湖景
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
