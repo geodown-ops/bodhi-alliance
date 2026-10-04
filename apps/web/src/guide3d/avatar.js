@@ -1,7 +1,7 @@
 // 來源：bodhi-guide 首頁的解說員（guide-hero-assets 分支 guide-hero/avatar.js）。
 // 官網版多了 dispose()，離開 AI 組長頁時停止繪製並釋放 WebGL 資源。
 // 覺行小組線上組長 3D 角色：站在及膝的湖水中冥想。被提問時睜眼、鏡頭推近、依字幕對嘴；
-// 回答時在湖中蘆葦區隨機走動，右手始終端著一杯熱茶。回答結束後在原地停下、回到冥想。
+// 回答時在湖中蘆葦區隨機走動，雙手始終捧著一杯熱茶。回答結束後在原地停下、回到冥想。
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -12,23 +12,24 @@ const CHARS_PER_SEC = 7;          // 對嘴速度，之後接 TTS 時改由語�
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
 // 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
-// 左手自然垂在身側；右手前臂往前抬、掌心轉向身體，端著茶杯
+// 雙手前臂往前、往中線收，掌心相對，在胸前捧著茶杯
 const ARMS = {
-  leftUpperArm:  [0.24, -0.97, 0.02],     // 略往外張，避開寬鬆上衣
-  rightUpperArm: [-0.14, -0.95, 0.28],
-  leftLowerArm:  [0.2, -0.96, 0.15],      // 手掌落在大腿外側，不穿進短褲
-  rightLowerArm: [0.22, 0.1, 0.97],
+  leftUpperArm:  [0.16, -0.93, 0.33],
+  rightUpperArm: [-0.16, -0.93, 0.33],
+  leftLowerArm:  [-0.28, 0.25, 0.93],
+  rightLowerArm: [0.28, 0.25, 0.93],
 };
-const ARM_TWIST = { rightLowerArm: Math.PI / 2 };   // 沿前臂轉 90°，掌心朝內、拇指朝上
+const ARM_TWIST = { leftLowerArm: -Math.PI / 2, rightLowerArm: Math.PI / 2 };   // 沿前臂轉 90°，掌心相對、拇指朝上
 const ARM_BONES = Object.keys(ARMS);
-// 握杯：四指繞著杯身彎曲
+// 捧杯：四指順著杯身彎曲（右手正、左手負），兩隻拇指在杯子後上方彎成弧、指尖相碰
 const GRIP = {
-  rightIndexProximal: 0.95, rightIndexIntermediate: 1.0, rightIndexDistal: 0.5,
-  rightMiddleProximal: 1.0, rightMiddleIntermediate: 1.0, rightMiddleDistal: 0.5,
-  rightRingProximal: 1.05, rightRingIntermediate: 1.0, rightRingDistal: 0.5,
-  rightLittleProximal: 1.1, rightLittleIntermediate: 1.0, rightLittleDistal: 0.5,
+  IndexProximal: 0.6, IndexIntermediate: 0.6, IndexDistal: 0.4,
+  MiddleProximal: 0.65, MiddleIntermediate: 0.6, MiddleDistal: 0.4,
+  RingProximal: 0.7, RingIntermediate: 0.6, RingDistal: 0.4,
+  LittleProximal: 0.75, LittleIntermediate: 0.6, LittleDistal: 0.4,
 };
-const CUP_OFFSET = new THREE.Vector3(0.04, 0.0, 0.055);   // 杯子中心相對右手腕（身體座標）
+const THUMB = { ThumbMetacarpal: [0.45, 0.1], ThumbProximal: [0.35, 0.3], ThumbDistal: [0.2, 0.2] };   // [往前彎, 往掌心收]
+const CUP_OFFSET = new THREE.Vector3(0, 0, 0.025);   // 杯子中心相對兩手腕中點（身體座標）
 const restDir = name => new THREE.Vector3(...(name.startsWith('left') ? [1, 0, 0] : [-1, 0, 0]));
 
 // 走動範圍與速度：只在湖中的蘆葦區。上限要讓跟拍鏡頭（角色前方 3.2 公尺）停在岸邊麥田之前
@@ -61,10 +62,11 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
     'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg', ...ARM_BONES].map(n => [n, bone(n)]));
-  for (const [name, curl] of Object.entries(GRIP)) bone(name)?.rotation.set(0, 0, curl);
-  // 拇指收到杯子後側扶著，不往上翹
-  for (const [name, y] of [['rightThumbMetacarpal', 0.3], ['rightThumbProximal', 0.9], ['rightThumbDistal', 0.5]]) bone(name)?.rotation.set(0, y, 0);
-  const rawHand = vrm.humanoid.getRawBoneNode('rightHand');
+  for (const [side, sign] of [['right', 1], ['left', -1]]) {
+    for (const [name, curl] of Object.entries(GRIP)) bone(side + name)?.rotation.set(0, 0, sign * curl);
+    for (const [name, [x, y]] of Object.entries(THUMB)) bone(side + name)?.rotation.set(x, sign * y, 0);
+  }
+  const hands = ['leftHand', 'rightHand'].map(n => vrm.humanoid.getRawBoneNode(n));
 
   // 依「身體座標」中的目標方向擺手臂：扣掉整個角色的轉向，求出骨骼的區域旋轉
   const qBodyInv = new THREE.Quaternion(), qParent = new THREE.Quaternion(), qTarget = new THREE.Quaternion(), qTwist = new THREE.Quaternion();
@@ -150,7 +152,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
   const widePos = new THREE.Vector3(), closePos = new THREE.Vector3(), dirBody = new THREE.Vector3(), hipsW = new THREE.Vector3();
   // 除錯用：?cam=x,y,z,lookX,lookY,lookZ 固定鏡頭
   const debugCam = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
-  if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera };
+  if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera, ARMS, ARM_TWIST, CUP_OFFSET };
   camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
   const clock = new THREE.Clock();
   let t = 0, charClock = 0;
@@ -269,8 +271,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle } = {}) {
     gaze.position.copy(camera.position);
 
     vrm.update(dt);
-    // 茶杯跟著右手，杯口始終朝上
-    rawHand.getWorldPosition(cupPos);
+    // 茶杯在兩手之間，跟著手走，杯口始終朝上
+    hands[0].getWorldPosition(cupPos).add(hands[1].getWorldPosition(cup.group.position)).multiplyScalar(0.5);
     cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).applyQuaternion(vrm.scene.quaternion));
     cup.group.quaternion.copy(vrm.scene.quaternion);
     cup.update(t, m);
