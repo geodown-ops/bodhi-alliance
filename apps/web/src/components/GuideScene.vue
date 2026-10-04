@@ -85,7 +85,7 @@ defineExpose({
     <canvas ref="canvas" class="stage3d" />
     <div class="loading">
       <svg viewBox="0 0 188 232"><path :d="leaf" /></svg>
-      <span>覺行小組線上組長準備中…</span>
+      <span>覺行小組長Sunny準備中…</span>
       <span class="bar"><span :style="{ width: `${Math.round(progress * 100)}%` }" /></span>
     </div>
   </div>
