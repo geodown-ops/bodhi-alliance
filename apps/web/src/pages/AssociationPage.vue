@@ -27,6 +27,5 @@ const turns = [
       協會今日致力於全球佛教交流、文化活動與和平倡議，並以「轉念、轉識、轉依」三轉作為日常修行的核心。
     </p>
     <p class="text-caption text-grey-7">本頁為草稿，沿革、據點與聯絡方式待協會確認後補上。</p>
-    <q-btn outline color="secondary" no-caps href="https://www.sunnylife.world" target="_blank" label="前往 sunnylife.world" icon-right="open_in_new" />
   </q-page>
 </template>
