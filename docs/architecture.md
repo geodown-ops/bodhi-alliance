@@ -120,7 +120,7 @@ flowchart TB
 | 中心管理員 | `center:{id}` | 志工造冊核可、凍結 QR、指派場域／小組管理員 | 錢包使用者管理 |
 | 中心稽核 | `center:{id}` | 唯讀、`ledger.verify` | 錢包使用者管理（唯讀） |
 | 主辦審核小組委員 | `alliance` | `motion.create/vote`、`roster.review/adjust`、`merchant.quota`、`balance.monitor` | 主辦審核小組 |
-| 聯盟管理員 | `alliance` | 執行決議、企業形式審查、品項抽查、全域報表；**不能自行改標準或核發** | 共好企業管理、報表 |
+| 超級管理員 | `alliance` | 執行決議、企業形式審查、品項抽查、全域報表；**不能自行改標準或核發** | 共好企業管理、報表 |
 | 共好企業管理員／店員 | `merchant:{id}` | `voucher_type.manage`、`pos.redeem`、`settlement.view` | 共好企業後台 |
 | 知識管理員 | `guide` | 上傳、審閱、上下架知識文件；改 AI 組長角色設定 | AI 組長後台 |
 
