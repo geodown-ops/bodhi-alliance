@@ -29,8 +29,8 @@
 
 1. `web` 服務已加上自訂網域 `www.sunnylife.world` 與 `sunnylife.world`，Railway 會給每個網域一筆 CNAME 和一筆 `_railway-verify` TXT（值在 web → Settings → Networking）。
 2. `api`、`guide` 的 `ALLOWED_ORIGINS` 已加上 `https://sunnylife.world,https://www.sunnylife.world`。
-3. 網域是在 Wix 買的，DNS 只能在 Wix 的「Domains → Manage DNS Records」改：`www` 的 CNAME 改成 Railway 給的值，再加上兩筆 TXT。
-4. Wix 不能改名稱伺服器，根網域也不能設 CNAME，而 Railway 的根網域需要 CNAME（或 ALIAS）。要讓不帶 www 的 `sunnylife.world` 也直接開到官網，得把網域轉到支援 CNAME 攤平的服務（例如 Cloudflare）。
+3. 網域是在 Wix 買的，DNS 只能在 Wix 的「Domains → Manage DNS Records」改：`www` 的 CNAME 改成 Railway 給的值，再加上 `_railway-verify.www` 的 TXT（Wix 的主機名稱欄只填 `_railway-verify.www`）。少了 TXT，Railway 不會核發 HTTPS 憑證。
+4. Wix 不能改名稱伺服器，根網域也不能設 CNAME，而 Railway 的根網域需要 CNAME（或 ALIAS），所以不帶 www 的 `sunnylife.world` 仍指向 Wix，由 Wix 轉址到 `https://www.sunnylife.world/`。Railway 上的 `sunnylife.world` 自訂網域因此用不到；之後若把網域轉到支援 CNAME 攤平的服務（例如 Cloudflare），才會用到它。
 
 ## 注意
 
