@@ -52,7 +52,7 @@ async function load() {
 }
 onMounted(async () => {
   load()
-  // 公開的中心清單：聯盟管理員用來篩選；中心管理員只會看到自己中心的志工
+  // 公開的中心清單：超級管理員用來篩選；中心管理員只會看到自己中心的志工
   try {
     centers.value = await api.get('/api/centers')
   } catch {

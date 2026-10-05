@@ -37,7 +37,7 @@ BOOTSTRAP_ADMIN_EMAIL=admin@example.org BOOTSTRAP_ADMIN_PASSWORD=change-me-pleas
 ANTHROPIC_API_KEY=... go run ./cmd/guide
 ```
 
-兩個服務啟動時都會自動套用資料庫遷移（`server/internal/db/migrations`）。第一次啟動 api 時，若 `BOOTSTRAP_ADMIN_EMAIL` 還沒有帳號，會建立一個聯盟管理員。
+兩個服務啟動時都會自動套用資料庫遷移（`server/internal/db/migrations`）。第一次啟動 api 時，若 `BOOTSTRAP_ADMIN_EMAIL` 還沒有帳號，會建立一個超級管理員。
 
 ## 測試
 
@@ -56,7 +56,7 @@ npm test
 | `ADDR` | 兩者 | 監聽位址，預設 api `:8081`、guide `:8082` |
 | `ALLOWED_ORIGINS` | 兩者 | 允許呼叫的前端網址，逗號分隔 |
 | `TRUSTED_PROXIES` | 兩者 | 前方反向代理的 IP 或網段，逗號分隔；設了才採信 X-Forwarded-For 來限流。沒設時用連線來源 IP |
-| `BOOTSTRAP_ADMIN_EMAIL`、`BOOTSTRAP_ADMIN_PASSWORD` | api | 第一位聯盟管理員 |
+| `BOOTSTRAP_ADMIN_EMAIL`、`BOOTSTRAP_ADMIN_PASSWORD` | api | 第一位超級管理員 |
 | `ANTHROPIC_API_KEY` | guide | 沒設時對話關閉，知識庫後台照常可用 |
 | `GUIDE_MODEL` | guide | 預設 `claude-opus-5-5` |
 | `GUIDE_NAME` | guide | 第一次啟動時的組長名字，預設 Sunny；之後在後台改 |
@@ -66,5 +66,5 @@ npm test
 
 | 角色 | 可以做什麼 |
 | --- | --- |
-| 聯盟管理員 | 全部：報名與登記、覺行小組、知識庫、AI 組長設定、帳號 |
+| 超級管理員 | 全部：報名與登記、覺行小組、知識庫、AI 組長設定、帳號 |
 | 知識管理員 | 只有知識庫與 AI 組長設定 |

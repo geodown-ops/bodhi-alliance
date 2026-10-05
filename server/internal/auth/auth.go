@@ -128,7 +128,7 @@ func insertUser(ctx context.Context, tx pgx.Tx, email, name string, hash []byte,
 	return id, nil
 }
 
-// Bootstrap creates the first alliance admin if that email does not exist yet.
+// Bootstrap creates the first super admin (role alliance_admin) if that email does not exist yet.
 func (s *Service) Bootstrap(ctx context.Context, email, password string) error {
 	if email == "" || password == "" {
 		return nil
@@ -140,7 +140,7 @@ func (s *Service) Bootstrap(ctx context.Context, email, password string) error {
 	if exists {
 		return nil
 	}
-	_, err := s.CreateUser(ctx, email, "聯盟管理員", password, Role{RoleAllianceAdmin, ScopeAlliance})
+	_, err := s.CreateUser(ctx, email, "超級管理員", password, Role{RoleAllianceAdmin, ScopeAlliance})
 	return err
 }
 

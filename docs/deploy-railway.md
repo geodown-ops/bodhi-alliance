@@ -23,6 +23,15 @@
 6. 最後把四個服務的來源接到 GitHub repo `geodown-ops/bodhi-alliance`、分支 `main`，就會開始第一次建置。
 7. 第一次部署完，用 `BOOTSTRAP_ADMIN_EMAIL`／`BOOTSTRAP_ADMIN_PASSWORD` 登入後台，到「帳號」新增其他人，再把 `BOOTSTRAP_ADMIN_PASSWORD` 從變數刪掉（帳號已建好，之後不再需要）。
 
+## 自訂網域 sunnylife.world
+
+2026-10-05 起官網改用 `sunnylife.world`（原本是協會在 Wix 上的網站）。
+
+1. `web` 服務已加上自訂網域 `www.sunnylife.world` 與 `sunnylife.world`，Railway 會給每個網域一筆 CNAME 和一筆 `_railway-verify` TXT（值在 web → Settings → Networking）。
+2. `api`、`guide` 的 `ALLOWED_ORIGINS` 已加上 `https://sunnylife.world,https://www.sunnylife.world`。
+3. 網域是在 Wix 買的，DNS 只能在 Wix 的「Domains → Manage DNS Records」改：`www` 的 CNAME 改成 Railway 給的值，再加上 `_railway-verify.www` 的 TXT（Wix 的主機名稱欄只填 `_railway-verify.www`）。少了 TXT，Railway 不會核發 HTTPS 憑證。
+4. Wix 不能改名稱伺服器，根網域也不能設 CNAME，而 Railway 的根網域需要 CNAME（或 ALIAS），所以不帶 www 的 `sunnylife.world` 仍指向 Wix，由 Wix 轉址到 `https://www.sunnylife.world/`。Railway 上的 `sunnylife.world` 自訂網域因此用不到；之後若把網域轉到支援 CNAME 攤平的服務（例如 Cloudflare），才會用到它。
+
 ## 注意
 
 - `VITE_*` 變數是在建置時寫進網頁的，改了之後要重新部署 `web`／`admin` 才會生效。

@@ -6,7 +6,7 @@ import { api, session, type User } from '../session'
 const users = ref<User[]>([])
 const centers = ref<{ id: string; name: string }[]>([])
 const centerName = (scope: string) => centers.value.find((c) => `center:${c.id}` === scope)?.name ?? ''
-const roleLabel: Record<string, string> = { alliance_admin: '聯盟管理員', knowledge_manager: '知識管理員', center_admin: '中心管理員' }
+const roleLabel: Record<string, string> = { alliance_admin: '超級管理員', knowledge_manager: '知識管理員', center_admin: '中心管理員' }
 const describe = (r: { role: string; scope: string }) =>
   r.role === 'center_admin' ? `${roleLabel[r.role]}（${centerName(r.scope)}）` : (roleLabel[r.role] ?? r.role)
 const columns = [
@@ -74,7 +74,7 @@ function disable(u: User) {
             :options="[
               { label: '知識管理員：只能管理 AI 組長與知識庫', value: 'knowledge_manager' },
               { label: '中心管理員：核可自己中心的志工、管理小組成員', value: 'center_admin' },
-              { label: '聯盟管理員：全部功能', value: 'alliance_admin' },
+              { label: '超級管理員：全部功能', value: 'alliance_admin' },
             ]"
             emit-value
             map-options
