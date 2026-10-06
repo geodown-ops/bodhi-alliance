@@ -217,7 +217,7 @@ const members = [
   margin: 0;
 }
 .origin .art img {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
 }
 .origin:not(:has(.art)) {
   grid-template-columns: 1fr;
