@@ -9,10 +9,10 @@ export function buildPinesScene(scene, camera, renderer) {
     panorama8k: '/scenes/pines-snow-8k.jpg',
     riverMask: '/scenes/pines-snow-river.png',
     eyeHeight: 1.2,
-    // 遠景構圖：雪峰和松林在上、河在下；左右避開近處的兩棵大樹幹
-    viewU: 0.29,
+    // 遠景構圖：比照 Geodown 在 Skybox 網站上截的角度（大樹幹在左、雪峰在右、河在前面）
+    viewU: 0.197,
     viewPitch: 6,        // 稍微抬頭，讓雪峰露出來（頁面又把畫面往上挪了一點）
-    spot: [0.31, 0.548], // 河道裡，雪岸前方
+    spot: [0.225, 0.546], // 樹幹右邊的河道中間
     wideHFov: 66,
     background: '#c9d1d6',   // 全景圖載入前的陰天灰藍
     glint: [0.95, 0.98, 1],
