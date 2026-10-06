@@ -56,6 +56,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   VRMUtils.rotateVRM0(vrm);
   vrm.scene.traverse(o => { o.frustumCulled = false; o.layers.enable(REFLECT_LAYER); });   // 人物也映在水面上
   scene.add(vrm.scene);
+  const S = env.avatarScale ?? 1;   // 草原場景依全景圖的比例把人物縮小
+  vrm.scene.scale.setScalar(S);
 
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
@@ -79,6 +81,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const cup = makeTeaCup();
   cup.group.traverse(o => o.layers.enable(REFLECT_LAYER));
+  cup.group.scale.setScalar(S);
   scene.add(cup.group);
   const cupPos = new THREE.Vector3();
 
@@ -86,7 +89,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   vrm.scene.position.set(0, 0, STAND_Z);
   vrm.scene.updateMatrixWorld(true);
   const kneeY = B.leftLowerLeg.getWorldPosition(new THREE.Vector3()).y;
-  const depthAt = z => env.onGround ? 0 : kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));   // 草原場景直接站在地上
+  const depthAt = z => env.onGround ? kneeY * (env.wadeDepth ?? 0) : kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));   // 草原場景站在河裡，水深依場景設定
   vrm.scene.position.y = WATER_Y - depthAt(STAND_Z);
   vrm.update(0);
   vrm.scene.updateMatrixWorld(true);
@@ -179,7 +182,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     // ---- 身旁的蘆葦往兩旁分開 ----
     vrm.scene.updateMatrixWorld(true);
     env.setPushers([{ position: B.hips.getWorldPosition(hipsW), radius: 0.5 }]);
-    env.setRipple(body.x, body.z, depth / kneeY);   // 草原場景用來移動腳下的影子
+    env.setRipple(body.x, body.z, depth / kneeY);
 
     // ---- 表情：冥想閉眼、思考半閉、回答睜眼帶笑 ----
     const target = state === 'talking' ? { eyesClosed: 0, happy: 0.35, relaxed: 0 }
@@ -225,8 +228,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
     wideLook.set(body.x, headY - 0.1, body.z - 1.5);
     const near = THREE.MathUtils.clamp(FACE_SPAN / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect), 0.9, 1.6);
-    closePos.set(body.x + 0.12, headY + 0.08, body.z + near);
-    closeLook.set(body.x, headY + 0.01, body.z);
+    closePos.set(body.x + 0.12 * S, headY + 0.08 * S, body.z + near * S);
+    closeLook.set(body.x, headY + 0.01 * S, body.z);
     shot = ease(shot, state === 'idle' ? 0 : 1, 1.2, dt);
     camPos.lerpVectors(widePos, closePos, shot);
     camPos.x += Math.sin(t * 0.15) * 0.15 * (1 - shot * 0.8) * m;
@@ -239,7 +242,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     vrm.update(dt);
     // 茶杯在兩手之間，跟著手走，杯口始終朝上
     hands[0].getWorldPosition(cupPos).add(hands[1].getWorldPosition(cup.group.position)).multiplyScalar(0.5);
-    cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).applyQuaternion(vrm.scene.quaternion));
+    cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).multiplyScalar(S).applyQuaternion(vrm.scene.quaternion));
     cup.group.quaternion.copy(vrm.scene.quaternion);
     cup.update(t, m);
     renderer.render(scene, camera);
