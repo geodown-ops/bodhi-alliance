@@ -7,7 +7,8 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const BASE = '/models/bodhi-tree/';
 const MODEL_HEIGHT = 36;     // 模型地面以上的高度（模型單位）
 const FALLING = 70;          // 同時飄落的葉子數
-const LIFT = 0.9;            // 樹枝往上抬：離樹幹每 1 單位，抬高 0.9 單位（原模型的枝條較平展、下垂）
+const LIFT = 0.55;           // 樹枝往上抬：離樹幹每 1 單位，抬高 0.55 單位（原模型的枝條較平展、下垂）
+const SPREAD = 0.3;          // 樹冠同時向四周展開 30%
 
 /** 把（量化過的）模型轉回一般座標，並讓樹枝往上伸展；回傳抬高後的樹高 */
 function raiseBranches(mesh) {
@@ -21,8 +22,8 @@ function raiseBranches(mesh) {
       const r = Math.hypot(v.x, v.z);
       const t = THREE.MathUtils.smoothstep(v.y, 2, 9);   // 樹幹下段和樹根不動
       v.y += LIFT * r * t;
-      v.x *= 1 - 0.15 * t;   // 樹冠稍微收窄，枝條更直立
-      v.z *= 1 - 0.15 * t;
+      v.x *= 1 + SPREAD * t;   // 向四面八方伸展
+      v.z *= 1 + SPREAD * t;
     }
     pos.set([v.x, v.y, v.z], i * 3);
     top = Math.max(top, v.y);
@@ -85,7 +86,7 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
   leaf.colorSpace = THREE.SRGBColorSpace;
 
   const barkMat = new THREE.MeshStandardMaterial({ map: bark, color: '#cdbfb2', roughness: 0.95 });
-  const leafMat = new THREE.MeshStandardMaterial({ map: leaf, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75, color: '#f0f8e4', emissive: '#203018' });
+  const leafMat = new THREE.MeshStandardMaterial({ map: leaf, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75, color: '#f4ffe0', emissive: '#2a4018' });   // 新綠
   const treeH = { value: MODEL_HEIGHT };   // 風擺的高度基準：載入後改成抬高後的樹高
   addWind(barkMat, uTime, 0, treeH);
   addWind(leafMat, uTime, 1, treeH);
@@ -102,6 +103,17 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
       o.material = o.name === 'leaves' ? leafMat : barkMat;
       o.frustumCulled = false;   // 隨風擺動後的範圍超出原本的包圍盒
     });
+    // 葉子加密：同一層葉子再複製兩份，繞樹幹轉個角度、稍微縮放，樹冠更茂盛
+    const leaves = gltf.scene.getObjectByName('leaves');
+    if (leaves) {
+      for (const [turn, k] of [[0.7, 0.93], [-1.3, 1.04]]) {
+        const extra = new THREE.Mesh(leaves.geometry, leafMat);
+        extra.rotation.y = turn;
+        extra.scale.setScalar(k);
+        extra.frustumCulled = false;
+        leaves.parent.add(extra);
+      }
+    }
     // 樹枝抬高後整棵樹變高，縮回指定的高度
     treeH.value = top;
     tree.scale.setScalar(height / top);
@@ -114,7 +126,7 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
   const fall = new THREE.InstancedMesh(new THREE.PlaneGeometry(leafSize * 0.67, leafSize), fallMat, FALLING);
   fall.frustumCulled = false;
   group.add(fall);
-  const crownR = 9 * s, crownLow = height * 0.45, crownHigh = height * 0.9;
+  const crownR = 14 * s, crownLow = height * 0.45, crownHigh = height * 0.9;
   const leaves = Array.from({ length: FALLING }, () => spawn({}, true));
   function spawn(l, anywhere) {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * crownR;
