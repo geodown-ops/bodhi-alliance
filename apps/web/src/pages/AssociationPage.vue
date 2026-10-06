@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 世界佛教教育協會介紹：內容依協會簡報《世界佛教教育協會介紹》整理。
 // 插圖放在 public/images/association/（依簡報插圖重新繪製，提示詞見 docs/association-illustrations.md）；
-// 圖檔還沒放進去時不顯示該張圖。
+// 圖檔還沒放進去時不顯示該張圖；wash 是標題後面的淡彩水墨底。
 import { reactive } from 'vue'
 
 const missing = reactive(new Set<string>())
@@ -79,10 +79,13 @@ const members = [
 
 <template>
   <q-page class="page">
-    <h1>世界佛教教育協會</h1>
-    <p class="lead">
-      以慈悲關懷、智慧無礙、善巧方便為主軸，推展世界佛教雲端教學、佛學研究、社會教育、人文關懷、永續發展及社會型企業。
-    </p>
+    <header class="intro" :style="missing.has('wash') ? undefined : { backgroundImage: `linear-gradient(rgba(246, 242, 232, 0.45), rgba(246, 242, 232, 0.45)), url(${img('wash')})` }">
+      <img v-if="!missing.has('wash')" :src="img('wash')" alt="" hidden @error="missing.add('wash')" />
+      <h1>世界佛教教育協會</h1>
+      <p class="lead q-mb-none">
+        以慈悲關懷、智慧無礙、善巧方便為主軸，推展世界佛教雲端教學、佛學研究、社會教育、人文關懷、永續發展及社會型企業。
+      </p>
+    </header>
     <figure v-if="!missing.has('hero')" class="art wide">
       <img :src="img('hero')" alt="" @error="missing.add('hero')" />
     </figure>
@@ -182,6 +185,13 @@ const members = [
 </template>
 
 <style scoped>
+.intro {
+  margin: -8px -16px 8px;
+  padding: 28px 16px 24px;
+  border-radius: 16px;
+  background-size: cover;
+  background-position: center;
+}
 .art {
   margin: 16px 0;
 }
@@ -217,7 +227,7 @@ const members = [
   margin: 0;
 }
 .origin .art img {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
 }
 .origin:not(:has(.art)) {
   grid-template-columns: 1fr;
