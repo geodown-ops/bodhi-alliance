@@ -1,6 +1,6 @@
 // Command api serves the official site's core API: login, 覺行小組 and 共好企業
 // sign-ups, 場域管理, 共好企業管理, and volunteer accounts with the 志工名冊.
-// Ledger, vouchers and governance join here from M3 on.
+// It also serves 覺行共修活動 and the 菩提幣 wallet ledger they credit.
 package main
 
 import (
@@ -14,6 +14,7 @@ import (
 	"github.com/geodown-ops/bodhi-alliance/server/internal/auth"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/config"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/db"
+	"github.com/geodown-ops/bodhi-alliance/server/internal/events"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/httpx"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/members"
 	"github.com/geodown-ops/bodhi-alliance/server/internal/org"
@@ -49,5 +50,6 @@ func NewRouter(cfg config.Config, authSvc *auth.Service) *gin.Engine {
 	(&apply.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
 	(&org.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
 	(&members.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
+	(&events.Handler{DB: authSvc.DB, Auth: authSvc}).Routes(api)
 	return r
 }

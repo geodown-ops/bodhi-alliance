@@ -12,6 +12,7 @@ const items = computed(() => [
     ? [
         { to: '/applications', label: '報名與登記', icon: 'inbox' },
         { to: '/groups', label: '覺行小組', icon: 'groups' },
+        { to: '/claims', label: '菩提幣審核', icon: 'paid' },
         { to: '/venues', label: '場域管理', icon: 'place' },
         { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
       ]

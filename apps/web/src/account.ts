@@ -10,6 +10,7 @@ export type Volunteer = {
   display_name: string
   legal_name: string
   phone: string
+  line_id: string
   home_center_id: string
   center_name: string
   wants_coach: boolean
@@ -20,6 +21,25 @@ export type Volunteer = {
   groups: { group_id: string; name: string; role: 'member' | 'leader' }[]
 }
 export type Center = { id: string; name: string; region: string }
+
+// 覺行共修活動：my_role 與 claim_* 只出現在「我的活動」
+export type PracticeEvent = {
+  id: string
+  title: string
+  is_online: boolean
+  location: string
+  starts_at: string
+  ends_at: string
+  capacity: number
+  description: string
+  status: 'open' | 'cancelled'
+  organizer_name: string
+  joined: number
+  my_role?: 'organizer' | 'helper' | 'participant'
+  claim_status?: '' | 'submitted' | 'approved' | 'rejected'
+  claim_note?: string
+}
+export type Wallet = { balance: number; entries: { amount: number; kind: string; memo: string; created_at: string }[] }
 
 const apiBase = import.meta.env.VITE_API_BASE ?? ''
 const tokenKey = 'bodhi.web.token'
@@ -103,4 +123,24 @@ export const me = {
   update: (body: Record<string, unknown>) => call<Volunteer>('PUT', '/api/me/volunteer', body),
   join: (groupId: string) => call('POST', `/api/me/groups/${groupId}`),
   leave: (groupId: string) => call('DELETE', `/api/me/groups/${groupId}`),
+  wallet: () => call<Wallet>('GET', '/api/me/wallet'),
+  events: () => call<PracticeEvent[]>('GET', '/api/me/events'),
+  createEvent: (body: Record<string, unknown>) => call<{ id: string }>('POST', '/api/me/events', body),
+  joinEvent: (id: string, role: 'participant' | 'helper') => call('POST', `/api/me/events/${id}/join`, { role }),
+  leaveEvent: (id: string) => call('DELETE', `/api/me/events/${id}/join`),
+  cancelEvent: (id: string) => call('POST', `/api/me/events/${id}/cancel`),
+  claim: (id: string, body: { attendance: number; report: string }) => call('POST', `/api/me/events/${id}/claim`, body),
+}
+
+export const publicEvents = () => call<PracticeEvent[]>('GET', '/api/events')
+
+const dateFmt = new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+const timeFmt = new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
+
+// 活動時間：同一天只寫一次日期
+export function eventTime(e: Pick<PracticeEvent, 'starts_at' | 'ends_at'>) {
+  const s = new Date(e.starts_at)
+  const t = new Date(e.ends_at)
+  const sameDay = s.toDateString() === t.toDateString()
+  return `${dateFmt.format(s)} – ${sameDay ? timeFmt.format(t) : dateFmt.format(t)}`
 }
