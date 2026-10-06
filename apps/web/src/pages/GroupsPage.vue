@@ -1,49 +1,50 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { Notify } from 'quasar'
 import { api, ApiError, type Group } from '../api'
+import { account, eventTime, me, publicEvents, type PracticeEvent } from '../account'
 
+const router = useRouter()
 const groups = ref<Group[]>([])
+const events = ref<PracticeEvent[]>([])
 const loadError = ref('')
 const loading = ref(true)
 const region = ref<string | null>(null)
+const kind = ref<'all' | 'online' | 'offline'>('all')
 
 onMounted(async () => {
-  try {
-    groups.value = await api.groups()
-  } catch (e) {
-    loadError.value = e instanceof ApiError ? e.message : '讀取失敗'
-  } finally {
-    loading.value = false
-  }
+  const [g, e] = await Promise.allSettled([api.groups(), publicEvents()])
+  if (g.status === 'fulfilled') groups.value = g.value
+  if (e.status === 'fulfilled') events.value = e.value
+  if (g.status === 'rejected' && e.status === 'rejected') loadError.value = g.reason instanceof ApiError ? g.reason.message : '讀取失敗'
+  loading.value = false
 })
 
 const regions = computed(() => [...new Set(groups.value.map((g) => g.region))])
 const shown = computed(() => groups.value.filter((g) => !region.value || g.region === region.value))
-const groupOptions = computed(() => [
-  { label: '還沒決定，請幫我安排', value: '' },
-  ...groups.value.map((g) => ({ label: `${g.region}・${g.name}`, value: g.id })),
-])
+const shownEvents = computed(() => events.value.filter((e) => kind.value === 'all' || e.is_online === (kind.value === 'online')))
 
-const form = reactive({ group_id: '', name: '', email: '', phone: '', region: '', wants_coach: false, message: '', website: '' })
-const sending = ref(false)
-const sent = ref(false)
-const error = ref('')
+const toast = (e: unknown) => Notify.create({ type: 'negative', message: e instanceof ApiError ? e.message : '發生錯誤' })
 
-function choose(g: Group) {
-  form.group_id = g.id
-  document.getElementById('join')?.scrollIntoView({ behavior: 'smooth' })
+// 還沒報名的人先到報名頁，報名完成後自動加入；已登入就直接加入
+async function joinGroup(g: Group) {
+  if (!account.user) return router.push({ path: '/join', query: { group: g.id } })
+  try {
+    await me.join(g.id)
+    router.push('/me')
+  } catch (e) {
+    toast(e)
+  }
 }
 
-async function submit() {
-  sending.value = true
-  error.value = ''
+async function joinEvent(e: PracticeEvent, role: 'participant' | 'helper') {
+  if (!account.user) return router.push({ path: '/join', query: { event: e.id, role } })
   try {
-    await api.joinGroup({ ...form })
-    sent.value = true
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.message : '送出失敗'
-  } finally {
-    sending.value = false
+    await me.joinEvent(e.id, role)
+    router.push('/me')
+  } catch (err) {
+    toast(err)
   }
 }
 </script>
@@ -58,12 +59,60 @@ async function submit() {
       <router-link to="/guide">線上問答</router-link>。
     </p>
 
-    <div class="note q-mb-md">
-      想擔任志工或減壓教練、領取菩提幣？先<router-link to="/join">註冊志工</router-link>，登入後可以直接在「<router-link to="/me">我的志工資料</router-link>」加入小組。
-      活動登錄與菩提幣核發還在籌備，開放後會在這裡公告。只想參加，用下面的表單報名就好。
+    <div class="card signup q-my-lg">
+      <div>
+        <h2 class="q-mt-none q-mb-xs">{{ account.user ? '到個人頁發起或參加活動' : '報名參加' }}</h2>
+        <p class="q-mb-none">
+          {{
+            account.user
+              ? '在個人頁可以看錢包餘額、參加線上或線下的覺行小組，也可以自己發起一場共修。'
+              : '留下真實姓名、電子郵件和密碼就完成報名；之後登入個人頁，就能參加或發起共修活動。'
+          }}
+        </p>
+      </div>
+      <q-btn
+        color="secondary"
+        unelevated
+        no-caps
+        size="lg"
+        :to="account.user ? '/me' : '/join'"
+        :label="account.user ? '我的個人頁' : '報名'"
+      />
     </div>
 
-    <h2>找一個小組</h2>
+    <h2>近期共修活動</h2>
+    <q-btn-toggle
+      v-if="events.length"
+      v-model="kind"
+      no-caps
+      unelevated
+      toggle-color="secondary"
+      class="q-mb-md"
+      :options="[
+        { label: '全部', value: 'all' },
+        { label: '線下', value: 'offline' },
+        { label: '線上', value: 'online' },
+      ]"
+    />
+    <q-spinner v-if="loading" color="secondary" size="32px" />
+    <p v-else-if="!shownEvents.length">目前沒有排定的活動。報名後就可以自己發起一場，找兩位以上的朋友一起練習。</p>
+    <div v-else class="grid">
+      <div v-for="e in shownEvents" :key="e.id" class="card">
+        <div class="status-chip">{{ e.is_online ? '線上' : '線下' }}</div>
+        <h3 class="q-my-sm">{{ e.title }}</h3>
+        <p class="q-mb-xs">{{ eventTime(e) }}</p>
+        <p class="q-mb-xs">{{ e.is_online ? '線上活動，報名後在個人頁看連結' : e.location }}</p>
+        <p class="q-mb-xs text-caption">發起人 {{ e.organizer_name }} · 已報名 {{ e.joined }}／{{ e.capacity }} 人</p>
+        <p v-if="e.description" class="q-mb-sm">{{ e.description }}</p>
+        <div v-if="e.joined < e.capacity" class="row q-gutter-sm">
+          <q-btn outline color="secondary" no-caps label="報名參加" @click="joinEvent(e, 'participant')" />
+          <q-btn flat color="secondary" no-caps label="我來協辦" @click="joinEvent(e, 'helper')" />
+        </div>
+        <span v-else class="status-chip">已額滿</span>
+      </div>
+    </div>
+
+    <h2>定期聚會的小組</h2>
     <q-select
       v-if="regions.length > 1"
       v-model="region"
@@ -75,9 +124,8 @@ async function submit() {
       class="q-mb-md"
       style="max-width: 240px"
     />
-    <q-spinner v-if="loading" color="secondary" size="32px" />
-    <p v-else-if="loadError" class="text-negative">{{ loadError }}</p>
-    <p v-else-if="!groups.length">小組名單整理中。先留下資料，我們會為你安排離你最近的小組。</p>
+    <p v-if="loadError" class="text-negative">{{ loadError }}</p>
+    <p v-else-if="!loading && !groups.length">小組名單整理中。</p>
     <div v-else class="grid">
       <div v-for="g in shown" :key="g.id" class="card">
         <div class="status-chip">{{ g.is_online ? '線上' : g.region }}</div>
@@ -85,33 +133,18 @@ async function submit() {
         <p v-if="g.center_name" class="q-mb-xs">{{ g.center_name }}</p>
         <p v-if="g.schedule" class="q-mb-xs">{{ g.schedule }}</p>
         <p v-if="g.description" class="q-mb-sm">{{ g.description }}</p>
-        <q-btn flat color="secondary" no-caps label="報名這個小組" @click="choose(g)" />
+        <q-btn flat color="secondary" no-caps label="報名這個小組" @click="joinGroup(g)" />
       </div>
     </div>
-
-    <h2 id="join">報名參加</h2>
-    <div v-if="sent" class="note">
-      <strong>已收到你的報名。</strong>小組組長會用電子郵件或電話和你聯絡。
-    </div>
-    <q-form v-else class="card q-gutter-md" @submit.prevent="submit">
-      <q-select v-model="form.group_id" :options="groupOptions" emit-value map-options label="想參加的小組" outlined />
-      <q-input v-model="form.name" label="姓名 *" outlined :rules="[(v) => !!v.trim() || '請填寫姓名']" />
-      <q-input v-model="form.email" type="email" label="電子郵件 *" outlined :rules="[(v) => /.+@.+\..+/.test(v) || '請填寫正確的電子郵件']" />
-      <q-input v-model="form.phone" label="聯絡電話" outlined />
-      <q-input v-model="form.region" label="所在地區" outlined />
-      <q-checkbox v-model="form.wants_coach" label="我有帶領正念減壓的經驗，想擔任減壓教練" />
-      <q-input v-model="form.message" type="textarea" label="想說的話" outlined autogrow />
-      <input v-model="form.website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
-      <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
-      <q-btn type="submit" color="secondary" unelevated no-caps size="lg" :loading="sending" label="送出報名" />
-      <p class="text-caption q-mb-none">資料僅供小組組長聯繫使用。</p>
-    </q-form>
   </q-page>
 </template>
 
 <style scoped>
-.hp {
-  position: absolute;
-  left: -9999px;
+.signup {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 </style>

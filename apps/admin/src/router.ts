@@ -10,6 +10,7 @@ export const router = createRouter({
     { path: '/venues', component: () => import('./pages/VenuesPage.vue'), meta: { admin: true, title: '場域管理' } },
     { path: '/merchants', component: () => import('./pages/MerchantsPage.vue'), meta: { admin: true, title: '共好企業管理' } },
     { path: '/groups', component: () => import('./pages/GroupsPage.vue'), meta: { admin: true, title: '覺行小組' } },
+    { path: '/claims', component: () => import('./pages/ClaimsPage.vue'), meta: { admin: true, title: '菩提幣審核' } },
     { path: '/volunteers', component: () => import('./pages/VolunteersPage.vue'), meta: { center: true, title: '志工名冊' } },
     { path: '/knowledge', component: () => import('./pages/KnowledgePage.vue'), meta: { knowledge: true, title: '知識庫' } },
     { path: '/knowledge/:id', component: () => import('./pages/DocumentPage.vue'), meta: { knowledge: true, title: '知識文件' } },

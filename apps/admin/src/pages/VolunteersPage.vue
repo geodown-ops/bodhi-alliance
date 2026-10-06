@@ -9,6 +9,7 @@ type Volunteer = {
   display_name: string
   legal_name: string
   phone: string
+  line_id: string
   home_center_id: string
   center_name: string
   wants_coach: boolean
@@ -34,7 +35,8 @@ const centerOptions = computed(() => [{ label: '全部中心', value: '' }, ...c
 const columns = [
   { name: 'legal_name', label: '真實姓名', field: 'legal_name', sortable: true },
   { name: 'display_name', label: '暱稱', field: 'display_name' },
-  { name: 'center_name', label: '所屬中心', field: 'center_name', sortable: true },
+  { name: 'center_name', label: '所屬中心', field: (v: Volunteer) => v.center_name || '—', sortable: true },
+  { name: 'line_id', label: 'LINE ID', field: 'line_id' },
   { name: 'coach', label: '教練', field: (v: Volunteer) => (v.is_coach ? '是' : v.wants_coach ? '申請中' : '') },
   { name: 'groups', label: '覺行小組', field: (v: Volunteer) => v.groups.map((g) => (g.role === 'leader' ? `${g.name}（組長）` : g.name)).join('、') },
   { name: 'status', label: '狀態', field: (v: Volunteer) => (v.frozen ? '已凍結' : statusLabel[v.status]) },

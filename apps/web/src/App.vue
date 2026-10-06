@@ -26,9 +26,9 @@ const drawer = ref(false)
           dense
           icon="account_circle"
           class="q-ml-xs"
-          :aria-label="account.user ? '我的志工資料' : '志工登入'"
+          :aria-label="account.user ? '我的個人頁' : '登入'"
         >
-          <q-tooltip>{{ account.user ? '我的志工資料' : '志工登入' }}</q-tooltip>
+          <q-tooltip>{{ account.user ? '我的個人頁' : '登入' }}</q-tooltip>
         </q-btn>
       </q-toolbar>
     </q-header>
@@ -46,7 +46,7 @@ const drawer = ref(false)
         <q-separator />
         <q-item clickable :to="account.user ? '/me' : '/login'" @click="drawer = false">
           <q-item-section avatar><q-icon name="account_circle" /></q-item-section>
-          <q-item-section>{{ account.user ? '我的志工資料' : '志工登入／註冊' }}</q-item-section>
+          <q-item-section>{{ account.user ? '我的個人頁' : '登入／報名' }}</q-item-section>
         </q-item>
       </q-list>
     </q-drawer>

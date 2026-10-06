@@ -27,14 +27,14 @@ async function submit() {
 
 <template>
   <q-page class="page narrow">
-    <h1>志工登入</h1>
+    <h1>登入</h1>
     <q-form class="card q-gutter-md" @submit.prevent="submit">
       <q-input v-model="email" type="email" label="電子郵件" autocomplete="username" outlined />
       <q-input v-model="password" type="password" label="密碼" autocomplete="current-password" outlined />
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
       <q-btn type="submit" color="secondary" unelevated no-caps size="lg" :loading="loading" label="登入" />
     </q-form>
-    <p class="q-mt-md">還沒有帳號？<router-link to="/join">志工註冊</router-link>。忘記密碼請聯絡你所屬中心的管理員。</p>
+    <p class="q-mt-md">還沒有帳號？<router-link to="/join">報名參加覺行小組</router-link>。忘記密碼請聯絡管理員。</p>
   </q-page>
 </template>
 

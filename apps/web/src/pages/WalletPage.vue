@@ -1,13 +1,18 @@
+<script setup lang="ts">
+import { account } from '../account'
+</script>
+
 <template>
   <q-page class="page">
     <h1>我的錢包</h1>
     <p class="lead">服務換來的菩提幣、兌換的券、到店核銷用的身份 QR，都在這裡。</p>
-    <p><span class="status-chip">籌備中，法務結論到齊後開放</span></p>
-    <p>現在就可以先<router-link to="/join">註冊志工</router-link>，讓所屬中心核對身分；錢包開放時，你的帳號就能直接使用。</p>
+    <p><span class="status-chip">餘額與核發紀錄已開放；兌換券籌備中</span></p>
+    <p v-if="account.user">你的餘額與核發紀錄在<router-link to="/me">個人頁</router-link>。</p>
+    <p v-else>先<router-link to="/join">報名參加覺行小組</router-link>，協助共修活動、審核通過後，菩提幣就會進到你的錢包。</p>
 
     <h2>開放後可以做什麼</h2>
     <div class="grid">
-      <div class="card"><h3 class="q-mt-none">查看餘額</h3><p class="q-mb-none">核發名單核准當下入帳，手機收到通知。</p></div>
+      <div class="card"><h3 class="q-mt-none">查看餘額</h3><p class="q-mb-none">活動送審核准當下入帳，在個人頁就看得到。</p></div>
       <div class="card"><h3 class="q-mt-none">兌換券</h3><p class="q-mb-none">瀏覽共好企業提供的品項券與面額券，幾秒完成兌換。</p></div>
       <div class="card"><h3 class="q-mt-none">轉贈</h3><p class="q-mb-none">券可以轉贈給家人或同修；幣本身不能轉讓。</p></div>
       <div class="card"><h3 class="q-mt-none">身份 QR</h3><p class="q-mb-none">到店出示會定時更新的身份 QR，店員掃碼核銷；手機遺失可一鍵凍結。</p></div>
