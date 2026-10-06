@@ -1,29 +1,49 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Notify } from 'quasar'
 import { api, ApiError, type Group } from '../api'
-import { account, eventTime, me, publicEvents, type PracticeEvent } from '../account'
+import { account, eventTime, me, publicEvents, publicVenues, type PracticeEvent, type Venue } from '../account'
 
 const router = useRouter()
 const groups = ref<Group[]>([])
 const events = ref<PracticeEvent[]>([])
+const venues = ref<Venue[]>([])
 const loadError = ref('')
 const loading = ref(true)
 const region = ref<string | null>(null)
 const kind = ref<'all' | 'online' | 'offline'>('all')
+const venue = ref<Venue | null>(null)
+const eventsTop = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
-  const [g, e] = await Promise.allSettled([api.groups(), publicEvents()])
+  const [g, e, v] = await Promise.allSettled([api.groups(), publicEvents(), publicVenues()])
   if (g.status === 'fulfilled') groups.value = g.value
   if (e.status === 'fulfilled') events.value = e.value
+  if (v.status === 'fulfilled') venues.value = v.value
   if (g.status === 'rejected' && e.status === 'rejected') loadError.value = g.reason instanceof ApiError ? g.reason.message : '讀取失敗'
   loading.value = false
 })
 
 const regions = computed(() => [...new Set(groups.value.map((g) => g.region))])
 const shown = computed(() => groups.value.filter((g) => !region.value || g.region === region.value))
-const shownEvents = computed(() => events.value.filter((e) => kind.value === 'all' || e.is_online === (kind.value === 'online')))
+const shownEvents = computed(() =>
+  events.value.filter((e) =>
+    venue.value ? e.venue_id === venue.value.id : kind.value === 'all' || e.is_online === (kind.value === 'online'),
+  ),
+)
+
+// 點場域：下面的活動只列這個場域的，捲到活動區直接報名
+async function pickVenue(v: Venue) {
+  venue.value = v
+  await nextTick()
+  eventsTop.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// 場域還沒有活動：登入的人到個人頁在這裡發起，沒登入的先報名
+function startAtVenue(v: Venue) {
+  router.push(account.user ? { path: '/me', query: { venue: v.id } } : '/join')
+}
 
 const toast = (e: unknown) => Notify.create({ type: 'negative', message: e instanceof ApiError ? e.message : '發生錯誤' })
 
@@ -80,9 +100,36 @@ async function joinEvent(e: PracticeEvent, role: 'participant' | 'helper') {
       />
     </div>
 
-    <h2>近期共修活動</h2>
+    <template v-if="venues.length">
+      <h2>活動場域</h2>
+      <p>點選場域，就能看到在那裡舉行的共修活動並直接報名。</p>
+      <div class="grid">
+        <div v-for="v in venues" :key="v.id" :class="['card', 'venue', { picked: venue?.id === v.id }]">
+          <div class="status-chip">{{ v.region || v.center_name }}</div>
+          <h3 class="q-my-sm">{{ v.name }}</h3>
+          <p class="q-mb-xs">{{ v.center_name }}</p>
+          <p v-if="v.address" class="q-mb-xs text-caption">{{ v.address }}</p>
+          <p v-if="v.description" class="q-mb-sm">{{ v.description }}</p>
+          <q-btn
+            v-if="v.upcoming"
+            outline
+            color="secondary"
+            no-caps
+            :label="`${v.upcoming} 場活動報名中`"
+            @click="pickVenue(v)"
+          />
+          <q-btn v-else flat color="secondary" no-caps label="在這裡發起活動" @click="startAtVenue(v)" />
+        </div>
+      </div>
+    </template>
+
+    <h2 ref="eventsTop">近期共修活動</h2>
+    <div v-if="venue" class="row items-center q-gutter-sm q-mb-md">
+      <q-chip removable color="secondary" text-color="white" :label="`${venue.name}的活動`" @remove="venue = null" />
+      <q-btn flat dense no-caps color="secondary" label="看全部活動" @click="venue = null" />
+    </div>
     <q-btn-toggle
-      v-if="events.length"
+      v-else-if="events.length"
       v-model="kind"
       no-caps
       unelevated
@@ -101,6 +148,7 @@ async function joinEvent(e: PracticeEvent, role: 'participant' | 'helper') {
         <div class="status-chip">{{ e.is_online ? '線上' : '線下' }}</div>
         <h3 class="q-my-sm">{{ e.title }}</h3>
         <p class="q-mb-xs">{{ eventTime(e) }}</p>
+        <p v-if="e.venue_name" class="q-mb-xs">{{ e.venue_name }}</p>
         <p class="q-mb-xs">{{ e.is_online ? '線上活動，報名後在個人頁看連結' : e.location }}</p>
         <p class="q-mb-xs text-caption">發起人 {{ e.organizer_name }} · 已報名 {{ e.joined }}／{{ e.capacity }} 人</p>
         <p v-if="e.description" class="q-mb-sm">{{ e.description }}</p>
@@ -146,5 +194,8 @@ async function joinEvent(e: PracticeEvent, role: 'participant' | 'helper') {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
+}
+.venue.picked {
+  outline: 2px solid var(--q-secondary);
 }
 </style>

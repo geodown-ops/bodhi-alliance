@@ -35,10 +35,14 @@ export type PracticeEvent = {
   status: 'open' | 'cancelled'
   organizer_name: string
   joined: number
+  venue_id: string | null
+  venue_name: string
   my_role?: 'organizer' | 'helper' | 'participant'
   claim_status?: '' | 'submitted' | 'approved' | 'rejected'
   claim_note?: string
 }
+// 活動場域：upcoming 是還沒結束的活動數
+export type Venue = { id: string; name: string; center_name: string; region: string; address: string; description: string; upcoming: number }
 export type Wallet = { balance: number; entries: { amount: number; kind: string; memo: string; created_at: string }[] }
 
 const apiBase = import.meta.env.VITE_API_BASE ?? ''
@@ -133,6 +137,7 @@ export const me = {
 }
 
 export const publicEvents = () => call<PracticeEvent[]>('GET', '/api/events')
+export const publicVenues = () => call<Venue[]>('GET', '/api/venues')
 
 const dateFmt = new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
 const timeFmt = new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })

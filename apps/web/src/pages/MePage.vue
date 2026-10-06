@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Dialog, Notify } from 'quasar'
 import { api, ApiError, type Group } from '../api'
-import { eventTime, logout, me, publicEvents, type PracticeEvent, type Volunteer, type Wallet } from '../account'
+import { eventTime, logout, me, publicEvents, publicVenues, type PracticeEvent, type Venue, type Volunteer, type Wallet } from '../account'
 
+const route = useRoute()
 const router = useRouter()
+const venues = ref<Venue[]>([])
 const profile = ref<Volunteer | null>(null)
 const wallet = ref<Wallet>({ balance: 0, entries: [] })
 const groups = ref<Group[]>([])
@@ -29,14 +31,25 @@ async function load() {
     loading.value = false
     return
   }
-  const [w, mine, open, g] = await Promise.allSettled([me.wallet(), me.events(), publicEvents(), api.groups()])
+  const [w, mine, open, g, v] = await Promise.allSettled([me.wallet(), me.events(), publicEvents(), api.groups(), publicVenues()])
   if (w.status === 'fulfilled') wallet.value = w.value
   if (mine.status === 'fulfilled') myEvents.value = mine.value
   if (open.status === 'fulfilled') openEvents.value = open.value
   if (g.status === 'fulfilled') groups.value = g.value
+  if (v.status === 'fulfilled') venues.value = v.value
   loading.value = false
 }
-onMounted(load)
+// 從覺行小組頁的「在這裡發起活動」過來時，直接打開發起表單並選好場域
+onMounted(async () => {
+  await load()
+  const v = venues.value.find((x) => x.id === route.query.venue)
+  if (v && profile.value) {
+    // 先清掉網址參數再開表單；換網址會讓已開的對話框自動關掉
+    await router.replace({ query: {} })
+    startCreate()
+    pickVenue(v.id)
+  }
+})
 
 const joinedGroups = computed(() => new Set(profile.value?.groups.map((g) => g.group_id)))
 const joinedEvents = computed(() => new Set(myEvents.value.map((e) => e.id)))
@@ -122,13 +135,22 @@ function pad(n: number) {
 function localInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
-const draft = reactive({ title: '', is_online: false, location: '', starts_at: '', ends_at: '', capacity: 6, description: '' })
+const draft = reactive({ title: '', is_online: false, venue_id: null as string | null, location: '', starts_at: '', ends_at: '', capacity: 6, description: '' })
+const venueOptions = computed(() => venues.value.map((v) => ({ label: `${v.name}（${v.center_name}）`, value: v.id })))
+// 選了場域，地點自動帶場域地址（還可以再改）
+function pickVenue(id: string | null) {
+  const prev = venues.value.find((v) => v.id === draft.venue_id)
+  draft.venue_id = id
+  const v = venues.value.find((x) => x.id === id)
+  if (v && (!draft.location || draft.location === prev?.address)) draft.location = v.address || v.name
+}
 function startCreate() {
   const s = new Date(Date.now() + 2 * 24 * 3600 * 1000)
   s.setHours(19, 0, 0, 0)
   Object.assign(draft, {
     title: '',
     is_online: false,
+    venue_id: null,
     location: '',
     starts_at: localInput(s),
     ends_at: localInput(new Date(s.getTime() + 90 * 60 * 1000)),
@@ -141,6 +163,7 @@ async function create() {
   try {
     await me.createEvent({
       ...draft,
+      venue_id: draft.is_online ? '' : (draft.venue_id ?? ''),
       capacity: Number(draft.capacity),
       starts_at: new Date(draft.starts_at).toISOString(),
       ends_at: new Date(draft.ends_at).toISOString(),
@@ -291,7 +314,7 @@ async function signOut() {
           <div class="status-chip">{{ e.is_online ? '線上' : '線下' }}</div>
           <h3 class="q-my-sm">{{ e.title }}</h3>
           <p class="q-mb-xs">{{ eventTime(e) }}</p>
-          <p v-if="!e.is_online" class="q-mb-xs">{{ e.location }}</p>
+          <p v-if="!e.is_online" class="q-mb-xs">{{ e.venue_name ? `${e.venue_name} · ` : '' }}{{ e.location }}</p>
           <p class="q-mb-xs text-caption">發起人 {{ e.organizer_name }} · 已報名 {{ e.joined }}／{{ e.capacity }} 人</p>
           <p v-if="e.description" class="q-mb-sm">{{ e.description }}</p>
           <div v-if="e.joined < e.capacity" class="row q-gutter-sm">
@@ -354,6 +377,19 @@ async function signOut() {
                 { label: '線下', value: false },
                 { label: '線上', value: true },
               ]"
+            />
+            <q-select
+              v-if="!draft.is_online && venueOptions.length"
+              :model-value="draft.venue_id"
+              :options="venueOptions"
+              emit-value
+              map-options
+              clearable
+              label="活動場域"
+              hint="選了場域，活動會列在覺行小組頁的這個場域底下；也可以不選，自己填地點"
+              outlined
+              dense
+              @update:model-value="pickVenue"
             />
             <q-input
               v-model="draft.location"
