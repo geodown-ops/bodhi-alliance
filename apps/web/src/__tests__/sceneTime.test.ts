@@ -12,4 +12,8 @@ describe('sceneTime', () => {
     expect(sceneTime('?scene=day')).toBe('day')
     expect(sceneTime('?scene=meadow')).toBe('meadow')
   })
+
+  it('previews the snowy pines scene with ?scene=pines', () => {
+    expect(sceneTime('?scene=pines')).toBe('pines')
+  })
 })

@@ -8,6 +8,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { buildScene, WATER_Y, STAND_Z, SHORE_Z, REFLECT_LAYER } from './scene.js';
 import { buildDuskScene } from './scene-dusk.js';
 import { buildMeadowScene } from './scene-meadow.js';
+import { buildPinesScene } from './scene-pines.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
@@ -47,7 +48,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene }[time] ?? buildScene)(scene, camera, renderer);   // 白天藍天湖景、黃昏湖景或晨霧草原
+  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene, pines: buildPinesScene }[time] ?? buildScene)(scene, camera, renderer);   // 白天藍天湖景、黃昏湖景、晨霧草原或松林雪山
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
