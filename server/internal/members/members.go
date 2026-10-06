@@ -32,6 +32,7 @@ type Volunteer struct {
 	DisplayName  string       `json:"display_name"`
 	LegalName    string       `json:"legal_name"`
 	Phone        string       `json:"phone"`
+	LineID       string       `json:"line_id"`
 	HomeCenterID string       `json:"home_center_id"`
 	CenterName   string       `json:"center_name"`
 	WantsCoach   bool         `json:"wants_coach"`
@@ -45,15 +46,15 @@ type Volunteer struct {
 }
 
 const volunteerSelect = `
-	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.home_center_id, c.name,
+	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.line_id, coalesce(v.home_center_id::text, ''), coalesce(c.name, ''),
 	       v.wants_coach, v.is_coach, v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
 	       coalesce((SELECT json_agg(json_build_object('group_id', g.id, 'name', g.name, 'role', m.role, 'joined_at', m.joined_at) ORDER BY m.joined_at)
 	                 FROM group_member m JOIN practice_group g ON g.id = m.group_id WHERE m.volunteer_id = v.id), '[]')
-	FROM volunteer v JOIN app_user u ON u.id = v.user_id JOIN center c ON c.id = v.home_center_id`
+	FROM volunteer v JOIN app_user u ON u.id = v.user_id LEFT JOIN center c ON c.id = v.home_center_id`
 
 func scanVolunteer(row pgx.CollectableRow) (Volunteer, error) {
 	var v Volunteer
-	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.HomeCenterID, &v.CenterName,
+	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.LineID, &v.HomeCenterID, &v.CenterName,
 		&v.WantsCoach, &v.IsCoach, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt, &v.Groups)
 	return v, err
 }
@@ -117,12 +118,13 @@ func (h *Handler) register(c *gin.Context) {
 		DisplayName  string `json:"display_name" binding:"max=50"`
 		LegalName    string `json:"legal_name" binding:"required,max=100"`
 		Phone        string `json:"phone" binding:"max=50"`
-		HomeCenterID string `json:"home_center_id" binding:"required,uuid"`
+		LineID       string `json:"line_id" binding:"max=100"`
+		HomeCenterID string `json:"home_center_id" binding:"omitempty,uuid"`
 		WantsCoach   bool   `json:"wants_coach"`
 		Website      string `json:"website"` // honeypot
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		httpx.Error(c, http.StatusBadRequest, "請填寫真實姓名、正確的電子郵件、密碼，並選擇所屬中心")
+		httpx.Error(c, http.StatusBadRequest, "請填寫真實姓名、正確的電子郵件與密碼")
 		return
 	}
 	if req.Website != "" {
@@ -130,25 +132,36 @@ func (h *Handler) register(c *gin.Context) {
 		return
 	}
 	req.LegalName = strings.TrimSpace(req.LegalName)
+	if req.LegalName == "" {
+		httpx.Error(c, http.StatusBadRequest, "請填寫真實姓名")
+		return
+	}
+	// 所屬中心可以不選；選了就要是營運中的中心
+	var center *string
+	if req.HomeCenterID != "" {
+		center = &req.HomeCenterID
+	}
 	if strings.TrimSpace(req.DisplayName) == "" {
 		req.DisplayName = req.LegalName
 	}
 	var userID string
 	err := pgx.BeginFunc(c, h.DB, func(tx pgx.Tx) error {
-		var active bool
-		if err := tx.QueryRow(c, `SELECT EXISTS (SELECT 1 FROM center WHERE id = $1 AND status = 'active')`, req.HomeCenterID).Scan(&active); err != nil {
-			return err
-		}
-		if !active {
-			return errNoCenter
+		if center != nil {
+			var active bool
+			if err := tx.QueryRow(c, `SELECT EXISTS (SELECT 1 FROM center WHERE id = $1 AND status = 'active')`, *center).Scan(&active); err != nil {
+				return err
+			}
+			if !active {
+				return errNoCenter
+			}
 		}
 		var err error
 		if userID, err = auth.CreateUserTx(c, tx, req.Email, req.DisplayName, req.Password); err != nil {
 			return err
 		}
 		_, err = tx.Exec(c, `
-			INSERT INTO volunteer (user_id, home_center_id, legal_name, phone, wants_coach) VALUES ($1, $2, $3, $4, $5)`,
-			userID, req.HomeCenterID, req.LegalName, strings.TrimSpace(req.Phone), req.WantsCoach)
+			INSERT INTO volunteer (user_id, home_center_id, legal_name, phone, line_id, wants_coach) VALUES ($1, $2, $3, $4, $5, $6)`,
+			userID, center, req.LegalName, strings.TrimSpace(req.Phone), strings.TrimSpace(req.LineID), req.WantsCoach)
 		return err
 	})
 	var pg *pgconn.PgError
@@ -204,6 +217,7 @@ func (h *Handler) updateMyProfile(c *gin.Context) {
 		DisplayName string `json:"display_name" binding:"required,max=50"`
 		LegalName   string `json:"legal_name" binding:"required,max=100"`
 		Phone       string `json:"phone" binding:"max=50"`
+		LineID      string `json:"line_id" binding:"max=100"`
 		WantsCoach  bool   `json:"wants_coach"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -214,10 +228,10 @@ func (h *Handler) updateMyProfile(c *gin.Context) {
 	err := pgx.BeginFunc(c, h.DB, func(tx pgx.Tx) error {
 		// 實名核可後就不能自己改姓名，要請中心管理員處理，避免核可的人與領幣的人不同。
 		tag, err := tx.Exec(c, `
-			UPDATE volunteer SET phone = $2, wants_coach = $3, updated_at = now(),
+			UPDATE volunteer SET phone = $2, wants_coach = $3, line_id = $5, updated_at = now(),
 			       legal_name = CASE WHEN status = 'verified' THEN legal_name ELSE $4 END,
 			       status = CASE WHEN status = 'rejected' THEN 'pending' ELSE status END
-			WHERE user_id = $1`, uid, strings.TrimSpace(req.Phone), req.WantsCoach, strings.TrimSpace(req.LegalName))
+			WHERE user_id = $1`, uid, strings.TrimSpace(req.Phone), req.WantsCoach, strings.TrimSpace(req.LegalName), strings.TrimSpace(req.LineID))
 		if err != nil {
 			return err
 		}
@@ -340,7 +354,7 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		return
 	}
 	var center string
-	if err := h.DB.QueryRow(c, `SELECT home_center_id FROM volunteer WHERE id = $1`, c.Param("id")).Scan(&center); err != nil {
+	if err := h.DB.QueryRow(c, `SELECT coalesce(home_center_id::text, '') FROM volunteer WHERE id = $1`, c.Param("id")).Scan(&center); err != nil {
 		fail(c, err)
 		return
 	}

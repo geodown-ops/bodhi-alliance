@@ -80,7 +80,7 @@ function again() {
           <p class="eyebrow">Sunny life · 成員招募</p>
           <div class="hairline"></div>
           <p class="hero-lede">
-          每次貢獻者的服務，再回到每一個貢獻者的身上。<b>菩提幣</b>把覺行小組活動的服務時數，變成共好企業共通的記帳單位——志工與禪修教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
+          每次貢獻者的服務，再回到每一個貢獻者的身上。<b>菩提幣</b>把覺行小組正念減壓活動的服務時數，變成共好企業共通的記帳單位——協助的志工與減壓教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
           </p>
           <div class="cta-row">
             <a class="btn" href="#join" @click.prevent="go('join')">加入共好企業</a>
@@ -148,30 +148,27 @@ function again() {
       </div>
     </header>
 
-    <!-- ============ 宗旨 ============ -->
+    <!-- ============ 宗旨：正念減壓與彌勒心流 ============ -->
     <section class="band" id="purpose">
       <div class="shell">
         <div class="sec-head">
           <p class="eyebrow">宗旨</p>
-          <h2>實修唯識三轉</h2>
-          <p>世界佛教教育協會的修行核心，是把覺察落在日常裡：轉念、轉識、轉依。Sunny life 是這三轉在「共同生活」這一層的實作——讓服務與受用在同一個善行裡循環再擴大。</p>
+          <h2>把覺察落在日常裡</h2>
+          <p>覺行小組一起練的是正念減壓；它的實作原理，來自世界佛教教育協會的彌勒心流實修。</p>
         </div>
 
-        <div class="triad">
+        <div class="pair">
           <div>
-            <div class="glyph">轉念</div>
-            <div class="romaji">zhuǎn niàn</div>
-            <p>放下壓力，回歸中道與平衡。有持續力的服務，是流動的是可以回饋自己的。</p>
+            <p class="pair-k">怎麼做</p>
+            <h3>正念減壓</h3>
+            <p>停下來，把注意力放回呼吸與身體，不評判地看著念頭與感受來了又走。不需要任何經驗，三個人以上就能在覺行小組一起練：安頓入座、跟著引導練習、分享體會，再帶一個小練習回到日常。</p>
+            <router-link class="more" to="/mindfulness">認識正念減壓 →</router-link>
           </div>
           <div>
-            <div class="glyph">轉識</div>
-            <div class="romaji">zhuǎn shí</div>
-            <p>透過呼吸覺察，安定身心。看清資源與付出真正流向哪裡。</p>
-          </div>
-          <div>
-            <div class="glyph">轉依</div>
-            <div class="romaji">zhuǎn yī</div>
-            <p>觀想與身心覺知統合，進入與法界合一。一間中心的量能，成為所有共好企業的量能。</p>
+            <p class="pair-k">為什麼有效</p>
+            <h3>原理來自彌勒心流實修</h3>
+            <p>正念減壓的每一步，都對應彌勒心流的唯識三轉：放下評判、從壓力裡回到平衡是轉念；以呼吸安定身心、看清當下是轉識；把這份覺知帶回生活與共好企業，是轉依。</p>
+            <router-link class="more" to="/maitreya">走進彌勒心流 →</router-link>
           </div>
         </div>
 
@@ -312,7 +309,7 @@ function again() {
 
         <div class="disclose">
           <span class="tag">現況揭露</span>
-          <p>菩提幣目前是 <strong>v1.0 草案</strong>，尚未經菩提幣決策小組決議；官網已經上線，菩提幣的核發、錢包與兌換要等法務結論到齊後才會開放。現在正處於企劃書中的 <strong>Phase 0</strong>：法務諮詢與治理籌組。</p>
+          <p>菩提幣目前是 <strong>v1.0 草案</strong>，尚未經菩提幣決策小組決議；官網已經上線，覺行小組活動的登錄、送審與錢包餘額已經開放；兌換券要等法務結論到齊後才會開放。現在正處於企劃書中的 <strong>Phase 0</strong>：法務諮詢與治理籌組。</p>
           <p>其中兩題沒有回退路徑，必須先有答案：<strong>以服務換取住宿與給付，在勞動法上如何定性</strong>；以及<strong>可轉贈的券是否被認定為商品禮券</strong>。登記加入不代表任何承諾與義務，你隨時可以退出。</p>
           <p>菩提幣不販售、不提領、不可兌現，志工甚至沒有鏈上地址；全程沒有任何新台幣移轉。這不是投資，也不是可交易的資產。</p>
         </div>
@@ -634,38 +631,45 @@ section.band > .shell {
   color: var(--ink-soft);
 }
 
-/* 唯識三轉 */
-.triad {
+/* 正念減壓 × 彌勒心流 兩段摘要 */
+.pair {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0 34px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 40px;
   margin-top: 48px;
 }
-.triad > div {
+.pair > div {
   padding-top: 20px;
   border-top: 2px solid var(--gold);
 }
-.triad .glyph {
-  font-family: var(--wenkai);
-  font-weight: 700;
-  font-size: 40px;
-  line-height: 1.1;
-  letter-spacing: 0.06em;
-  color: var(--ink);
-}
-.triad .romaji {
+.pair-k {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--ink-faint);
-  margin-top: 8px;
 }
-.triad p {
+.pair h3 {
+  font-size: 26px;
+  margin-top: 6px;
+}
+.pair p:not(.pair-k) {
   margin-top: 12px;
   font-size: 15.5px;
   color: var(--ink-soft);
   line-height: 1.85;
+}
+.more {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  letter-spacing: 0.04em;
+}
+.more:hover {
+  color: var(--ink);
 }
 .origin {
   margin-top: 52px;
@@ -1091,11 +1095,11 @@ textarea:focus {
   .ring {
     order: 2;
   }
-  .triad {
+  .pair {
     grid-template-columns: 1fr;
     gap: 28px 0;
   }
-  .triad > div {
+  .pair > div {
     padding-top: 16px;
   }
 }
