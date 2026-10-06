@@ -17,7 +17,7 @@ const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavio
 </script>
 
 <template>
-  <q-page class="page assoc">
+  <q-page class="page page-wide assoc">
     <header class="hero">
       <img src="/images/association/logo.webp" alt="世界佛教教育協會標誌" class="logo" />
       <div>

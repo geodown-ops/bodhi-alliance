@@ -17,9 +17,13 @@ body {
   font-family: var(--sans);
 }
 .page {
-  max-width: 960px;
+  max-width: 680px;
   margin: 0 auto;
   padding: 32px 16px 64px;
+}
+.page.page-wide {
+  /* 圖表多的頁面（協會介紹）保留較寬的版面 */
+  max-width: 960px;
 }
 .page h1 {
   font-family: var(--wenkai);
