@@ -1,0 +1,3 @@
+梅花鹿模型：Geodown 用自己的 Meshy 帳號生成（Meshy AI Character，含 SmartRig 四足骨架，無動畫）。
+處理：貼圖縮成 1024×1024，以 gltf-transform meshopt 壓縮（1.8MB → 350KB）。
+動作（走路、吃草、張望、甩尾）全部在 src/guide3d/deer.js 用程式擺骨頭。
