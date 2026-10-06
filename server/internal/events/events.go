@@ -35,6 +35,8 @@ type Event struct {
 	Status        string    `json:"status"`
 	OrganizerName string    `json:"organizer_name"`
 	Joined        int       `json:"joined"`
+	VenueID       *string   `json:"venue_id"`
+	VenueName     string    `json:"venue_name"`
 	// Set only on the signed-in user's own list.
 	MyRole      string `json:"my_role,omitempty"`
 	ClaimStatus string `json:"claim_status,omitempty"`
@@ -43,13 +45,15 @@ type Event struct {
 
 const eventSelect = `
 	SELECT e.id, e.title, e.is_online, e.location, e.starts_at, e.ends_at, e.capacity, e.description, e.status,
-	       u.display_name, (SELECT count(*) FROM event_participant p WHERE p.event_id = e.id)
-	FROM practice_event e JOIN volunteer o ON o.id = e.organizer_id JOIN app_user u ON u.id = o.user_id`
+	       u.display_name, (SELECT count(*) FROM event_participant p WHERE p.event_id = e.id),
+	       e.venue_id, coalesce(v.name, '')
+	FROM practice_event e JOIN volunteer o ON o.id = e.organizer_id JOIN app_user u ON u.id = o.user_id
+	LEFT JOIN venue v ON v.id = e.venue_id`
 
 func scanEvent(row pgx.CollectableRow) (Event, error) {
 	var e Event
 	err := row.Scan(&e.ID, &e.Title, &e.IsOnline, &e.Location, &e.StartsAt, &e.EndsAt, &e.Capacity, &e.Description, &e.Status,
-		&e.OrganizerName, &e.Joined)
+		&e.OrganizerName, &e.Joined, &e.VenueID, &e.VenueName)
 	return e, err
 }
 
@@ -115,15 +119,30 @@ func respond(c *gin.Context, err error) bool {
 	return false
 }
 
+// myVolunteerID is the signed-in member, who must have joined 覺行小組: only they get
+// the wallet and activities. Leaving or cancelling an activity uses anyMemberID instead.
 func (h *Handler) myVolunteerID(c *gin.Context) (string, bool) {
+	return h.memberID(c, true)
+}
+
+func (h *Handler) anyMemberID(c *gin.Context) (string, bool) {
+	return h.memberID(c, false)
+}
+
+func (h *Handler) memberID(c *gin.Context, needGroups bool) (string, bool) {
 	var id string
-	err := h.DB.QueryRow(c, `SELECT id FROM volunteer WHERE user_id = $1`, auth.CurrentUser(c).ID).Scan(&id)
+	var inGroups bool
+	err := h.DB.QueryRow(c, `SELECT id, in_groups FROM volunteer WHERE user_id = $1`, auth.CurrentUser(c).ID).Scan(&id, &inGroups)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.Error(c, http.StatusNotFound, "請先在覺行小組頁報名，建立你的帳號")
 		return "", false
 	}
 	if err != nil {
 		fail(c, err)
+		return "", false
+	}
+	if needGroups && !inGroups {
+		httpx.Error(c, http.StatusForbidden, "請先在個人頁選擇加入覺行小組，才能使用菩提幣錢包與共修活動")
 		return "", false
 	}
 	return id, true
@@ -159,10 +178,11 @@ func (h *Handler) myEvents(c *gin.Context) {
 	rows, err := h.DB.Query(c, `
 		SELECT e.id, e.title, e.is_online, e.location, e.starts_at, e.ends_at, e.capacity, e.description, e.status,
 		       u.display_name, (SELECT count(*) FROM event_participant p WHERE p.event_id = e.id),
-		       me.role, coalesce(cl.status, ''), coalesce(cl.review_note, '')
+		       e.venue_id, coalesce(v.name, ''), me.role, coalesce(cl.status, ''), coalesce(cl.review_note, '')
 		FROM event_participant me
 		JOIN practice_event e ON e.id = me.event_id
 		JOIN volunteer o ON o.id = e.organizer_id JOIN app_user u ON u.id = o.user_id
+		LEFT JOIN venue v ON v.id = e.venue_id
 		LEFT JOIN coin_claim cl ON cl.event_id = e.id
 		WHERE me.volunteer_id = $1
 		ORDER BY e.starts_at DESC LIMIT 200`, vid)
@@ -173,7 +193,7 @@ func (h *Handler) myEvents(c *gin.Context) {
 	list, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Event, error) {
 		var e Event
 		err := row.Scan(&e.ID, &e.Title, &e.IsOnline, &e.Location, &e.StartsAt, &e.EndsAt, &e.Capacity, &e.Description, &e.Status,
-			&e.OrganizerName, &e.Joined, &e.MyRole, &e.ClaimStatus, &e.ClaimNote)
+			&e.OrganizerName, &e.Joined, &e.VenueID, &e.VenueName, &e.MyRole, &e.ClaimStatus, &e.ClaimNote)
 		return e, err
 	})
 	if err != nil {
@@ -192,12 +212,33 @@ func (h *Handler) createEvent(c *gin.Context) {
 		EndsAt      time.Time `json:"ends_at" binding:"required"`
 		Capacity    int       `json:"capacity"`
 		Description string    `json:"description" binding:"max=2000"`
+		VenueID     string    `json:"venue_id" binding:"omitempty,uuid"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, http.StatusBadRequest, "請填寫活動名稱、開始與結束時間")
 		return
 	}
 	req.Title, req.Location = strings.TrimSpace(req.Title), strings.TrimSpace(req.Location)
+	// 線下活動可以選一個場域；沒填地點就用場域地址
+	var venue *string
+	if req.VenueID != "" && !req.IsOnline {
+		var address string
+		err := h.DB.QueryRow(c, `
+			SELECT v.address FROM venue v JOIN center ce ON ce.id = v.center_id
+			WHERE v.id = $1 AND v.status = 'active' AND ce.status = 'active'`, req.VenueID).Scan(&address)
+		if errors.Is(err, pgx.ErrNoRows) {
+			httpx.Error(c, http.StatusBadRequest, "選的場域不存在或已停用")
+			return
+		}
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		venue = &req.VenueID
+		if req.Location == "" {
+			req.Location = address
+		}
+	}
 	switch {
 	case req.Title == "":
 		httpx.Error(c, http.StatusBadRequest, "請填寫活動名稱")
@@ -225,9 +266,9 @@ func (h *Handler) createEvent(c *gin.Context) {
 	var id string
 	err := pgx.BeginFunc(c, h.DB, func(tx pgx.Tx) error {
 		if err := tx.QueryRow(c, `
-			INSERT INTO practice_event (organizer_id, title, is_online, location, starts_at, ends_at, capacity, description)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-			vid, req.Title, req.IsOnline, req.Location, req.StartsAt, req.EndsAt, req.Capacity, strings.TrimSpace(req.Description)).Scan(&id); err != nil {
+			INSERT INTO practice_event (organizer_id, title, is_online, location, starts_at, ends_at, capacity, description, venue_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+			vid, req.Title, req.IsOnline, req.Location, req.StartsAt, req.EndsAt, req.Capacity, strings.TrimSpace(req.Description), venue).Scan(&id); err != nil {
 			return err
 		}
 		_, err := tx.Exec(c, `INSERT INTO event_participant (event_id, volunteer_id, role) VALUES ($1, $2, 'organizer')`, id, vid)
@@ -295,7 +336,7 @@ func (h *Handler) joinEvent(c *gin.Context) {
 }
 
 func (h *Handler) leaveEvent(c *gin.Context) {
-	vid, ok := h.myVolunteerID(c)
+	vid, ok := h.anyMemberID(c)
 	if !ok {
 		return
 	}
@@ -315,7 +356,7 @@ func (h *Handler) leaveEvent(c *gin.Context) {
 }
 
 func (h *Handler) cancelEvent(c *gin.Context) {
-	vid, ok := h.myVolunteerID(c)
+	vid, ok := h.anyMemberID(c)
 	if !ok {
 		return
 	}

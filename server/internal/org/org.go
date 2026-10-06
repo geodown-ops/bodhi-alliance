@@ -70,6 +70,8 @@ type Handler struct {
 }
 
 func (h *Handler) Routes(r *gin.RouterGroup) {
+	r.GET("/venues", h.publicVenues)
+
 	admin := r.Group("/admin", h.Auth.Require(auth.RoleAllianceAdmin, auth.ScopeAlliance))
 	admin.GET("/centers", h.listCenters)
 	admin.POST("/centers", h.saveCenter)
@@ -162,6 +164,37 @@ func (h *Handler) listVenues(c *gin.Context) {
 		return
 	}
 	list, err := pgx.CollectRows(rows, pgx.RowToStructByPos[Venue])
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, list)
+}
+
+// PublicVenue is an active venue as the 覺行小組 page lists it, with how many open
+// activities there have not ended yet.
+type PublicVenue struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	CenterName  string `json:"center_name"`
+	Region      string `json:"region"`
+	Address     string `json:"address"`
+	Description string `json:"description"`
+	Upcoming    int    `json:"upcoming"`
+}
+
+func (h *Handler) publicVenues(c *gin.Context) {
+	rows, err := h.DB.Query(c, `
+		SELECT v.id, v.name, c.name, c.region, v.address, v.description,
+		       (SELECT count(*) FROM practice_event e WHERE e.venue_id = v.id AND e.status = 'open' AND e.ends_at > now())
+		FROM venue v JOIN center c ON c.id = v.center_id
+		WHERE v.status = 'active' AND c.status = 'active'
+		ORDER BY c.region, c.name, v.name`)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	list, err := pgx.CollectRows(rows, pgx.RowToStructByPos[PublicVenue])
 	if err != nil {
 		fail(c, err)
 		return

@@ -18,6 +18,10 @@ export type Volunteer = {
   status: 'pending' | 'verified' | 'rejected'
   review_note: string
   frozen: boolean
+  // 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
+  in_groups: boolean
+  in_association: boolean
+  association_joined_at: string | null
   groups: { group_id: string; name: string; role: 'member' | 'leader' }[]
 }
 export type Center = { id: string; name: string; region: string }
@@ -35,9 +39,19 @@ export type PracticeEvent = {
   status: 'open' | 'cancelled'
   organizer_name: string
   joined: number
+  venue_id: string | null
+  venue_name: string
   my_role?: 'organizer' | 'helper' | 'participant'
   claim_status?: '' | 'submitted' | 'approved' | 'rejected'
   claim_note?: string
+}
+// 活動場域：upcoming 是還沒結束的活動數
+export type Venue = { id: string; name: string; center_name: string; region: string; address: string; description: string; upcoming: number }
+// 協會會員看得到的會刊、行事曆與通知
+export type AssociationFeed = {
+  issues: { id: string; title: string; issued_on: string; summary: string; url: string }[]
+  events: { id: string; title: string; starts_at: string; ends_at: string | null; location: string; description: string }[]
+  notices: { id: string; title: string; body: string; created_at: string }[]
 }
 export type Wallet = { balance: number; entries: { amount: number; kind: string; memo: string; created_at: string }[] }
 
@@ -121,6 +135,8 @@ export const me = {
   centers: () => call<Center[]>('GET', '/api/centers'),
   profile: () => call<Volunteer>('GET', '/api/me/volunteer'),
   update: (body: Record<string, unknown>) => call<Volunteer>('PUT', '/api/me/volunteer', body),
+  memberships: (body: { in_groups: boolean; in_association: boolean }) => call<Volunteer>('PUT', '/api/me/memberships', body),
+  association: () => call<AssociationFeed>('GET', '/api/me/association'),
   join: (groupId: string) => call('POST', `/api/me/groups/${groupId}`),
   leave: (groupId: string) => call('DELETE', `/api/me/groups/${groupId}`),
   wallet: () => call<Wallet>('GET', '/api/me/wallet'),
@@ -133,6 +149,7 @@ export const me = {
 }
 
 export const publicEvents = () => call<PracticeEvent[]>('GET', '/api/events')
+export const publicVenues = () => call<Venue[]>('GET', '/api/venues')
 
 const dateFmt = new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
 const timeFmt = new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })

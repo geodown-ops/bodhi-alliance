@@ -26,28 +26,33 @@ type Membership struct {
 }
 
 type Volunteer struct {
-	ID           string       `json:"id"`
-	UserID       string       `json:"user_id"`
-	Email        string       `json:"email"`
-	DisplayName  string       `json:"display_name"`
-	LegalName    string       `json:"legal_name"`
-	Phone        string       `json:"phone"`
-	LineID       string       `json:"line_id"`
-	HomeCenterID string       `json:"home_center_id"`
-	CenterName   string       `json:"center_name"`
-	WantsCoach   bool         `json:"wants_coach"`
-	IsCoach      bool         `json:"is_coach"`
-	Status       string       `json:"status"`
-	ReviewNote   string       `json:"review_note"`
-	VerifiedAt   *time.Time   `json:"verified_at"`
-	Frozen       bool         `json:"frozen"`
-	CreatedAt    time.Time    `json:"created_at"`
-	Groups       []Membership `json:"groups"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	Email        string     `json:"email"`
+	DisplayName  string     `json:"display_name"`
+	LegalName    string     `json:"legal_name"`
+	Phone        string     `json:"phone"`
+	LineID       string     `json:"line_id"`
+	HomeCenterID string     `json:"home_center_id"`
+	CenterName   string     `json:"center_name"`
+	WantsCoach   bool       `json:"wants_coach"`
+	IsCoach      bool       `json:"is_coach"`
+	Status       string     `json:"status"`
+	ReviewNote   string     `json:"review_note"`
+	VerifiedAt   *time.Time `json:"verified_at"`
+	Frozen       bool       `json:"frozen"`
+	CreatedAt    time.Time  `json:"created_at"`
+	// 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
+	InGroups            bool         `json:"in_groups"`
+	InAssociation       bool         `json:"in_association"`
+	AssociationJoinedAt *time.Time   `json:"association_joined_at"`
+	Groups              []Membership `json:"groups"`
 }
 
 const volunteerSelect = `
 	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.line_id, coalesce(v.home_center_id::text, ''), coalesce(c.name, ''),
 	       v.wants_coach, v.is_coach, v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
+	       v.in_groups, v.in_association, v.association_joined_at,
 	       coalesce((SELECT json_agg(json_build_object('group_id', g.id, 'name', g.name, 'role', m.role, 'joined_at', m.joined_at) ORDER BY m.joined_at)
 	                 FROM group_member m JOIN practice_group g ON g.id = m.group_id WHERE m.volunteer_id = v.id), '[]')
 	FROM volunteer v JOIN app_user u ON u.id = v.user_id LEFT JOIN center c ON c.id = v.home_center_id`
@@ -55,7 +60,8 @@ const volunteerSelect = `
 func scanVolunteer(row pgx.CollectableRow) (Volunteer, error) {
 	var v Volunteer
 	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.LineID, &v.HomeCenterID, &v.CenterName,
-		&v.WantsCoach, &v.IsCoach, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt, &v.Groups)
+		&v.WantsCoach, &v.IsCoach, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
+		&v.InGroups, &v.InAssociation, &v.AssociationJoinedAt, &v.Groups)
 	return v, err
 }
 
@@ -71,6 +77,7 @@ func (h *Handler) Routes(r *gin.RouterGroup) {
 	me := r.Group("/me", h.Auth.RequireUser())
 	me.GET("/volunteer", h.myProfile)
 	me.PUT("/volunteer", h.updateMyProfile)
+	me.PUT("/memberships", h.setMemberships)
 	me.POST("/groups/:id", h.joinGroup)
 	me.DELETE("/groups/:id", h.leaveGroup)
 
@@ -121,7 +128,10 @@ func (h *Handler) register(c *gin.Context) {
 		LineID       string `json:"line_id" binding:"max=100"`
 		HomeCenterID string `json:"home_center_id" binding:"omitempty,uuid"`
 		WantsCoach   bool   `json:"wants_coach"`
-		Website      string `json:"website"` // honeypot
+		// 沒指定時當作加入覺行小組（舊的報名頁）
+		InGroups      *bool  `json:"in_groups"`
+		InAssociation bool   `json:"in_association"`
+		Website       string `json:"website"` // honeypot
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, http.StatusBadRequest, "請填寫真實姓名、正確的電子郵件與密碼")
@@ -134,6 +144,11 @@ func (h *Handler) register(c *gin.Context) {
 	req.LegalName = strings.TrimSpace(req.LegalName)
 	if req.LegalName == "" {
 		httpx.Error(c, http.StatusBadRequest, "請填寫真實姓名")
+		return
+	}
+	inGroups := req.InGroups == nil || *req.InGroups
+	if !inGroups && !req.InAssociation {
+		httpx.Error(c, http.StatusBadRequest, "請至少選擇加入覺行小組或世界佛教教育協會其中一個")
 		return
 	}
 	// 所屬中心可以不選；選了就要是營運中的中心
@@ -160,8 +175,9 @@ func (h *Handler) register(c *gin.Context) {
 			return err
 		}
 		_, err = tx.Exec(c, `
-			INSERT INTO volunteer (user_id, home_center_id, legal_name, phone, line_id, wants_coach) VALUES ($1, $2, $3, $4, $5, $6)`,
-			userID, center, req.LegalName, strings.TrimSpace(req.Phone), strings.TrimSpace(req.LineID), req.WantsCoach)
+			INSERT INTO volunteer (user_id, home_center_id, legal_name, phone, line_id, wants_coach, in_groups, in_association, association_joined_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CASE WHEN $8 THEN now() END)`,
+			userID, center, req.LegalName, strings.TrimSpace(req.Phone), strings.TrimSpace(req.LineID), req.WantsCoach, inGroups, req.InAssociation)
 		return err
 	})
 	var pg *pgconn.PgError
@@ -241,6 +257,36 @@ func (h *Handler) updateMyProfile(c *gin.Context) {
 		_, err = tx.Exec(c, `UPDATE app_user SET display_name = $2 WHERE id = $1`, uid, strings.TrimSpace(req.DisplayName))
 		return err
 	})
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	h.myProfile(c)
+}
+
+// setMemberships switches the signed-in member in or out of 覺行小組 and the
+// association. Leaving 覺行小組 keeps the wallet ledger; it only hides the wallet and
+// activities until they join again.
+func (h *Handler) setMemberships(c *gin.Context) {
+	var req struct {
+		InGroups      bool `json:"in_groups"`
+		InAssociation bool `json:"in_association"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Error(c, http.StatusBadRequest, "請選擇要加入的會員身分")
+		return
+	}
+	if !req.InGroups && !req.InAssociation {
+		httpx.Error(c, http.StatusBadRequest, "至少要保留覺行小組或世界佛教教育協會其中一個會員身分")
+		return
+	}
+	tag, err := h.DB.Exec(c, `
+		UPDATE volunteer SET in_groups = $2, in_association = $3, updated_at = now(),
+		       association_joined_at = CASE WHEN $3 THEN coalesce(association_joined_at, now()) END
+		WHERE user_id = $1`, auth.CurrentUser(c).ID, req.InGroups, req.InAssociation)
+	if err == nil && tag.RowsAffected() == 0 {
+		err = pgx.ErrNoRows
+	}
 	if err != nil {
 		fail(c, err)
 		return

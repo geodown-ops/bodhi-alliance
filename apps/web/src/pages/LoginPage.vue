@@ -34,7 +34,7 @@ async function submit() {
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
       <q-btn type="submit" color="secondary" unelevated no-caps size="lg" :loading="loading" label="登入" />
     </q-form>
-    <p class="q-mt-md">還沒有帳號？<router-link to="/join">報名參加覺行小組</router-link>。忘記密碼請聯絡管理員。</p>
+    <p class="q-mt-md">還沒有帳號？<router-link to="/join">加入會員</router-link>。忘記密碼請聯絡管理員。</p>
   </q-page>
 </template>
 
