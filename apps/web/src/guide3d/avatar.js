@@ -47,7 +47,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene }[time] ?? buildScene)(scene, camera);   // 白天藍天湖景、黃昏湖景或晨霧草原
+  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene }[time] ?? buildScene)(scene, camera, renderer);   // 白天藍天湖景、黃昏湖景或晨霧草原
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));

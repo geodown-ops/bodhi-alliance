@@ -386,8 +386,11 @@ function again() {
 <style scoped>
 .home-guide {
   position: relative;
-  height: calc(100svh - 50px);
-  min-height: 560px;   /* 和畫境的最小高度一致，矮螢幕上才不會蓋到下面的招募內容 */
+  height: calc(50svh - 25px);   /* 半個螢幕高，下方的「Sunny life · 成員招募」一進首頁就看得到 */
+  min-height: 360px;
+}
+.home-guide :deep(.stage) {
+  min-height: 360px;
 }
 /* 「一即一切／一切即一」放在 Sunny 畫境左側的天空，深咖啡字配上淡淡的光暈，壓在亮處也讀得清楚 */
 .home-title {
