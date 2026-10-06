@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// 第三章「協會營運特色分享」：營運方針、品質系統、學習標章、標準組織、寺廟教育文創、總結（簡報第 21–33 頁）。
-import OrgChart from './OrgChart.vue'
+// 第三章「協會營運特色分享」：品質系統、學習標章、總結。
 import ScreenShot from './ScreenShot.vue'
 
 const img = (name: string) => `/images/association/${name}.webp`
@@ -51,57 +50,13 @@ const steps = [
   { name: '正式開課', lines: ['通知購課同學上課', '並於課後收集教學回饋'], color: '#93641a' },
 ]
 
-const units = [
-  {
-    name: '指導委員會',
-    color: '#6a4c8c',
-    items: ['提供市場與產業課程需求趨勢', '審核課程教材適用性與適法性', '評核課程師資的教學專業性', '稽核課程上架後的發展績效', '決議課程於市場發展生命週期'],
-  },
-  {
-    name: '課程發展中心',
-    color: '#3d6b2c',
-    items: ['負責課程市場需求的調研', '開發課程的教材與教具', '舉辦課程說明或體驗會活動', '負責整體課程招生計畫與執行', '評量課程上課的實際狀況與回饋'],
-  },
-  {
-    name: '認證中心',
-    color: '#1f6fae',
-    items: ['負責課程內容產出的標準化制定、更新及規範實施流程', '依指導委員會的評核結果，給予課程師資證照', '評測後給予學員結業證明或證照'],
-  },
-]
-
-const temple = [
-  '夜晚森林中發光的樹屋與步道',
-  '藍天下大樹上的木造樹屋',
-  '四面投影森林景色的長桌空間',
-  '林間的木造膠囊小屋',
-  '夜晚亮燈的膠囊小屋群',
-  '森林中的球形樹屋與旋轉樓梯',
-  '高掛樹間的球形樹屋',
-  '綠意環繞的半戶外座位區',
-  '林間的膠囊型小屋',
-  '頌缽聲浴',
-  '銅鑼聲浴，學員躺臥休息',
-  '光影投影下的靜坐空間',
-  '光束與觀音像的光影冥想空間',
-].map((alt, i) => ({ alt, src: img(`temple-${String(i + 1).padStart(2, '0')}`) }))
 </script>
 
 <template>
   <section id="operation" class="chapter">
     <p class="kicker">協會營運特色分享</p>
-    <h2>品質系統・學習標章・標準組織</h2>
+    <h2>品質系統・學習標章</h2>
   </section>
-
-  <h2>營運方針</h2>
-  <div class="quote">
-    <p class="quote-title">21 世紀佛教教育「現代化」的方向</p>
-    <p>
-      <b>惠敏法師</b>：在科技資訊化社會潮流，佛教教育若能<span class="hl">培育兼具佛學及資訊知能人才</span>，運用<span class="hl">資訊、傳播以及教育科技</span>等理論與方法，
-      建立佛學「<span class="hl">數位典藏</span>」與「<span class="hl">知識管理</span>」系統以及「<span class="hl">線上學習</span>」環境，建構成「<span class="hl">數位神經系統</span>」，
-      並且結合人文與藝術的資源，<span class="hl">發展「文化創意產業」，達成真、善、美的人生目標</span>。
-    </p>
-    <p class="by">2003 年</p>
-  </div>
 
   <h2>品質系統</h2>
   <h3>教學系統化</h3>
@@ -168,30 +123,6 @@ const temple = [
       <a :href="img('poap-phone')" target="_blank" rel="noopener"><img :src="img('poap-phone')" alt="POAP 錢包裡收藏的數位標章" class="phone" loading="lazy" /></a>
       <a :href="img('poap-badges')" target="_blank" rel="noopener"><img :src="img('poap-badges')" alt="POAP 動章簿：學習動章、活動動章與動章內容" class="badges" loading="lazy" /></a>
     </div>
-  </div>
-
-  <h2>標準組織</h2>
-  <div class="std">
-    <p class="std-root">標準組織規劃</p>
-    <div class="std-units">
-      <div v-for="u in units" :key="u.name" class="std-unit" :style="{ '--c': u.color }">
-        <p class="std-name">{{ u.name }}</p>
-        <ul>
-          <li v-for="it in u.items" :key="it">{{ it }}</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <h3>組織架構</h3>
-  <div class="figure">
-    <OrgChart />
-  </div>
-
-  <h2>寺廟教育文創</h2>
-  <p>把寺廟與自然結合成可以靜心學習的空間：森林中的樹屋與禪修小屋、頌缽聲浴、靜坐與光影冥想。</p>
-  <div class="gallery">
-    <img v-for="t in temple" :key="t.src" :src="t.src" :alt="t.alt" :title="t.alt" loading="lazy" />
   </div>
 
   <h2>總結</h2>
@@ -380,75 +311,6 @@ const temple = [
   border: 4px solid #48413c;
 }
 
-.std {
-  text-align: center;
-}
-.std-root {
-  display: inline-block;
-  margin: 8px 0 0;
-  padding: 8px 32px;
-  border-radius: 10px;
-  background: var(--weba);
-  color: #fff !important;
-  font-weight: 700;
-}
-.std-units {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 28px;
-  text-align: left;
-}
-.std-units::before {
-  content: '';
-  position: absolute;
-  top: -16px;
-  left: 16.5%;
-  right: 16.5%;
-  height: 16px;
-  border: 1.5px solid var(--rule);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-}
-.std-unit {
-  border-radius: 12px;
-  border: 1.5px solid var(--c);
-  background: var(--ground-raised);
-  overflow: hidden;
-}
-.std-name {
-  margin: 0;
-  padding: 10px;
-  background: var(--c);
-  color: #fff !important;
-  font-weight: 700;
-  text-align: center;
-}
-.std-unit ul {
-  margin: 0;
-  padding: 12px 14px 14px 2em;
-}
-.std-unit li {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: var(--c);
-}
-
-.gallery {
-  columns: 3 220px;
-  column-gap: 12px;
-  margin-top: 12px;
-}
-.gallery img {
-  display: block;
-  width: 100%;
-  margin: 0 0 12px;
-  border-radius: 12px;
-  break-inside: avoid;
-  box-shadow: 0 6px 18px rgba(59, 42, 32, 0.14);
-}
-
 .lifelong {
   text-align: center;
 }
@@ -496,12 +358,8 @@ const temple = [
 }
 @media (max-width: 680px) {
   .shots.two,
-  .poap,
-  .std-units {
+  .poap {
     grid-template-columns: 1fr;
-  }
-  .std-units::before {
-    display: none;
   }
 }
 </style>
