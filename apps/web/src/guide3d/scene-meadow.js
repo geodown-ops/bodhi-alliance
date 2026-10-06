@@ -17,9 +17,9 @@ const VIEW_PITCH = 2;        // 鏡頭仰角（度）：頁面把畫面往上挪
 // Sunny 站的位置：河流分岔處偏左的水裡（全景圖座標 u, v）
 const RIVER_SPOT = [0.043, 0.549];
 const CAM_Z = 6.4;
-// 菩提樹：種在畫面中間、Sunny 右前方河對岸的草地上（全景圖座標 u, v）與地面以上的高度
-const TREE_SPOT = [0.085, 0.528];
-const TREE_HEIGHT = 5;           // 遠景鏡頭的位置（和湖景相同）
+// 菩提樹：種在畫面中間、比 Sunny 更靠近鏡頭的草地上（不遮到她）（全景圖座標 u, v）與地面以上的高度
+const TREE_SPOT = [0.1, 0.565];
+const TREE_HEIGHT = 4.5;           // 遠景鏡頭的位置（和湖景相同）
 
 const VNOISE = `
   float vhash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
