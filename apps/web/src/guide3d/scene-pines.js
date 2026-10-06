@@ -14,6 +14,7 @@ export function buildPinesScene(scene, camera, renderer) {
     viewPitch: 4.5,      // 稍微抬頭，讓雪峰露出來（頁面又把畫面往上挪了一點）
     spot: [0.23, 0.556], // 樹幹右邊的河道中間，離鏡頭近一些
     wideHFov: 66,
+    avatarScale: 1,      // Sunny 比草原大一倍
     background: '#c9d1d6',   // 全景圖載入前的陰天灰藍
     glint: [0.95, 0.98, 1],
     sunDir: new THREE.Vector3(0.2, 0.8, 0.6),    // 雲層後的天光，從上方偏前方灑下

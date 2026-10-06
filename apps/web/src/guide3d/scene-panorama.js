@@ -31,6 +31,7 @@ const css = c => Array.isArray(c) ? new THREE.Color().setRGB(...c) : new THREE.C
  *   viewU, viewPitch  畫面中心對著全景圖的橫向位置（0～1）與仰角（度）
  *   spot        Sunny 站的位置（全景圖座標 [u, v]）
  *   wideHFov    遠景的水平視角（度）
+ *   avatarScale 人物的大小（依全景圖的比例，預設 0.5）
  *   background  全景圖載入前的天空顏色
  *   glint       水面反光的顏色（[r, g, b]）
  *   sunDir, sun: [顏色, 強度], hemi: [天色, 地色, 強度], fill: 正面補光強度
@@ -53,6 +54,7 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
     return { x: p.x, z: CAM_Z + p.y };
   };
   const standAt = at(spotUV[0], spotUV[1]);
+  const avatarScale = Number(q.get('size')) || cfg.avatarScale || 0.5;
   const pitch = THREE.MathUtils.degToRad(q.has('pitch') ? Number(q.get('pitch')) : cfg.viewPitch);
   const wide = {
     pos: new THREE.Vector3(0, height, CAM_Z),
@@ -150,6 +152,7 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
         }`,
     }));
   ripple.rotation.x = -Math.PI / 2;
+  ripple.scale.setScalar(avatarScale / 0.5);   // 漣漪跟著人物大小
   ripple.position.set(standAt.x, 0.005, standAt.z);
   scene.add(ripple);
 
@@ -165,7 +168,7 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
     standAt, wide,      // Sunny 的位置、遠景鏡頭
     wideHFov: cfg.wideHFov,
     onGround: true,     // 站在投影的地面上（河裡），不是程式畫的湖
-    avatarScale: 0.5,   // 依全景圖的比例，人物縮成一半
+    avatarScale,
     wadeDepth: 0.55,    // 河水淹到小腿約一半（膝蓋高度的比例）
     addVegetation() {},
     setRipple(x, z) { ripple.position.x = x; ripple.position.z = z; },
