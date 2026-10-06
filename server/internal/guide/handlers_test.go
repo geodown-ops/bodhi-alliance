@@ -372,3 +372,41 @@ func TestPersonaFollowsDefaultUntilEdited(t *testing.T) {
 		t.Errorf("admin persona replaced: %q", p.Prompt)
 	}
 }
+
+type fakeSpeaker struct{ last string }
+
+func (f *fakeSpeaker) Speak(_ context.Context, text string) ([]byte, error) {
+	f.last = text
+	return []byte("mp3"), nil
+}
+
+func TestTTS(t *testing.T) {
+	e := setup(t)
+	// Without a cloud voice the web app keeps the browser voice.
+	var info struct{ TTS bool }
+	json.Unmarshal(e.do(http.MethodGet, "/guide/info", nil, false).Body.Bytes(), &info)
+	if info.TTS {
+		t.Error("info.tts should be false without a speaker")
+	}
+	if w := e.do(http.MethodPost, "/guide/tts", map[string]string{"text": "你好"}, false); w.Code != http.StatusNotFound {
+		t.Errorf("tts without speaker: %d", w.Code)
+	}
+
+	sp := &fakeSpeaker{}
+	e.r = gin.New()
+	(&Handler{Store: e.store, Auth: &auth.Service{DB: e.store.DB}, LLM: e.llm, TTS: sp}).Routes(e.r.Group("/guide"))
+	json.Unmarshal(e.do(http.MethodGet, "/guide/info", nil, false).Body.Bytes(), &info)
+	if !info.TTS {
+		t.Error("info.tts should be true with a speaker")
+	}
+	w := e.do(http.MethodPost, "/guide/tts", map[string]string{"text": " 歡迎來到覺行小組。 "}, false)
+	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "audio/mpeg" || w.Body.String() != "mp3" {
+		t.Fatalf("tts: %d %s %q", w.Code, w.Header().Get("Content-Type"), w.Body)
+	}
+	if sp.last != "歡迎來到覺行小組。" {
+		t.Errorf("spoke %q", sp.last)
+	}
+	if w := e.do(http.MethodPost, "/guide/tts", map[string]string{"text": strings.Repeat("長", maxSpeechRunes+1)}, false); w.Code != http.StatusBadRequest {
+		t.Errorf("long text: %d", w.Code)
+	}
+}

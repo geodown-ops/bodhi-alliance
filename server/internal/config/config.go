@@ -22,6 +22,12 @@ type Config struct {
 	AnthropicAPIKey string
 	GuideModel      string
 	GuideName       string
+
+	// Sunny 的雲端語音（Azure AI Speech）；沒有金鑰時網站改用瀏覽器內建語音
+	AzureSpeechKey    string
+	AzureSpeechRegion string
+	TTSVoice          string
+	TTSRate           string
 }
 
 func Load(defaultAddr string) Config {
@@ -35,6 +41,10 @@ func Load(defaultAddr string) Config {
 		AnthropicAPIKey:        os.Getenv("ANTHROPIC_API_KEY"),
 		GuideModel:             env("GUIDE_MODEL", "claude-opus-5-5"),
 		GuideName:              env("GUIDE_NAME", "Sunny"),
+		AzureSpeechKey:         strings.TrimSpace(os.Getenv("AZURE_SPEECH_KEY")),
+		AzureSpeechRegion:      env("AZURE_SPEECH_REGION", "eastasia"),
+		TTSVoice:               env("TTS_VOICE", "zh-TW-HsiaoChenNeural"),
+		TTSRate:                strings.TrimSpace(os.Getenv("TTS_RATE")),
 	}
 }
 

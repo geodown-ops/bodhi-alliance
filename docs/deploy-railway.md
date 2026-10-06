@@ -12,7 +12,7 @@
 | 服務 | Root Directory | Dockerfile Path | Healthcheck | Watch Paths | Variables |
 | --- | --- | --- | --- | --- | --- |
 | `api` | `/server` | （自動找 `server/Dockerfile`） | `/healthz` | `/server/**` | `SERVICE=api`、`DATABASE_URL=${{Postgres.DATABASE_URL}}`、`BOOTSTRAP_ADMIN_EMAIL`、`BOOTSTRAP_ADMIN_PASSWORD`、`ALLOWED_ORIGINS`、`TRUSTED_PROXIES` |
-| `guide` | `/server` | （同上） | `/healthz` | `/server/**` | `SERVICE=guide`、`DATABASE_URL=${{Postgres.DATABASE_URL}}`、`ANTHROPIC_API_KEY`、`ALLOWED_ORIGINS`、`TRUSTED_PROXIES` |
+| `guide` | `/server` | （同上） | `/healthz` | `/server/**` | `SERVICE=guide`、`DATABASE_URL=${{Postgres.DATABASE_URL}}`、`ANTHROPIC_API_KEY`、`ALLOWED_ORIGINS`、`TRUSTED_PROXIES`；選填 `AZURE_SPEECH_KEY`、`AZURE_SPEECH_REGION`（Sunny 的雲端語音，見下方） |
 | `web` | （留空，用 repo 根目錄） | `apps/Dockerfile` | — | `/apps/**`、`/package.json`、`/package-lock.json` | `APP=web`、`VITE_API_BASE=https://${{api.RAILWAY_PUBLIC_DOMAIN}}`、`VITE_GUIDE_BASE=https://${{guide.RAILWAY_PUBLIC_DOMAIN}}` |
 | `admin` | （留空） | `apps/Dockerfile` | — | （同 web） | `APP=admin`、`VITE_API_BASE`、`VITE_GUIDE_BASE`（同上） |
 
@@ -38,3 +38,17 @@
 - AI 組長的費用上限在後台「AI 組長設定」調整，預設每月 50 美元。
 - 資料庫遷移由 `api` 與 `guide` 啟動時自動執行，不需要手動操作。
 - 原本的招募頁（根目錄 `index.html`）仍由 GitHub Pages 提供；正式站上線後可以把網域指向 `web`，再決定招募頁要不要下架。
+
+## Sunny 的雲端語音（選填）
+
+`guide` 設定 `AZURE_SPEECH_KEY` 後，Sunny 改用 Azure AI Speech 的臺灣華語神經語音唸回答（預設 `zh-TW-HsiaoChenNeural`），比瀏覽器內建語音自然；沒有設定、或某一句取不到時，網站自動改用瀏覽器語音。
+
+| 變數 | 預設 | 說明 |
+|---|---|---|
+| `AZURE_SPEECH_KEY` | （空，表示不用雲端語音） | Azure 入口網站 → 建立「語音服務」資源 → 金鑰與端點 → 金鑰 1 |
+| `AZURE_SPEECH_REGION` | `eastasia` | 該資源的區域（位置） |
+| `TTS_VOICE` | `zh-TW-HsiaoChenNeural` | 也可試 `zh-TW-HsiaoYuNeural`（女）、`zh-TW-YunJheNeural`（男） |
+| `TTS_RATE` | （空，正常語速） | SSML 語速，例如 `-5%` 慢一點 |
+
+免費方案（F0）每月 50 萬字；網站一次送一句，`/guide/tts` 每個 IP 有頻率限制，組長關閉或超過每月預算時也一併停用。
+

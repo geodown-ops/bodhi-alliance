@@ -44,6 +44,11 @@ func main() {
 		log.Print("ANTHROPIC_API_KEY is not set; chat is off, the knowledge-base admin still works")
 	}
 
+	if cfg.AzureSpeechKey != "" {
+		h.TTS = guide.NewAzureSpeech(cfg.AzureSpeechKey, cfg.AzureSpeechRegion, cfg.TTSVoice, cfg.TTSRate)
+		log.Printf("cloud voice: %s (%s)", cfg.TTSVoice, cfg.AzureSpeechRegion)
+	}
+
 	r := httpx.NewEngine(cfg.AllowedOrigins, cfg.TrustedProxies)
 	r.MaxMultipartMemory = 8 << 20
 	h.Routes(r.Group("/guide"))

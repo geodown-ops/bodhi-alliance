@@ -24,13 +24,15 @@ const maxUpload = 20 << 20
 type Handler struct {
 	Store *Store
 	Auth  *auth.Service
-	LLM   LLM // nil when no API key is configured
+	LLM   LLM     // nil when no API key is configured
+	TTS   Speaker // nil when no cloud voice is configured; the browser voice is used
 }
 
 func (h *Handler) Routes(r *gin.RouterGroup) {
 	r.GET("/info", h.info)
 	r.GET("/scripts", h.listScripts)
 	r.POST("/chat", httpx.RateLimit(20, 30*time.Second), h.chat)
+	r.POST("/tts", httpx.RateLimit(40, 3*time.Second), h.tts)
 
 	admin := r.Group("/admin", h.Auth.Require(auth.RoleKnowledgeManager, auth.ScopeGuide))
 	admin.GET("/documents", h.listDocuments)
@@ -57,7 +59,7 @@ func (h *Handler) info(c *gin.Context) {
 		httpx.Error(c, http.StatusInternalServerError, "讀取失敗")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"name": p.Name, "available": h.available(u)})
+	c.JSON(http.StatusOK, gin.H{"name": p.Name, "available": h.available(u), "tts": h.TTS != nil})
 }
 
 func (h *Handler) available(u MonthUsage) bool {

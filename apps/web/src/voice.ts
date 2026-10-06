@@ -1,5 +1,6 @@
-// Sunny 的聲音：用瀏覽器內建的語音合成（Web Speech API）把回答一句一句唸出來。
-// 回答是串流進來的，湊滿一句就先唸，不必等整段寫完。音色取決於使用者裝置上的中文語音。
+// Sunny 的聲音：把回答一句一句唸出來。回答是串流進來的，湊滿一句就先唸，不必等整段寫完。
+// 伺服器有設定雲端語音（臺灣華語神經語音）時用雲端語音，比較自然；沒有設定或某一句取不到時，
+// 改用瀏覽器內建的語音合成（Web Speech API），音色取決於使用者裝置上的中文語音。
 
 const SENTENCE_END = /[。！？!?；;\n]/
 const SOFT_BREAK = /[，、,：:]/
@@ -55,8 +56,15 @@ export type VoiceHooks = {
   onFail: (text: string) => void
 }
 
+/** 向伺服器要一句雲端語音（MP3） */
+export type CloudSpeech = (text: string) => Promise<ArrayBuffer>
+
 export function createVoice(hooks: VoiceHooks) {
   const synth = typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null
+  const AudioCtx: typeof AudioContext | undefined =
+    typeof window !== 'undefined'
+      ? (window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
+      : undefined
   let buf = ''
   let ending = false
   let generation = 0
@@ -65,20 +73,73 @@ export function createVoice(hooks: VoiceHooks) {
   const pending = new Set<SpeechSynthesisUtterance>()
   synth?.getVoices() // Chrome 第一次呼叫時才開始載入語音清單
 
+  // 雲端語音：每句一送出就先去取聲音，播放則照順序一句接一句
+  let cloud: CloudSpeech | null = null
+  let ctx: AudioContext | null = null
+  let chain: Promise<void> = Promise.resolve()
+  let queued = 0 // 還沒唸完的雲端語音句數
+  let playing: AudioBufferSourceNode | null = null
+
   const settle = () => {
-    if (ending && !pending.size) {
+    if (ending && !pending.size && !queued) {
       ending = false
       hooks.onDone()
     }
   }
 
-  const say = (raw: string) => {
+  const play = (audio: AudioBuffer, gen: number) =>
+    new Promise<void>((resolve) => {
+      const src = ctx!.createBufferSource()
+      src.buffer = audio
+      src.connect(ctx!.destination)
+      src.onended = () => {
+        if (playing === src) playing = null
+        if (gen === generation) hooks.onEnd()
+        resolve()
+      }
+      playing = src
+      hooks.onStart()
+      src.start()
+    })
+
+  const sayCloud = (text: string) => {
+    const gen = generation
+    const audio = cloud!(text)
+      .then((b) => ctx!.decodeAudioData(b))
+      .catch(() => null)
+    queued++
+    chain = chain
+      .then(async () => {
+        const a = await audio
+        if (gen !== generation) return
+        // 這一句取不到雲端語音，改用瀏覽器語音唸，唸完再接下一句
+        if (a) await play(a, gen)
+        else await new Promise<void>((resolve) => say(text, resolve))
+      })
+      .finally(() => {
+        if (gen !== generation) return
+        queued--
+        settle()
+      })
+  }
+
+  const speak = (raw: string) => {
     const text = cleanForSpeech(raw)
     if (!text) return
+    if (cloud && ctx) sayCloud(text)
+    else say(text)
+  }
+
+  /** 用瀏覽器語音唸；after 在唸完或唸不出來時呼叫 */
+  const say = (text: string, after?: () => void) => {
     const voices = synth?.getVoices() ?? []
     const v = pickVoice(voices)
     // 語音清單已載入卻沒有華語語音，用英文語音唸中文只會是怪聲，直接改用文字對嘴
-    if (!synth || (voices.length && !v)) return hooks.onFail(text)
+    if (!synth || (voices.length && !v)) {
+      hooks.onFail(text)
+      after?.()
+      return
+    }
     const u = new SpeechSynthesisUtterance(text)
     if (v) u.voice = v
     u.lang = v?.lang ?? 'zh-TW'
@@ -95,6 +156,7 @@ export function createVoice(hooks: VoiceHooks) {
       if (gen !== generation) return
       if (started) hooks.onEnd()
       else if (failed) hooks.onFail(text)
+      after?.()
       settle()
     }
     u.onend = () => done(false)
@@ -104,9 +166,26 @@ export function createVoice(hooks: VoiceHooks) {
   }
 
   return {
-    supported: !!synth,
-    /** 在點擊當下呼叫一次：iOS Safari 只允許由使用者操作開始發聲 */
+    supported: !!synth || !!AudioCtx,
+    /** 伺服器有雲端語音時呼叫一次；傳 null 改回瀏覽器語音 */
+    useCloud(fn: CloudSpeech | null) {
+      cloud = AudioCtx ? fn : null
+    },
+    /** 在點擊當下呼叫：iOS Safari 只允許由使用者操作開始發聲 */
     unlock() {
+      if (cloud && AudioCtx) {
+        try {
+          ctx ??= new AudioCtx()
+          if (ctx.state === 'suspended') void ctx.resume()
+          // 先放一段無聲的聲音，之後非點擊當下開始播放的聲音才不會被擋
+          const src = ctx.createBufferSource()
+          src.buffer = ctx.createBuffer(1, 1, 22050)
+          src.connect(ctx.destination)
+          src.start()
+        } catch {
+          ctx = null
+        }
+      }
       if (!synth || unlocked) return
       unlocked = true
       const u = new SpeechSynthesisUtterance(' ')
@@ -117,11 +196,11 @@ export function createVoice(hooks: VoiceHooks) {
     feed(text: string) {
       const { sentences, rest } = splitSentences(buf + text)
       buf = rest
-      sentences.forEach(say)
+      sentences.forEach(speak)
     },
     /** 回答寫完了：唸完剩下的半句，全部唸完後呼叫 onDone */
     end() {
-      say(buf)
+      speak(buf)
       buf = ''
       ending = true
       settle()
@@ -133,6 +212,14 @@ export function createVoice(hooks: VoiceHooks) {
       ending = false
       pending.clear()
       synth?.cancel()
+      queued = 0
+      chain = Promise.resolve()
+      try {
+        playing?.stop()
+      } catch {
+        /* 已經停了 */
+      }
+      playing = null
     },
   }
 }
