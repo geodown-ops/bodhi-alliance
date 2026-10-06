@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/committee', component: () => import('./pages/CommitteePage.vue'), meta: { title: '主辦審核小組' } },
   { path: '/association', component: () => import('./pages/AssociationPage.vue'), meta: { title: '世界佛教教育協會介紹' } },
   { path: '/guide', component: () => import('./pages/GuidePage.vue'), meta: { title: '線上問答' } },
-  { path: '/join', component: () => import('./pages/JoinPage.vue'), meta: { title: '報名參加覺行小組' } },
+  { path: '/join', component: () => import('./pages/JoinPage.vue'), meta: { title: '加入會員' } },
   { path: '/login', component: () => import('./pages/LoginPage.vue'), meta: { title: '登入' } },
   { path: '/me', component: () => import('./pages/MePage.vue'), meta: { title: '我的個人頁', signedIn: true } },
   { path: '/:pathMatch(.*)*', redirect: '/' },

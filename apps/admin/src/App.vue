@@ -15,6 +15,7 @@ const items = computed(() => [
         { to: '/claims', label: '菩提幣審核', icon: 'paid' },
         { to: '/venues', label: '場域管理', icon: 'place' },
         { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
+        { to: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
       ]
     : []),
   ...(isCenterStaff() ? [{ to: '/volunteers', label: '志工名冊', icon: 'badge' }] : []),

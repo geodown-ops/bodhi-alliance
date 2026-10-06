@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { account } from '../../account'
+
 // 第四章「協會會員招募中」：會員人設。
 // 每種會員：[前文, 重點, 後文]
 const members = [
@@ -6,6 +9,9 @@ const members = [
   { role: '資源協助者', text: ['提供協會', '多面向的相關必要產業資源（例如：企業培訓需求等）', '，以完成協會的設定任務。'], tone: 'mid' },
   { role: '推廣協同者', text: ['提供協會', '在會員招募、課程招生與必要輔助活動的執行', '，並藉由會員力量協助協會推廣。'], tone: 'deep' },
 ]
+
+// 已經是會員（例如覺行小組）就到個人頁加入協會；還不是會員就到報名頁，預設勾選協會
+const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'association' } } : { path: '/join', query: { for: 'association' } }))
 </script>
 
 <template>
@@ -23,7 +29,7 @@ const members = [
   </div>
 
   <div class="join">
-    <q-btn color="secondary" unelevated no-caps size="lg" to="/join" label="加入會員" />
+    <q-btn color="secondary" unelevated no-caps size="lg" :to="joinTo" label="加入會員" />
   </div>
 </template>
 

@@ -3,7 +3,18 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Dialog, Notify } from 'quasar'
 import { api, ApiError, type Group } from '../api'
-import { eventTime, logout, me, publicEvents, publicVenues, type PracticeEvent, type Venue, type Volunteer, type Wallet } from '../account'
+import {
+  eventTime,
+  logout,
+  me,
+  publicEvents,
+  publicVenues,
+  type AssociationFeed,
+  type PracticeEvent,
+  type Venue,
+  type Volunteer,
+  type Wallet,
+} from '../account'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +25,7 @@ const groups = ref<Group[]>([])
 const myEvents = ref<PracticeEvent[]>([])
 const openEvents = ref<PracticeEvent[]>([])
 const kind = ref<'all' | 'online' | 'offline'>('all')
+const feed = ref<AssociationFeed>({ issues: [], events: [], notices: [] })
 const notVolunteer = ref(false)
 const loading = ref(true)
 const editing = ref(false)
@@ -31,17 +43,57 @@ async function load() {
     loading.value = false
     return
   }
-  const [w, mine, open, g, v] = await Promise.allSettled([me.wallet(), me.events(), publicEvents(), api.groups(), publicVenues()])
+  // 覺行小組會員才有錢包與活動；協會會員才有會刊、行事曆與通知
+  const p = profile.value
+  const none = Promise.reject()
+  none.catch(() => {})
+  const [w, mine, open, g, v, f] = await Promise.allSettled([
+    p.in_groups ? me.wallet() : none,
+    p.in_groups ? me.events() : none,
+    p.in_groups ? publicEvents() : none,
+    p.in_groups ? api.groups() : none,
+    p.in_groups ? publicVenues() : none,
+    p.in_association ? me.association() : none,
+  ])
   if (w.status === 'fulfilled') wallet.value = w.value
   if (mine.status === 'fulfilled') myEvents.value = mine.value
   if (open.status === 'fulfilled') openEvents.value = open.value
   if (g.status === 'fulfilled') groups.value = g.value
   if (v.status === 'fulfilled') venues.value = v.value
+  if (f.status === 'fulfilled') feed.value = f.value
   loading.value = false
 }
-// 從覺行小組頁的「在這裡發起活動」過來時，直接打開發起表單並選好場域
+
+// 切換會員身分：至少保留一個
+async function setMembership(key: 'in_groups' | 'in_association', on: boolean) {
+  const p = profile.value!
+  const next = { in_groups: p.in_groups, in_association: p.in_association, [key]: on }
+  if (!next.in_groups && !next.in_association) {
+    Notify.create({ type: 'warning', message: '至少要保留一個會員身分' })
+    return
+  }
+  const name = key === 'in_groups' ? '覺行小組' : '世界佛教教育協會'
+  const apply = () => run(() => me.memberships(next), on ? `已加入${name}` : `已退出${name}`)
+  if (on) return apply()
+  Dialog.create({
+    title: `退出${name}`,
+    message: key === 'in_groups' ? '退出後看不到菩提幣錢包與共修活動；餘額會保留，重新加入就看得到。' : '退出後就看不到協會會刊、會員行事曆與通知。',
+    cancel: true,
+  }).onOk(apply)
+}
+
+const dayFmt = new Intl.DateTimeFormat('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' })
+const day = (s: string) => dayFmt.format(new Date(s))
+
 onMounted(async () => {
   await load()
+  // 從協會頁的「加入會員」過來：已經是會員就直接加入協會
+  if (route.query.join === 'association' && profile.value) {
+    await router.replace({ query: {} })
+    if (!profile.value.in_association) await setMembership('in_association', true)
+    return
+  }
+  // 從覺行小組頁的「在這裡發起活動」過來時，直接打開發起表單並選好場域
   const v = venues.value.find((x) => x.id === route.query.venue)
   if (v && profile.value) {
     // 先清掉網址參數再開表單；換網址會讓已開的對話框自動關掉
@@ -211,12 +263,12 @@ async function signOut() {
     <q-spinner v-if="loading" color="secondary" size="32px" />
 
     <div v-else-if="notVolunteer" class="note">
-      這個帳號是管理用帳號，沒有個人頁。請到<router-link to="/join">報名參加覺行小組</router-link>另外建立帳號。
+      這個帳號是管理用帳號，沒有個人頁。請到<router-link to="/join">加入會員</router-link>另外建立帳號。
     </div>
 
     <template v-else-if="profile">
-      <div class="top">
-        <div class="card wallet">
+      <div :class="['top', { solo: !profile.in_groups }]">
+        <div v-if="profile.in_groups" class="card wallet">
           <div class="text-caption">錢包餘額</div>
           <div class="balance">{{ coins(wallet.balance) }} <span>菩提幣</span></div>
           <p class="q-mb-none text-caption">協助共修活動、審核通過後入帳。兌換券還在籌備中。</p>
@@ -252,6 +304,61 @@ async function signOut() {
         </div>
       </div>
 
+      <div class="card q-mt-lg">
+        <h2 class="q-mt-none q-mb-xs">我的會員身分</h2>
+        <p class="text-caption q-mb-sm">覺行小組和世界佛教教育協會共用這個會員帳號，可以只加入一邊，也可以兩邊都加入。</p>
+        <div class="memberships">
+          <q-toggle :model-value="profile.in_groups" color="secondary" @update:model-value="(v: boolean) => setMembership('in_groups', v)">
+            <div>
+              <div class="text-weight-bold">覺行小組會員</div>
+              <div class="text-caption">菩提幣錢包、參加或發起共修活動</div>
+            </div>
+          </q-toggle>
+          <q-toggle :model-value="profile.in_association" color="secondary" @update:model-value="(v: boolean) => setMembership('in_association', v)">
+            <div>
+              <div class="text-weight-bold">世界佛教教育協會會員</div>
+              <div class="text-caption">協會會刊、會員行事曆、協會通知</div>
+            </div>
+          </q-toggle>
+        </div>
+      </div>
+
+      <template v-if="profile.in_association">
+        <h2>世界佛教教育協會</h2>
+        <div class="assoc">
+          <div class="card">
+            <h3 class="q-mt-none">協會通知</h3>
+            <p v-if="!feed.notices.length" class="q-mb-none">目前沒有通知。</p>
+            <div v-for="n in feed.notices" :key="n.id" class="item">
+              <div class="text-caption">{{ day(n.created_at) }}</div>
+              <div class="text-weight-bold">{{ n.title }}</div>
+              <p v-if="n.body" class="q-mb-none pre">{{ n.body }}</p>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="q-mt-none">會員行事曆</h3>
+            <p v-if="!feed.events.length" class="q-mb-none">近期沒有排定的協會活動。</p>
+            <div v-for="e in feed.events" :key="e.id" class="item">
+              <div class="text-caption">{{ e.ends_at ? eventTime({ starts_at: e.starts_at, ends_at: e.ends_at }) : day(e.starts_at) }}</div>
+              <div class="text-weight-bold">{{ e.title }}</div>
+              <div v-if="e.location" class="text-caption">{{ e.location }}</div>
+              <p v-if="e.description" class="q-mb-none pre">{{ e.description }}</p>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="q-mt-none">協會會刊</h3>
+            <p v-if="!feed.issues.length" class="q-mb-none">會刊整理中。</p>
+            <div v-for="i in feed.issues" :key="i.id" class="item">
+              <div class="text-caption">{{ i.issued_on }}</div>
+              <a v-if="i.url" :href="i.url" target="_blank" rel="noopener" class="text-weight-bold">{{ i.title }}</a>
+              <div v-else class="text-weight-bold">{{ i.title }}</div>
+              <p v-if="i.summary" class="q-mb-none pre">{{ i.summary }}</p>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="profile.in_groups">
       <div class="row items-center q-mt-lg">
         <h2 class="q-my-none">我的共修活動</h2>
         <q-space />
@@ -357,6 +464,7 @@ async function signOut() {
           </tr>
         </tbody>
       </table>
+      </template>
     </template>
 
     <q-dialog v-model="creating">
@@ -442,8 +550,30 @@ async function signOut() {
   gap: 16px;
   grid-template-columns: minmax(220px, 1fr) 2fr;
 }
+.top.solo {
+  grid-template-columns: 1fr;
+}
+.memberships {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+.assoc {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.item + .item {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule, rgba(0, 0, 0, 0.08));
+}
+.pre {
+  white-space: pre-line;
+}
 @media (max-width: 700px) {
-  .top {
+  .top,
+  .assoc {
     grid-template-columns: 1fr;
   }
 }

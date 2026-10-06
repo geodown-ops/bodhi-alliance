@@ -119,15 +119,30 @@ func respond(c *gin.Context, err error) bool {
 	return false
 }
 
+// myVolunteerID is the signed-in member, who must have joined 覺行小組: only they get
+// the wallet and activities. Leaving or cancelling an activity uses anyMemberID instead.
 func (h *Handler) myVolunteerID(c *gin.Context) (string, bool) {
+	return h.memberID(c, true)
+}
+
+func (h *Handler) anyMemberID(c *gin.Context) (string, bool) {
+	return h.memberID(c, false)
+}
+
+func (h *Handler) memberID(c *gin.Context, needGroups bool) (string, bool) {
 	var id string
-	err := h.DB.QueryRow(c, `SELECT id FROM volunteer WHERE user_id = $1`, auth.CurrentUser(c).ID).Scan(&id)
+	var inGroups bool
+	err := h.DB.QueryRow(c, `SELECT id, in_groups FROM volunteer WHERE user_id = $1`, auth.CurrentUser(c).ID).Scan(&id, &inGroups)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.Error(c, http.StatusNotFound, "請先在覺行小組頁報名，建立你的帳號")
 		return "", false
 	}
 	if err != nil {
 		fail(c, err)
+		return "", false
+	}
+	if needGroups && !inGroups {
+		httpx.Error(c, http.StatusForbidden, "請先在個人頁選擇加入覺行小組，才能使用菩提幣錢包與共修活動")
 		return "", false
 	}
 	return id, true
@@ -321,7 +336,7 @@ func (h *Handler) joinEvent(c *gin.Context) {
 }
 
 func (h *Handler) leaveEvent(c *gin.Context) {
-	vid, ok := h.myVolunteerID(c)
+	vid, ok := h.anyMemberID(c)
 	if !ok {
 		return
 	}
@@ -341,7 +356,7 @@ func (h *Handler) leaveEvent(c *gin.Context) {
 }
 
 func (h *Handler) cancelEvent(c *gin.Context) {
-	vid, ok := h.myVolunteerID(c)
+	vid, ok := h.anyMemberID(c)
 	if !ok {
 		return
 	}
