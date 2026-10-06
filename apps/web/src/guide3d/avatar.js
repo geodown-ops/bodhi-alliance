@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { buildScene, WATER_Y, STAND_Z, SHORE_Z, REFLECT_LAYER } from './scene.js';
 import { buildDuskScene } from './scene-dusk.js';
+import { buildMeadowScene } from './scene-meadow.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
@@ -45,7 +46,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = (time === 'dusk' ? buildDuskScene : buildScene)(scene, camera);   // 白天藍天湖景、其餘時間黃昏湖景
+  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene }[time] ?? buildScene)(scene, camera);   // 白天藍天湖景、黃昏湖景或晨霧草原
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
@@ -85,7 +86,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   vrm.scene.position.set(0, 0, STAND_Z);
   vrm.scene.updateMatrixWorld(true);
   const kneeY = B.leftLowerLeg.getWorldPosition(new THREE.Vector3()).y;
-  const depthAt = z => kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));
+  const depthAt = z => env.onGround ? 0 : kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));   // 草原場景直接站在地上
   vrm.scene.position.y = WATER_Y - depthAt(STAND_Z);
   vrm.update(0);
   vrm.scene.updateMatrixWorld(true);
@@ -178,7 +179,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     // ---- 身旁的蘆葦往兩旁分開 ----
     vrm.scene.updateMatrixWorld(true);
     env.setPushers([{ position: B.hips.getWorldPosition(hipsW), radius: 0.5 }]);
-    env.setRipple(body.x, body.z, depth / kneeY);
+    env.setRipple(body.x, body.z, depth / kneeY);   // 草原場景用來移動腳下的影子
 
     // ---- 表情：冥想閉眼、思考半閉、回答睜眼帶笑 ----
     const target = state === 'talking' ? { eyesClosed: 0, happy: 0.35, relaxed: 0 }
