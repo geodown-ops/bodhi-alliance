@@ -12,7 +12,8 @@ import { buildMeadowScene } from './scene-meadow.js';
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
 const SYLLABLES_PER_SEC = 5.5;    // 有聲音時嘴型開合的速度，約等於華語每秒唸的字數
-const FACE_SPAN = 0.45;           // 近景時畫面寬度至少要容下的範圍（公尺），窄的手機畫面鏡頭會退後一點
+const FACE_SPAN = 0.45;
+const CLOSE_FRAC = Number(new URLSearchParams(location.search).get('closeFrac') || 0.5);   // 草原場景推近時，鏡頭往 Sunny 移動的比例           // 近景時畫面寬度至少要容下的範圍（公尺），窄的手機畫面鏡頭會退後一點
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
 // 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
@@ -118,7 +119,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   const face = { eyesClosed: 1, happy: 0, relaxed: 0 };
   let nextBlink = 3, blinkT = -1, shot = 0, talk = 0;   // shot: 0 = 遠景，1 = 近景；talk: 回答時的輕微擺動
 
-  const body = { x: 0, z: STAND_Z, yaw: 0 };
+  const body = { x: env.standAt?.x ?? 0, z: env.standAt?.z ?? STAND_Z, yaw: 0 };   // 草原場景指定 Sunny 站的位置
 
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -144,7 +145,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   // 除錯用：?cam=x,y,z,lookX,lookY,lookZ 固定鏡頭
   const debugCam = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
   if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera, env, ARMS, ARM_TWIST, CUP_OFFSET, setState: s => { state = s; } };
-  camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
+  if (env.wide) camera.position.copy(env.wide.pos);
+  else camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
   const clock = new THREE.Clock();
   let t = 0, charClock = 0;
 
@@ -225,17 +227,34 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
     // ---- 鏡頭：冥想時遠景；被提問、回答時推近到臉部，並緩慢漂移 ----
     const headY = vrm.scene.position.y + headOffset;
-    widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
-    wideLook.set(body.x, headY - 0.1, body.z - 1.5);
+    if (env.wide) {   // 草原場景：鏡頭在全景圖拍攝點；直式手機畫面窄，鏡頭往 Sunny 那邊轉，她才不會擠在邊上
+      widePos.copy(env.wide.pos);
+      const k = THREE.MathUtils.clamp((1.3 - camera.aspect) / 0.8, 0, 1);
+      const toSunny = Math.atan2(body.x - widePos.x, widePos.z - body.z);
+      wideLook.copy(env.wide.look).sub(widePos).applyAxisAngle(THREE.Object3D.DEFAULT_UP, -toSunny * 0.85 * k).add(widePos);
+    }
+    else {
+      widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
+      wideLook.set(body.x, headY - 0.1, body.z - 1.5);
+    }
     const near = THREE.MathUtils.clamp(FACE_SPAN / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect), 0.9, 1.6);
     closePos.set(body.x + 0.12 * S, headY + 0.08 * S, body.z + near * S);
     closeLook.set(body.x, headY + 0.01 * S, body.z);
+    // 草原場景：鏡頭只往前移一段、其餘用望遠拉近，背景才不會被拉扯變形（遠景略帶模糊，像人像照的景深）
+    if (env.wide) { closeLook.set(body.x, headY - 0.15 * S, body.z); closePos.lerpVectors(widePos, closeLook, CLOSE_FRAC); }
     shot = ease(shot, state === 'idle' ? 0 : 1, 1.2, dt);
     camPos.lerpVectors(widePos, closePos, shot);
-    camPos.x += Math.sin(t * 0.15) * 0.15 * (1 - shot * 0.8) * m;
+    camPos.x += Math.sin(t * 0.15) * (env.wide ? 0.03 : 0.15) * (1 - shot * 0.8) * m;   // 草原場景晃動小一點，全景圖才不會變形
     camLook.lerpVectors(wideLook, closeLook, shot);
     camera.position.lerp(camPos, Math.min(1, dt * 3));
     camera.lookAt(camLook);
+    if (env.wideHFov) {   // 草原場景：遠景放寬視角，構圖和全景圖網站上一樣；回答時用望遠拉近
+      const wideV = THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(env.wideHFov / 2)) / camera.aspect)), 35, 60);
+      const dist = camera.position.distanceTo(closeLook);
+      const closeV = 2 * THREE.MathUtils.radToDeg(Math.atan((camera.aspect < 1 ? 1.5 : 1.1) * S / 2 / dist));   // 框住上半身和捧茶的雙手（手機畫面窄，多留一些）
+      const fov = wideV * Math.pow(closeV / wideV, shot);   // 以等比例縮放，拉近的速度看起來平均
+      if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    }
     if (debugCam) { camera.position.set(debugCam[0], debugCam[1], debugCam[2]); camera.lookAt(debugCam[3], debugCam[4], debugCam[5]); }
     gaze.position.copy(camera.position);
 
