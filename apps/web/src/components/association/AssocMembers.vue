@@ -21,6 +21,10 @@ const members = [
       <p class="text">{{ m.text[0] }}<span class="key">{{ m.text[1] }}</span>{{ m.text[2] }}</p>
     </div>
   </div>
+
+  <div class="join">
+    <q-btn color="secondary" unelevated no-caps size="lg" to="/join" label="加入會員" />
+  </div>
 </template>
 
 <style scoped>
@@ -68,6 +72,10 @@ const members = [
 }
 .member.deep .key {
   color: #ffe36e;
+}
+.join {
+  margin-top: 32px;
+  text-align: center;
 }
 @media (max-width: 680px) {
   .member-grid {
