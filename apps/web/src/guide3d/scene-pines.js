@@ -11,8 +11,8 @@ export function buildPinesScene(scene, camera, renderer) {
     eyeHeight: 1.2,
     // 遠景構圖：比照 Geodown 在 Skybox 網站上截的角度（大樹幹在左、雪峰在右、河在前面）
     viewU: 0.197,
-    viewPitch: 6,        // 稍微抬頭，讓雪峰露出來（頁面又把畫面往上挪了一點）
-    spot: [0.225, 0.546], // 樹幹右邊的河道中間
+    viewPitch: 4.5,      // 稍微抬頭，讓雪峰露出來（頁面又把畫面往上挪了一點）
+    spot: [0.23, 0.556], // 樹幹右邊的河道中間，離鏡頭近一些
     wideHFov: 66,
     background: '#c9d1d6',   // 全景圖載入前的陰天灰藍
     glint: [0.95, 0.98, 1],
