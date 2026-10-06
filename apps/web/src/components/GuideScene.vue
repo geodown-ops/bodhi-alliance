@@ -92,6 +92,14 @@ defineExpose({
       <span class="bar"><span :style="{ width: `${Math.round(progress * 100)}%` }" /></span>
     </div>
   </div>
+  <!-- 菩提樹模型的 CC BY 4.0 授權要求標示作者 -->
+  <a
+    v-if="time === 'meadow'"
+    class="credit"
+    href="https://sketchfab.com/3d-models/bodhi-tree-943594369dc84239bc140e6e7d07a005"
+    target="_blank"
+    rel="noopener"
+  >菩提樹模型：Ashim Shakya（CC BY 4.0）</a>
 </template>
 
 <style scoped>
@@ -273,5 +281,15 @@ defineExpose({
   .guide, .glint, .speaking .halo, .loading svg {
     animation: none;
   }
+}
+.credit {
+  position: absolute;
+  left: 10px;
+  bottom: 6px;
+  z-index: 2;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 2px rgba(59, 42, 32, 0.6);
+  text-decoration: none;
 }
 </style>

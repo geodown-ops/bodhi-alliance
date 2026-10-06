@@ -5,8 +5,10 @@
 // 提供與 scene.js 相同的介面，avatar.js 依時間挑一個。
 import * as THREE from 'three';
 import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
+import { plantBodhiTree } from './bodhi-tree.js';
 
-const PANORAMA = '/scenes/meadow-dawn.jpg';
+const PANORAMA = '/scenes/meadow-dawn.jpg';          // 4K：先載入，很快就有畫面
+const PANORAMA_8K = '/scenes/meadow-dawn-8k.jpg';    // 8K 原圖：顯示卡撐得住時接著換上，景色更清晰
 const RIVER_MASK = '/scenes/meadow-dawn-river.png';   // 白色 = 河道（1024×512，與全景圖對齊）
 const EYE_HEIGHT = 1.2;      // 鏡頭（全景圖拍攝點）離地高度：越低，Sunny 離鏡頭越近、看起來越大
 // 遠景構圖：比照 Geodown 在 Skybox 網站上截的角度（山坡上的樹、河流在草地前分岔）
@@ -14,7 +16,10 @@ const VIEW_U = 0.078;        // 畫面中心對著全景圖的哪一個橫向位
 const VIEW_PITCH = 2;        // 鏡頭仰角（度）：頁面把畫面往上挪了一些（setViewOffset），這裡稍微抬頭補回來
 // Sunny 站的位置：河流分岔處偏左的水裡（全景圖座標 u, v）
 const RIVER_SPOT = [0.043, 0.549];
-const CAM_Z = 6.4;           // 遠景鏡頭的位置（和湖景相同）
+const CAM_Z = 6.4;
+// 菩提樹：種在畫面中間、比 Sunny 更靠近鏡頭的草地上（不遮到她）（全景圖座標 u, v）與地面以上的高度
+const TREE_SPOT = [0.1, 0.565];
+const TREE_HEIGHT = 4.5;           // 遠景鏡頭的位置（和湖景相同）
 
 const VNOISE = `
   float vhash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -30,7 +35,7 @@ function groundPoint(u, v, height) {
   return new THREE.Vector2(-Math.cos(phi) * dist, -Math.sin(phi) * dist);
 }
 
-export function buildMeadowScene(scene) {
+export function buildMeadowScene(scene, camera, renderer) {
   const uTime = { value: 0 };
   const sunDir = new THREE.Vector3(-0.3, 0.5, 0.8).normalize();   // 晨光從觀眾這一側照到臉上
   const q = new URLSearchParams(location.search);
@@ -51,9 +56,10 @@ export function buildMeadowScene(scene) {
   let sky = null;
   const loader = new THREE.TextureLoader();
   const mask = loader.load(RIVER_MASK);
+  const anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 8;
   loader.load(PANORAMA, tex => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
+    tex.anisotropy = anisotropy;
     sky = new GroundedSkybox(tex, height, 300);
     // 地面會寫入深度：站在河裡時，水面以下的小腿被河面蓋住
     sky.material.depthWrite = true;
@@ -84,6 +90,22 @@ export function buildMeadowScene(scene) {
     sky.position.set(0, height - 0.01, CAM_Z);
     sky.rotation.y = yaw;
     scene.add(sky);
+    if ((renderer?.capabilities.maxTextureSize ?? 0) >= 8192) {
+      loader.load(PANORAMA_8K, hd => {
+        if (!sky) return;
+        hd.colorSpace = THREE.SRGBColorSpace;
+        hd.anisotropy = anisotropy;
+        const old = sky.material.map;
+        sky.material.map = hd;
+        old.dispose();
+      });
+    }
+  });
+
+  const treeUV = [Number(q.get('treeU')) || TREE_SPOT[0], Number(q.get('treeV')) || TREE_SPOT[1]];
+  const treeAt = groundPoint(treeUV[0], treeUV[1], height).rotateAround(new THREE.Vector2(), -yaw);
+  const tree = plantBodhiTree(scene, {
+    x: treeAt.x, z: CAM_Z + treeAt.y, height: Number(q.get('treeH')) || TREE_HEIGHT, yaw: 0.6, uTime,
   });
 
   // 腳邊的漣漪：一圈圈往外擴散、慢慢淡出
@@ -126,9 +148,9 @@ export function buildMeadowScene(scene) {
     addVegetation() {},
     setRipple(x, z) { ripple.position.x = x; ripple.position.z = z; },
     setPushers() {},
-    update() {},
+    update(t, dt) { tree.update(t, dt); },
     resize() {},
     summon() {},
-    dispose() { sky?.material.map?.dispose(); mask.dispose(); },
+    dispose() { sky?.material.map?.dispose(); mask.dispose(); tree.dispose(); },
   };
 }

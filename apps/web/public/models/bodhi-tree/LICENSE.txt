@@ -1,0 +1,7 @@
+Bodhi Tree by Ashim Shakya
+https://sketchfab.com/3d-models/bodhi-tree-943594369dc84239bc140e6e7d07a005
+License: CC Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+Changes: bark mesh simplified, converted to meshopt-compressed GLB, textures resized
+(leaf colour + opacity merged into leaf.png); branches raised and spread, extra leaf copies,
+and wind / falling-leaf animation added at runtime (src/guide3d/bodhi-tree.js).
