@@ -392,20 +392,21 @@ function again() {
 .home-guide :deep(.stage) {
   min-height: 360px;
 }
-/* 「一即一切／一切即一」放在 Sunny 畫境左側的天空，深咖啡字配上淡淡的光暈，壓在亮處也讀得清楚 */
+/* 「一即一切／一切即一」放在 Sunny 畫境右下、輸入欄上方，logo 綠的字配上深咖啡光暈，壓在亮處也讀得清楚 */
 .home-title {
   position: absolute;
   z-index: 1;
-  left: clamp(22px, 6vw, 104px);
-  top: 14%;
+  right: clamp(22px, 6vw, 104px);
+  bottom: 92px;   /* 輸入欄上方 */
   margin: 0;
+  text-align: right;
   font-family: var(--wenkai);
   font-weight: 700;
   font-size: clamp(40px, 5vw, 72px);
   line-height: 1.3;
   letter-spacing: 0.06em;
-  color: var(--ink);
-  text-shadow: 0 0 18px rgba(251, 249, 243, 0.85), 0 0 4px rgba(251, 249, 243, 0.6);
+  color: #b8d8a0;   /* logo 綠 */
+  text-shadow: 0 0 16px rgba(59, 42, 32, 0.75), 0 2px 4px rgba(59, 42, 32, 0.6);
   pointer-events: none;
 }
 /* 深咖啡 × 淺綠（brand/coffee-green）。變數名沿用招募頁：--gold 是綠色強調色。 */
@@ -1111,7 +1112,7 @@ textarea:focus {
     font-size: 16px;
   }
   .home-title {
-    top: 22px;
+    bottom: 84px;
     font-size: 32px;
   }
   .shell {
