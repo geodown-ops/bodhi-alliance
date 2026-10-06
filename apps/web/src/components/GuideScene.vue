@@ -182,9 +182,15 @@ defineExpose({
 .scene.meadow {
   background: linear-gradient(180deg, #d9a6b8 0%, #ecc6c8 40%, #c9cdb0 55%, #7d9458 100%);   /* 草原全景圖載入前的粉色晨空 */
 }
+.scene.pines {
+  background: linear-gradient(180deg, #c9d1d6 0%, #dfe3e4 40%, #8d9a8c 55%, #5b4a3a 100%);   /* 松林雪山全景圖載入前的陰天灰藍 */
+}
 .meadow .sun,
 .meadow .lake,
-.meadow .reeds {
+.meadow .reeds,
+.pines .sun,
+.pines .lake,
+.pines .reeds {
   display: none;
 }
 .scene.dusk {
