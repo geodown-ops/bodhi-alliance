@@ -7,11 +7,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { buildScene, WATER_Y, STAND_Z, SHORE_Z, REFLECT_LAYER } from './scene.js';
 import { buildDuskScene } from './scene-dusk.js';
+import { buildMeadowScene } from './scene-meadow.js';
 
 const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 const CHARS_PER_SEC = 7;          // 沒有聲音時（靜音或裝置不支援）依字幕逐字對嘴的速度
 const SYLLABLES_PER_SEC = 5.5;    // 有聲音時嘴型開合的速度，約等於華語每秒唸的字數
-const FACE_SPAN = 0.45;           // 近景時畫面寬度至少要容下的範圍（公尺），窄的手機畫面鏡頭會退後一點
+const FACE_SPAN = 0.45;
+const CLOSE_FRAC = Number(new URLSearchParams(location.search).get('closeFrac') || 0.5);   // 草原場景推近時，鏡頭往 Sunny 移動的比例           // 近景時畫面寬度至少要容下的範圍（公尺），窄的手機畫面鏡頭會退後一點
 const PAUSE = /[\s，。、；：！？,.;:!?「」『』（）()…—\n]/;
 
 // 手臂姿勢（各骨骼在「身體座標」中指向的方向；面向 +Z，角色的左手邊是 +X）：
@@ -45,7 +47,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 1000);
-  const env = (time === 'dusk' ? buildDuskScene : buildScene)(scene, camera);   // 白天藍天湖景、其餘時間黃昏湖景
+  const env = ({ dusk: buildDuskScene, meadow: buildMeadowScene }[time] ?? buildScene)(scene, camera);   // 白天藍天湖景、黃昏湖景或晨霧草原
 
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
@@ -55,6 +57,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   VRMUtils.rotateVRM0(vrm);
   vrm.scene.traverse(o => { o.frustumCulled = false; o.layers.enable(REFLECT_LAYER); });   // 人物也映在水面上
   scene.add(vrm.scene);
+  const S = env.avatarScale ?? 1;   // 草原場景依全景圖的比例把人物縮小
+  vrm.scene.scale.setScalar(S);
 
   const bone = name => vrm.humanoid.getNormalizedBoneNode(name);
   const B = Object.fromEntries(['hips', 'spine', 'chest', 'neck', 'head',
@@ -78,6 +82,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   const cup = makeTeaCup();
   cup.group.traverse(o => o.layers.enable(REFLECT_LAYER));
+  cup.group.scale.setScalar(S);
   scene.add(cup.group);
   const cupPos = new THREE.Vector3();
 
@@ -85,7 +90,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   vrm.scene.position.set(0, 0, STAND_Z);
   vrm.scene.updateMatrixWorld(true);
   const kneeY = B.leftLowerLeg.getWorldPosition(new THREE.Vector3()).y;
-  const depthAt = z => kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));
+  const depthAt = z => env.onGround ? kneeY * (env.wadeDepth ?? 0) : kneeY * (1 - smoothstep(SHORE_Z - 0.3, SHORE_Z + 0.2, z));   // 草原場景站在河裡，水深依場景設定
   vrm.scene.position.y = WATER_Y - depthAt(STAND_Z);
   vrm.update(0);
   vrm.scene.updateMatrixWorld(true);
@@ -114,7 +119,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   const face = { eyesClosed: 1, happy: 0, relaxed: 0 };
   let nextBlink = 3, blinkT = -1, shot = 0, talk = 0;   // shot: 0 = 遠景，1 = 近景；talk: 回答時的輕微擺動
 
-  const body = { x: 0, z: STAND_Z, yaw: 0 };
+  const body = { x: env.standAt?.x ?? 0, z: env.standAt?.z ?? STAND_Z, yaw: 0 };   // 草原場景指定 Sunny 站的位置
 
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -132,6 +137,35 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   // 捲到頁面下方、看不到場景時暫停繪製
   let onScreen = true;
+  // 草原場景：按住滑鼠左鍵（或手指橫向拖曳）旋轉鏡頭環看四周，放開幾秒後慢慢轉回原本的構圖
+  const look = { yaw: 0, pitch: 0, dragging: false, lastX: 0, lastY: 0, idle: 0 };
+  const onDown = e => {
+    if (e.button !== 0) return;
+    look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing';
+  };
+  const onMove = e => {
+    if (!look.dragging) return;
+    const k = Math.PI / canvas.clientWidth;   // 拖過整個畫面寬度約轉 180°
+    look.yaw += (e.clientX - look.lastX) * k;
+    look.pitch = THREE.MathUtils.clamp(look.pitch + (e.clientY - look.lastY) * k, -0.6, 0.6);
+    look.lastX = e.clientX; look.lastY = e.clientY; look.idle = 0;
+  };
+  const onUp = e => {
+    if (!look.dragging) return;
+    look.dragging = false; canvas.style.cursor = 'grab';
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  };
+  if (env.wide) {
+    canvas.style.cursor = 'grab';
+    canvas.style.touchAction = 'pan-y';   // 直向滑動仍然捲動頁面，橫向拖曳才轉鏡頭
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+  }
+  const lookDir = new THREE.Vector3(), lookRight = new THREE.Vector3();
+
   const visibleObs = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; });
   visibleObs.observe(canvas);
 
@@ -140,7 +174,8 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   // 除錯用：?cam=x,y,z,lookX,lookY,lookZ 固定鏡頭
   const debugCam = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
   if (debugCam || new URLSearchParams(location.search).has('debug')) window.__bodhi = { vrm, THREE, body, camera, env, ARMS, ARM_TWIST, CUP_OFFSET, setState: s => { state = s; } };
-  camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
+  if (env.wide) camera.position.copy(env.wide.pos);
+  else camera.position.set(0.5, vrm.scene.position.y + headOffset + 0.25, 6.4);   // 從遠景開始，避免第一幀從原點飛進來
   const clock = new THREE.Clock();
   let t = 0, charClock = 0;
 
@@ -221,24 +256,51 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
     // ---- 鏡頭：冥想時遠景；被提問、回答時推近到臉部，並緩慢漂移 ----
     const headY = vrm.scene.position.y + headOffset;
-    widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
-    wideLook.set(body.x, headY - 0.1, body.z - 1.5);
+    if (env.wide) {   // 草原場景：鏡頭在全景圖拍攝點；直式手機畫面窄，鏡頭往 Sunny 那邊轉，她才不會擠在邊上
+      widePos.copy(env.wide.pos);
+      const k = THREE.MathUtils.clamp((1.3 - camera.aspect) / 0.8, 0, 1);
+      const toSunny = Math.atan2(body.x - widePos.x, widePos.z - body.z);
+      wideLook.copy(env.wide.look).sub(widePos).applyAxisAngle(THREE.Object3D.DEFAULT_UP, -toSunny * 0.85 * k).add(widePos);
+    }
+    else {
+      widePos.set(0.5 + body.x * 0.35, headY + 0.25, 6.4);
+      wideLook.set(body.x, headY - 0.1, body.z - 1.5);
+    }
     const near = THREE.MathUtils.clamp(FACE_SPAN / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect), 0.9, 1.6);
-    closePos.set(body.x + 0.12, headY + 0.08, body.z + near);
-    closeLook.set(body.x, headY + 0.01, body.z);
+    closePos.set(body.x + 0.12 * S, headY + 0.08 * S, body.z + near * S);
+    closeLook.set(body.x, headY + 0.01 * S, body.z);
+    // 草原場景：鏡頭只往前移一段、其餘用望遠拉近，背景才不會被拉扯變形（遠景略帶模糊，像人像照的景深）
+    if (env.wide) { closeLook.set(body.x, headY - 0.15 * S, body.z); closePos.lerpVectors(widePos, closeLook, CLOSE_FRAC); }
     shot = ease(shot, state === 'idle' ? 0 : 1, 1.2, dt);
     camPos.lerpVectors(widePos, closePos, shot);
-    camPos.x += Math.sin(t * 0.15) * 0.15 * (1 - shot * 0.8) * m;
+    camPos.x += Math.sin(t * 0.15) * (env.wide ? 0.03 : 0.15) * (1 - shot * 0.8) * m;   // 草原場景晃動小一點，全景圖才不會變形
     camLook.lerpVectors(wideLook, closeLook, shot);
     camera.position.lerp(camPos, Math.min(1, dt * 3));
+    if (env.wide) {
+      if (!look.dragging && (look.idle += dt) > 3) {   // 放開 3 秒後慢慢轉回來（走最短的方向）
+        look.yaw = Math.atan2(Math.sin(look.yaw), Math.cos(look.yaw));
+        look.yaw = ease(look.yaw, 0, 1.2, dt); look.pitch = ease(look.pitch, 0, 1.2, dt);
+      }
+      lookDir.subVectors(camLook, camera.position);
+      lookRight.crossVectors(lookDir, camera.up).normalize();
+      lookDir.applyAxisAngle(lookRight, look.pitch).applyAxisAngle(camera.up, look.yaw);
+      camLook.copy(camera.position).add(lookDir);
+    }
     camera.lookAt(camLook);
+    if (env.wideHFov) {   // 草原場景：遠景放寬視角，構圖和全景圖網站上一樣；回答時用望遠拉近
+      const wideV = THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(env.wideHFov / 2)) / camera.aspect)), 35, 60);
+      const dist = camera.position.distanceTo(closeLook);
+      const closeV = 2 * THREE.MathUtils.radToDeg(Math.atan((camera.aspect < 1 ? 1.5 : 1.1) * S / 2 / dist));   // 框住上半身和捧茶的雙手（手機畫面窄，多留一些）
+      const fov = wideV * Math.pow(closeV / wideV, shot);   // 以等比例縮放，拉近的速度看起來平均
+      if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    }
     if (debugCam) { camera.position.set(debugCam[0], debugCam[1], debugCam[2]); camera.lookAt(debugCam[3], debugCam[4], debugCam[5]); }
     gaze.position.copy(camera.position);
 
     vrm.update(dt);
     // 茶杯在兩手之間，跟著手走，杯口始終朝上
     hands[0].getWorldPosition(cupPos).add(hands[1].getWorldPosition(cup.group.position)).multiplyScalar(0.5);
-    cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).applyQuaternion(vrm.scene.quaternion));
+    cup.group.position.copy(cupPos).add(dirBody.copy(CUP_OFFSET).multiplyScalar(S).applyQuaternion(vrm.scene.quaternion));
     cup.group.quaternion.copy(vrm.scene.quaternion);
     cup.update(t, m);
     renderer.render(scene, camera);
@@ -257,6 +319,10 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     dispose() {
       renderer.setAnimationLoop(null);
       resizeObs.disconnect();
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
       visibleObs.disconnect();
       VRMUtils.deepDispose(vrm.scene);
       cup.dispose();

@@ -69,12 +69,28 @@ export function buildScene(scene, camera) {
     })));
   scene.add(sky);
 
+  // 預覽：網址加 ?sky=<360 全景圖網址> 時，用全景圖取代程序化的天空與遠山
+  const skyUrl = new URLSearchParams(location.search).get('sky');
+  const hills = [];
+  if (skyUrl) {
+    new THREE.TextureLoader().load(skyUrl, tex => {
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      sky.material = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite: false, fog: false });
+      sky.geometry = new THREE.SphereGeometry(400, 64, 32);
+      sky.rotation.y = Number(new URLSearchParams(location.search).get('skyYaw') || 0) * Math.PI / 180;
+      sky.position.y = -Number(new URLSearchParams(location.search).get('skyDrop') || 0);
+      for (const h of hills) h.visible = false;
+    });
+  }
+
   // 遠方長滿青草的緩丘
   const hillMat = new THREE.MeshLambertMaterial({ color: '#7fa65e' });
   for (const [x, z, sx, sy, sz] of [[-70, -150, 110, 14, 40], [40, -170, 120, 18, 45], [120, -140, 70, 10, 35], [-140, -120, 80, 9, 30], [0, -210, 160, 26, 50]]) {
     const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), hillMat);
     hill.scale.set(sx, sy, sz); hill.position.set(x, -1, z);
-    scene.add(reflect(hill));
+    scene.add(reflect(hill)); hills.push(hill);
   }
 
   // 湖底：細沙與小石，水面折射下來的光紋（caustics）緩緩流動；靠岸處往上緩升

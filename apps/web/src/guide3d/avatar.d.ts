@@ -13,6 +13,6 @@ export type Avatar = {
 export function createAvatar(
   canvas: HTMLCanvasElement,
   url: string,
-  /** time：day 是藍天湖景（預設），dusk 是黃昏湖景 */
-  opts?: { onProgress?: (p: number) => void; onIdle?: () => void; time?: 'day' | 'dusk' },
+  /** time：day 是藍天湖景（預設），dusk 是黃昏湖景，meadow 是晨霧草原 */
+  opts?: { onProgress?: (p: number) => void; onIdle?: () => void; time?: 'day' | 'dusk' | 'meadow' },
 ): Promise<Avatar>
