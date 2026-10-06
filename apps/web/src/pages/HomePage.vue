@@ -80,7 +80,7 @@ function again() {
           <p class="eyebrow">Sunny life · 成員招募</p>
           <div class="hairline"></div>
           <p class="hero-lede">
-          每次貢獻者的服務，再回到每一個貢獻者的身上。<b>菩提幣</b>把覺行小組活動的服務時數，變成共好企業共通的記帳單位——志工與禪修教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
+          每次貢獻者的服務，再回到每一個貢獻者的身上。<b>菩提幣</b>把覺行小組正念減壓活動的服務時數，變成共好企業共通的記帳單位——協助的志工與減壓教練以服務換幣，在共好企業兌換住宿、餐飲與療程。
           </p>
           <div class="cta-row">
             <a class="btn" href="#join" @click.prevent="go('join')">加入共好企業</a>
