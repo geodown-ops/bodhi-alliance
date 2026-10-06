@@ -79,7 +79,17 @@ export const api = {
   registerPartner: (body: Record<string, unknown>) =>
     request(`${apiBase}/api/merchant-applications`, { method: 'POST', body: JSON.stringify(body) }),
 
-  guideInfo: () => request<{ name: string; available: boolean }>(`${guideBase}/guide/info`),
+  guideInfo: () => request<{ name: string; available: boolean; tts?: boolean }>(`${guideBase}/guide/info`),
+  /** Sunny 的雲端語音，一次一句 */
+  async tts(text: string): Promise<ArrayBuffer> {
+    const res = await fetch(`${guideBase}/guide/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok) throw new ApiError('語音暫時無法使用')
+    return res.arrayBuffer()
+  },
   scripts: () => request<{ id: string; title: string }[]>(`${guideBase}/guide/scripts`),
   chat: (body: ChatRequest) =>
     request<ChatReply>(`${guideBase}/guide/chat`, { method: 'POST', body: JSON.stringify(body) }),

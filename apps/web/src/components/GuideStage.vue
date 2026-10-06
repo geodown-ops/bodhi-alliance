@@ -82,6 +82,7 @@ onMounted(async () => {
     const info = await api.guideInfo()
     name.value = info.name
     available.value = info.available
+    if (info.tts) voice.useCloud(api.tts)
     scripts.value = await api.scripts()
   } catch {
     available.value = false

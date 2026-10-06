@@ -72,10 +72,13 @@ func TestClaudeRequestShape(t *testing.T) {
 		t.Errorf("output_config = %v", got["output_config"])
 	}
 	system, _ := got["system"].([]any)
-	if len(system) != 3 {
+	if len(system) != 4 {
 		t.Fatalf("system = %v", got["system"])
 	}
-	if kb, _ := system[1].(map[string]any); kb["cache_control"] == nil {
+	if style, _ := system[1].(map[string]any); style["text"] != replyStyle {
+		t.Error("reply style should follow the persona")
+	}
+	if kb, _ := system[2].(map[string]any); kb["cache_control"] == nil {
 		t.Error("knowledge block should carry the cache breakpoint")
 	}
 	if _, has := got["thinking"]; has {
