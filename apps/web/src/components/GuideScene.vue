@@ -179,6 +179,14 @@ defineExpose({
   right: 0;
 }
 /* 黃昏（下午五點到早上六點）：暖色天空、金色緩丘、白色蘆葦 */
+.scene.meadow {
+  background: linear-gradient(180deg, #d9a6b8 0%, #ecc6c8 40%, #c9cdb0 55%, #7d9458 100%);   /* 草原全景圖載入前的粉色晨空 */
+}
+.meadow .sun,
+.meadow .lake,
+.meadow .reeds {
+  display: none;
+}
 .scene.dusk {
   background: linear-gradient(180deg, #9fbfd6 0%, #d9cbbb 38%, #f4d3a6 52%, #c79c63 100%);
 }
