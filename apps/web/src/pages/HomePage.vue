@@ -392,7 +392,7 @@ function again() {
 .home-guide :deep(.stage) {
   min-height: 360px;
 }
-/* 「一即一切／一切即一」放在 Sunny 畫境右下、輸入欄上方，logo 綠的字配上深咖啡光暈，壓在亮處也讀得清楚 */
+/* 「一即一切／一切即一」放在 Sunny 畫境右下、輸入欄上方，白字配上深咖啡光暈，壓在亮處也讀得清楚 */
 .home-title {
   position: absolute;
   z-index: 1;
@@ -402,10 +402,10 @@ function again() {
   text-align: right;
   font-family: var(--wenkai);
   font-weight: 700;
-  font-size: clamp(40px, 5vw, 72px);
+  font-size: clamp(27px, 3.33vw, 48px);
   line-height: 1.3;
   letter-spacing: 0.06em;
-  color: #b8d8a0;   /* logo 綠 */
+  color: #fff;
   text-shadow: 0 0 16px rgba(59, 42, 32, 0.75), 0 2px 4px rgba(59, 42, 32, 0.6);
   pointer-events: none;
 }
@@ -1113,7 +1113,7 @@ textarea:focus {
   }
   .home-title {
     bottom: 84px;
-    font-size: 32px;
+    font-size: 21px;
   }
   .shell {
     padding: 0 22px;

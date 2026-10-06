@@ -5,6 +5,7 @@
 // 提供與 scene.js 相同的介面，avatar.js 依時間挑一個。
 import * as THREE from 'three';
 import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
+import { plantBodhiTree } from './bodhi-tree.js';
 
 const PANORAMA = '/scenes/meadow-dawn.jpg';          // 4K：先載入，很快就有畫面
 const PANORAMA_8K = '/scenes/meadow-dawn-8k.jpg';    // 8K 原圖：顯示卡撐得住時接著換上，景色更清晰
@@ -15,7 +16,10 @@ const VIEW_U = 0.078;        // 畫面中心對著全景圖的哪一個橫向位
 const VIEW_PITCH = 2;        // 鏡頭仰角（度）：頁面把畫面往上挪了一些（setViewOffset），這裡稍微抬頭補回來
 // Sunny 站的位置：河流分岔處偏左的水裡（全景圖座標 u, v）
 const RIVER_SPOT = [0.043, 0.549];
-const CAM_Z = 6.4;           // 遠景鏡頭的位置（和湖景相同）
+const CAM_Z = 6.4;
+// 菩提樹：種在畫面中間、Sunny 右前方河對岸的草地上（全景圖座標 u, v）與地面以上的高度
+const TREE_SPOT = [0.085, 0.528];
+const TREE_HEIGHT = 5;           // 遠景鏡頭的位置（和湖景相同）
 
 const VNOISE = `
   float vhash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -98,6 +102,12 @@ export function buildMeadowScene(scene, camera, renderer) {
     }
   });
 
+  const treeUV = [Number(q.get('treeU')) || TREE_SPOT[0], Number(q.get('treeV')) || TREE_SPOT[1]];
+  const treeAt = groundPoint(treeUV[0], treeUV[1], height).rotateAround(new THREE.Vector2(), -yaw);
+  const tree = plantBodhiTree(scene, {
+    x: treeAt.x, z: CAM_Z + treeAt.y, height: Number(q.get('treeH')) || TREE_HEIGHT, yaw: 0.6, uTime,
+  });
+
   // 腳邊的漣漪：一圈圈往外擴散、慢慢淡出
   const ripple = new THREE.Mesh(
     new THREE.PlaneGeometry(1.4, 1.4),
@@ -138,9 +148,9 @@ export function buildMeadowScene(scene, camera, renderer) {
     addVegetation() {},
     setRipple(x, z) { ripple.position.x = x; ripple.position.z = z; },
     setPushers() {},
-    update() {},
+    update(t, dt) { tree.update(t, dt); },
     resize() {},
     summon() {},
-    dispose() { sky?.material.map?.dispose(); mask.dispose(); },
+    dispose() { sky?.material.map?.dispose(); mask.dispose(); tree.dispose(); },
   };
 }
