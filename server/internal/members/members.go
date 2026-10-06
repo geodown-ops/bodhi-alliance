@@ -26,22 +26,22 @@ type Membership struct {
 }
 
 type Volunteer struct {
-	ID           string       `json:"id"`
-	UserID       string       `json:"user_id"`
-	Email        string       `json:"email"`
-	DisplayName  string       `json:"display_name"`
-	LegalName    string       `json:"legal_name"`
-	Phone        string       `json:"phone"`
-	LineID       string       `json:"line_id"`
-	HomeCenterID string       `json:"home_center_id"`
-	CenterName   string       `json:"center_name"`
-	WantsCoach   bool         `json:"wants_coach"`
-	IsCoach      bool         `json:"is_coach"`
-	Status       string       `json:"status"`
-	ReviewNote   string       `json:"review_note"`
-	VerifiedAt   *time.Time   `json:"verified_at"`
-	Frozen       bool         `json:"frozen"`
-	CreatedAt    time.Time    `json:"created_at"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	Email        string     `json:"email"`
+	DisplayName  string     `json:"display_name"`
+	LegalName    string     `json:"legal_name"`
+	Phone        string     `json:"phone"`
+	LineID       string     `json:"line_id"`
+	HomeCenterID string     `json:"home_center_id"`
+	CenterName   string     `json:"center_name"`
+	WantsCoach   bool       `json:"wants_coach"`
+	IsCoach      bool       `json:"is_coach"`
+	Status       string     `json:"status"`
+	ReviewNote   string     `json:"review_note"`
+	VerifiedAt   *time.Time `json:"verified_at"`
+	Frozen       bool       `json:"frozen"`
+	CreatedAt    time.Time  `json:"created_at"`
 	// 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
 	InGroups            bool         `json:"in_groups"`
 	InAssociation       bool         `json:"in_association"`
