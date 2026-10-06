@@ -1,17 +1,18 @@
 <script setup lang="ts">
-// 正念減壓：八週科技正念減壓課程總覽。內容見 ../mindfulness.ts，法源法師審定編輯。
+// 正念減壓：八堂科技正念減壓課程總覽。內容見 ../mindfulness.ts，法源法師審定編輯。
 import RefList from '../components/RefList.vue'
-import { attitudes, dedication, parts, weeks } from '../mindfulness'
+import LessonBar from '../components/LessonBar.vue'
+import { attitudes, dedication, lessons, parts } from '../mindfulness'
 
-const weekOf = (n: number) => weeks[n - 1]
+const lessonOf = (n: number) => lessons[n - 1]
 
 const flow = [
   { title: '安頓', text: '簽到、入座，用幾分鐘從忙碌裡停下來。' },
   { title: '上座', text: '調身、調息、調心，坐穩、呼吸放慢。' },
-  { title: '本週練習', text: '由減壓教練或志工帶這一週的練習。' },
+  { title: '本堂練習', text: '由減壓教練或志工帶這一堂的練習。' },
   { title: '分享', text: '每個人說說剛才的體會，只說自己的經驗，不評論、不給建議。' },
   { title: '下座收功', text: '出靜、深呼吸，做收功動作再起身。' },
-  { title: '祈願回向', text: '一起念祈願文，約好這一週的生活練習。' },
+  { title: '祈願回向', text: '一起念祈願文，約好這一堂的生活練習。' },
   { title: '登錄活動', text: '活動在 Sunny life 官網登錄後，協助的志工或減壓教練可以得到菩提幣。' },
 ]
 </script>
@@ -20,7 +21,7 @@ const flow = [
   <q-page class="page">
     <h1>正念減壓</h1>
     <p class="lead">
-      正念減壓是用正念的練習，學會與壓力相處。Sunny life 的正念減壓是一套八週的科技正念減壓課程，依佛法的四念處，從身體、感受、心念一路練到覺知無常；覺行小組一起練的，就是這套課程。
+      正念減壓是用正念的練習，學會與壓力相處。Sunny life 的正念減壓是一套八堂的科技正念減壓課程，依佛法的四念處，從身體、感受、心念一路練到覺知無常；覺行小組一起練的，就是這套課程。
     </p>
     <p class="credit">本課程內容由法源法師審定編輯。</p>
 
@@ -44,18 +45,18 @@ const flow = [
       </div>
     </div>
 
-    <h2>八週課程</h2>
-    <p>八週分成四段，每段兩週。每週有一個主題、一套練習，以及每天在生活裡做的小練習。</p>
+    <h2>八堂課程</h2>
+    <p>八堂課分成四段，每段兩堂。每一堂有一個主題、一套練習，以及每天在生活裡做的小練習。</p>
     <div v-for="p in parts" :key="p.name" class="part">
       <div class="part-head">
         <h3 class="q-my-none">{{ p.name }}</h3>
         <span>{{ p.text }}</span>
       </div>
       <div class="grid">
-        <router-link v-for="n in p.weeks" :key="n" :to="`/mindfulness/week/${n}`" class="card week">
-          <div class="status-chip">第 {{ n }} 週</div>
-          <h3 class="q-my-sm">{{ weekOf(n).title }}</h3>
-          <p class="q-mb-none">{{ weekOf(n).summary }}</p>
+        <router-link v-for="n in p.lessons" :key="n" :to="`/mindfulness/lesson/${n}`" class="card lesson">
+          <div class="status-chip">第 {{ n }} 堂</div>
+          <h3 class="q-my-sm">{{ lessonOf(n).title }}</h3>
+          <p class="q-mb-none">{{ lessonOf(n).summary }}</p>
         </router-link>
       </div>
     </div>
@@ -67,7 +68,7 @@ const flow = [
 
     <h2>在覺行小組一起練</h2>
     <p>
-      <router-link to="/groups">覺行小組</router-link>是隨興或定期相約，一起進行正念減壓的小組活動。任何人都可以發起，三個人以上就能進行一次，在中心、在家或線上都可以。可以照著八週的順序一週練一個主題，一次聚會大約一到兩小時：
+      <router-link to="/groups">覺行小組</router-link>是隨興或定期相約，一起進行正念減壓的小組活動。任何人都可以發起，三個人以上就能進行一次，在中心、在家或線上都可以。可以照著八堂課的順序，一次練一堂，一次聚會大約一到兩小時：
     </p>
     <ol class="flow">
       <li v-for="f in flow" :key="f.title">
@@ -91,11 +92,12 @@ const flow = [
     </ul>
 
     <div class="note q-mt-lg">
-      想試試看？從<router-link to="/mindfulness/week/1">第一週</router-link>開始，找一個<router-link to="/groups">覺行小組</router-link>，或先問問<router-link to="/guide">線上問答</router-link>的 Sunny。
+      想試試看？從<router-link to="/mindfulness/lesson/1">第一堂</router-link>開始，找一個<router-link to="/groups">覺行小組</router-link>，或先問問<router-link to="/guide">線上問答</router-link>的 Sunny。
     </div>
 
     <h2>出處</h2>
     <RefList :keys="['kz1982', 'kz1990', 'kz2003', 'goyal2014', 'khoury2015', 'satipatthana', 'anapana']" />
+    <LessonBar />
   </q-page>
 </template>
 
@@ -126,14 +128,14 @@ const flow = [
 .part-head span {
   color: var(--ink-soft);
 }
-.week {
+.lesson {
   display: block;
   color: inherit;
   text-decoration: none;
   transition: border-color 0.15s;
 }
-.week:hover,
-.week:focus-visible {
+.lesson:hover,
+.lesson:focus-visible {
   border-color: var(--leaf);
 }
 .dedication {

@@ -41,10 +41,10 @@ const stages = [
 
 // 四念處與安般念、六妙門、止觀階段的對照
 const foundations = [
-  { name: '身念住', breath: '覺知息長、息短、全身息，安息身行', gate: '數、隨', stage: '念而無念', effect: '紓壓，對治粗心與昏沉散亂', weeks: [1, 2] },
-  { name: '受念住', breath: '覺知喜、覺知樂、覺知心行，安息心行', gate: '止', stage: '入定，初禪、二禪', effect: '心安住', weeks: [3, 4] },
-  { name: '心念住', breath: '覺知心、令心喜悅、令心等持、令心解脫', gate: '觀', stage: '三禪、四禪', effect: '對治細心', weeks: [5, 6] },
-  { name: '法念住', breath: '觀無常、觀離欲、觀滅、觀捨遣', gate: '還、淨', stage: '止觀雙運', effect: '定慧等持，增上智慧', weeks: [7, 8] },
+  { name: '身念住', breath: '覺知息長、息短、全身息，安息身行', gate: '數、隨', stage: '念而無念', effect: '紓壓，對治粗心與昏沉散亂', lessons: [1, 2] },
+  { name: '受念住', breath: '覺知喜、覺知樂、覺知心行，安息心行', gate: '止', stage: '入定，初禪、二禪', effect: '心安住', lessons: [3, 4] },
+  { name: '心念住', breath: '覺知心、令心喜悅、令心等持、令心解脫', gate: '觀', stage: '三禪、四禪', effect: '對治細心', lessons: [5, 6] },
+  { name: '法念住', breath: '觀無常、觀離欲、觀滅、觀捨遣', gate: '還、淨', stage: '止觀雙運', effect: '定慧等持，增上智慧', lessons: [7, 8] },
 ]
 </script>
 
@@ -101,7 +101,7 @@ const foundations = [
 
     <h3>四念處：正念課程的骨架</h3>
     <p>
-      正念課程八週依四念處展開，並對照南傳《清淨道論》的安般念、天台智者大師的六妙門（數、隨、止、觀、還、淨）與止觀階段：
+      正念課程八堂依四念處展開，並對照南傳《清淨道論》的安般念、天台智者大師的六妙門（數、隨、止、觀、還、淨）與止觀階段：
     </p>
     <div class="steps four">
       <div v-for="f in foundations" :key="f.name" class="card">
@@ -110,7 +110,7 @@ const foundations = [
         <p class="q-mb-xs">{{ f.breath }}</p>
         <p class="q-mb-xs small">止觀：{{ f.stage }}　效果：{{ f.effect }}</p>
         <p class="q-mb-none small">
-          <router-link v-for="n in f.weeks" :key="n" :to="`/mindfulness/week/${n}`" class="wk">第 {{ n }} 週</router-link>
+          <router-link v-for="n in f.lessons" :key="n" :to="`/mindfulness/lesson/${n}`" class="wk">第 {{ n }} 堂</router-link>
         </p>
       </div>
     </div>

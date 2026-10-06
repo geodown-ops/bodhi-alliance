@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // 上座與下座：依法源法師〈止觀禪修上下坐引導〉整理
+import LessonBar from '../components/LessonBar.vue'
 import { sitting } from '../mindfulness'
 </script>
 
 <template>
   <q-page class="page">
-    <router-link to="/mindfulness" class="back">← 正念減壓八週課程</router-link>
+    <router-link to="/mindfulness" class="back">← 正念減壓八堂課程</router-link>
     <h1 class="q-mt-md">上座與下座</h1>
     <p class="lead">
       靜坐開始時調身、調息、調心，坐中保持住；結束時倒過來，調心、調息、調身，做完收功動作才起身。
@@ -45,6 +46,7 @@ import { sitting } from '../mindfulness'
       身體有舊傷或不適，動作做到舒服的程度就好，不需要勉強。
     </div>
     <p class="small q-mt-lg">本頁依法源法師的上下座引導整理，法源法師審定編輯。</p>
+    <LessonBar />
   </q-page>
 </template>
 

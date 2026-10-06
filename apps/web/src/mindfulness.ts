@@ -1,4 +1,4 @@
-// 科技正念減壓八週課程。內容整理自佛教雲端大學《正念減壓課程》2022／2023 年版講義，法源法師審定編輯。
+// 科技正念減壓八堂課程。內容整理自佛教雲端大學《正念減壓課程》2022／2023 年版講義，法源法師審定編輯。
 // 圖表改寫成文字；科學與健康說法附出處（refs 對應 references 的 key）。
 
 export interface Ref {
@@ -159,7 +159,7 @@ export interface Section {
   refs?: string[]
 }
 
-export interface Week {
+export interface Lesson {
   n: number
   part: '身念住' | '受念住' | '心念住' | '法念住'
   title: string
@@ -170,13 +170,13 @@ export interface Week {
 }
 
 export const parts = [
-  { name: '身念住', text: '從身體與呼吸開始，讓心安定下來。', weeks: [1, 2] },
-  { name: '受念住', text: '看清苦、樂、不苦不樂三種感受。', weeks: [3, 4] },
-  { name: '心念住', text: '認識情緒與性格，學會調節。', weeks: [5, 6] },
-  { name: '法念住', text: '覺知無常，與自己、他人、人生和解。', weeks: [7, 8] },
+  { name: '身念住', text: '從身體與呼吸開始，讓心安定下來。', lessons: [1, 2] },
+  { name: '受念住', text: '看清苦、樂、不苦不樂三種感受。', lessons: [3, 4] },
+  { name: '心念住', text: '認識情緒與性格，學會調節。', lessons: [5, 6] },
+  { name: '法念住', text: '覺知無常，與自己、他人、人生和解。', lessons: [7, 8] },
 ]
 
-export const weeks: Week[] = [
+export const lessons: Lesson[] = [
   {
     n: 1,
     part: '身念住',
@@ -231,7 +231,7 @@ export const weeks: Week[] = [
     sections: [
       {
         title: '安般念',
-        paras: ['安般念（Ānāpāna，安那般那念）就是念出入息：清楚地觀察、覺知自己的呼吸。這週練腹式呼吸，以及數息和隨息。'],
+        paras: ['安般念（Ānāpāna，安那般那念）就是念出入息：清楚地觀察、覺知自己的呼吸。這堂課練腹式呼吸，以及數息和隨息。'],
         refs: ['anapana'],
       },
       {
@@ -334,7 +334,7 @@ export const weeks: Week[] = [
     ],
     steps: [
       '用七支坐法坐好，做幾次腹式呼吸。',
-      '先數息、再隨息，延續上週的身體受念與心理受念。',
+      '先數息、再隨息，延續上一堂的身體受念與心理受念。',
       '起身經行十分鐘：一步一步，覺知提起、往前、放下、著地。',
       '完整的上座與下座方法，請看「上座與下座」。',
     ],
