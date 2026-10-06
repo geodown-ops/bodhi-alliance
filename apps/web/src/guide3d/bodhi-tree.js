@@ -7,6 +7,38 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const BASE = '/models/bodhi-tree/';
 const MODEL_HEIGHT = 36;     // 模型地面以上的高度（模型單位）
 const FALLING = 70;          // 同時飄落的葉子數
+const LIFT = 0.9;            // 樹枝往上抬：離樹幹每 1 單位，抬高 0.9 單位（原模型的枝條較平展、下垂）
+
+/** 把（量化過的）模型轉回一般座標，並讓樹枝往上伸展；回傳抬高後的樹高 */
+function raiseBranches(mesh) {
+  const g = mesh.geometry, src = g.attributes.position, n = src.count;
+  const pos = new Float32Array(n * 3), v = new THREE.Vector3();
+  mesh.updateMatrix();
+  let top = 0;
+  for (let i = 0; i < n; i++) {
+    v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrix);
+    if (v.y > 0) {
+      const r = Math.hypot(v.x, v.z);
+      const t = THREE.MathUtils.smoothstep(v.y, 2, 9);   // 樹幹下段和樹根不動
+      v.y += LIFT * r * t;
+      v.x *= 1 - 0.15 * t;   // 樹冠稍微收窄，枝條更直立
+      v.z *= 1 - 0.15 * t;
+    }
+    pos.set([v.x, v.y, v.z], i * 3);
+    top = Math.max(top, v.y);
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const uv = g.attributes.uv, uvs = new Float32Array(n * 2);
+  for (let i = 0; i < n; i++) { uvs[i * 2] = uv.getX(i); uvs[i * 2 + 1] = uv.getY(i); }
+  out.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  out.setIndex(g.index);
+  out.computeVertexNormals();
+  g.dispose();
+  mesh.geometry = out;
+  mesh.position.set(0, 0, 0); mesh.quaternion.identity(); mesh.scale.set(1, 1, 1);
+  return top;
+}
 
 const WIND = `
   uniform float uTime;
@@ -24,10 +56,10 @@ const WIND = `
     return p + d;
   }`;
 
-function addWind(material, uTime, flutter) {
+function addWind(material, uTime, flutter, treeH) {
   material.onBeforeCompile = shader => {
     shader.uniforms.uTime = uTime;
-    shader.uniforms.uTreeH = { value: MODEL_HEIGHT };
+    shader.uniforms.uTreeH = treeH;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\n' + WIND)
       .replace('#include <begin_vertex>', `vec3 transformed = windSway(position, ${flutter.toFixed(1)});`);
@@ -54,19 +86,25 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
 
   const barkMat = new THREE.MeshStandardMaterial({ map: bark, color: '#cdbfb2', roughness: 0.95 });
   const leafMat = new THREE.MeshStandardMaterial({ map: leaf, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75, color: '#f0f8e4', emissive: '#203018' });
-  addWind(barkMat, uTime, 0);
-  addWind(leafMat, uTime, 1);
+  const treeH = { value: MODEL_HEIGHT };   // 風擺的高度基準：載入後改成抬高後的樹高
+  addWind(barkMat, uTime, 0, treeH);
+  addWind(leafMat, uTime, 1, treeH);
 
   const tree = new THREE.Group();
   tree.scale.setScalar(s);
   group.add(tree);
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   loader.load(BASE + 'bodhi-tree.glb', gltf => {
+    let top = 0;
     gltf.scene.traverse(o => {
       if (!o.isMesh) return;
+      top = Math.max(top, raiseBranches(o));
       o.material = o.name === 'leaves' ? leafMat : barkMat;
       o.frustumCulled = false;   // 隨風擺動後的範圍超出原本的包圍盒
     });
+    // 樹枝抬高後整棵樹變高，縮回指定的高度
+    treeH.value = top;
+    tree.scale.setScalar(height / top);
     tree.add(gltf.scene);
   });
 
@@ -76,7 +114,7 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
   const fall = new THREE.InstancedMesh(new THREE.PlaneGeometry(leafSize * 0.67, leafSize), fallMat, FALLING);
   fall.frustumCulled = false;
   group.add(fall);
-  const crownR = 12 * s, crownLow = 14 * s, crownHigh = 32 * s;
+  const crownR = 9 * s, crownLow = height * 0.45, crownHigh = height * 0.9;
   const leaves = Array.from({ length: FALLING }, () => spawn({}, true));
   function spawn(l, anywhere) {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * crownR;
