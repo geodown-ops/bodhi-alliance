@@ -51,17 +51,16 @@ async function submit() {
 <template>
   <q-page class="page">
     <h1>覺行小組介紹及參加</h1>
-    <!-- 小組介紹文字待協會提供定稿 -->
-    <p class="lead">覺行小組是在各中心與線上定期共修的小組。大家一起靜坐、讀經、分享，也一起在中心的活動中服務。</p>
+    <p class="lead">覺行小組是隨興或定期相約，一起進行正念減壓的小組活動。任何人都可以發起，只要三人以上，就能進行一次正念減壓實作。</p>
     <p>
-      參加小組不需要任何經驗。成為志工或禪修教練後，在中心活動中的服務會依梯級表核發
-      <router-link to="/coin">菩提幣</router-link>。想先了解共修在做什麼，可以問問
+      活動在菩提幣網站登錄後，協助的志工或減壓教練就可以得到
+      <router-link to="/coin">菩提幣</router-link>。參加不需要任何經驗；想先了解正念減壓在做什麼，可以問問
       <router-link to="/guide">線上問答</router-link>。
     </p>
 
     <div class="note q-mb-md">
-      想在中心服務、領取菩提幣？先<router-link to="/join">註冊志工</router-link>，登入後可以直接在「<router-link to="/me">我的志工資料</router-link>」加入小組。
-      只想參加共修，用下面的表單報名就好。
+      想擔任志工或減壓教練、領取菩提幣？先<router-link to="/join">註冊志工</router-link>，登入後可以直接在「<router-link to="/me">我的志工資料</router-link>」加入小組。
+      活動登錄與菩提幣核發還在籌備，開放後會在這裡公告。只想參加，用下面的表單報名就好。
     </div>
 
     <h2>找一個小組</h2>
@@ -100,7 +99,7 @@ async function submit() {
       <q-input v-model="form.email" type="email" label="電子郵件 *" outlined :rules="[(v) => /.+@.+\..+/.test(v) || '請填寫正確的電子郵件']" />
       <q-input v-model="form.phone" label="聯絡電話" outlined />
       <q-input v-model="form.region" label="所在地區" outlined />
-      <q-checkbox v-model="form.wants_coach" label="我有帶領禪修的經驗，想擔任禪修教練" />
+      <q-checkbox v-model="form.wants_coach" label="我有帶領正念減壓的經驗，想擔任減壓教練" />
       <q-input v-model="form.message" type="textarea" label="想說的話" outlined autogrow />
       <input v-model="form.website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
