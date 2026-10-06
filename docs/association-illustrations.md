@@ -23,6 +23,7 @@ soft watercolor and gouache illustration, gentle morning light, generous negativ
 | `responsibility.webp` | 協會起源：社會責任 | 第 16–19 頁 綠色大地與風車、善企業 | `--ar 4:3` |
 | `temple.webp` | 寺廟教育文創 | 第 32 頁 樹屋、禪修小屋、頌缽、靜坐 | `--ar 16:7` |
 | `closing.webp` | 會員招募後的結尾 | 第 36 頁 大樹 | `--ar 16:7` |
+| `wash.webp` | 標題後面的淡彩底 | （只用共用風格產生的抽象水彩） | 任意 |
 
 ### hero.webp
 
