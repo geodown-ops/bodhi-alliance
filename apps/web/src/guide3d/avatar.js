@@ -137,6 +137,35 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
 
   // 捲到頁面下方、看不到場景時暫停繪製
   let onScreen = true;
+  // 草原場景：按住滑鼠左鍵（或手指橫向拖曳）旋轉鏡頭環看四周，放開幾秒後慢慢轉回原本的構圖
+  const look = { yaw: 0, pitch: 0, dragging: false, lastX: 0, lastY: 0, idle: 0 };
+  const onDown = e => {
+    if (e.button !== 0) return;
+    look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing';
+  };
+  const onMove = e => {
+    if (!look.dragging) return;
+    const k = Math.PI / canvas.clientWidth;   // 拖過整個畫面寬度約轉 180°
+    look.yaw += (e.clientX - look.lastX) * k;
+    look.pitch = THREE.MathUtils.clamp(look.pitch + (e.clientY - look.lastY) * k, -0.6, 0.6);
+    look.lastX = e.clientX; look.lastY = e.clientY; look.idle = 0;
+  };
+  const onUp = e => {
+    if (!look.dragging) return;
+    look.dragging = false; canvas.style.cursor = 'grab';
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  };
+  if (env.wide) {
+    canvas.style.cursor = 'grab';
+    canvas.style.touchAction = 'pan-y';   // 直向滑動仍然捲動頁面，橫向拖曳才轉鏡頭
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+  }
+  const lookDir = new THREE.Vector3(), lookRight = new THREE.Vector3();
+
   const visibleObs = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; });
   visibleObs.observe(canvas);
 
@@ -247,6 +276,16 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     camPos.x += Math.sin(t * 0.15) * (env.wide ? 0.03 : 0.15) * (1 - shot * 0.8) * m;   // 草原場景晃動小一點，全景圖才不會變形
     camLook.lerpVectors(wideLook, closeLook, shot);
     camera.position.lerp(camPos, Math.min(1, dt * 3));
+    if (env.wide) {
+      if (!look.dragging && (look.idle += dt) > 3) {   // 放開 3 秒後慢慢轉回來（走最短的方向）
+        look.yaw = Math.atan2(Math.sin(look.yaw), Math.cos(look.yaw));
+        look.yaw = ease(look.yaw, 0, 1.2, dt); look.pitch = ease(look.pitch, 0, 1.2, dt);
+      }
+      lookDir.subVectors(camLook, camera.position);
+      lookRight.crossVectors(lookDir, camera.up).normalize();
+      lookDir.applyAxisAngle(lookRight, look.pitch).applyAxisAngle(camera.up, look.yaw);
+      camLook.copy(camera.position).add(lookDir);
+    }
     camera.lookAt(camLook);
     if (env.wideHFov) {   // 草原場景：遠景放寬視角，構圖和全景圖網站上一樣；回答時用望遠拉近
       const wideV = THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(env.wideHFov / 2)) / camera.aspect)), 35, 60);
@@ -280,6 +319,10 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     dispose() {
       renderer.setAnimationLoop(null);
       resizeObs.disconnect();
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
       visibleObs.disconnect();
       VRMUtils.deepDispose(vrm.scene);
       cup.dispose();
