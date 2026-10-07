@@ -8,7 +8,7 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 const MODEL = '/models/deer/deer.glb';   // 模型面向 +z，單位是公尺（含鹿角高 1.7）
 const STRIDE = 1.25;      // 一個完整步態週期前進的距離（公尺，未縮放）
-const SPEED = 0.55;       // 走路速度（公尺／秒，未縮放）
+const SPEED = 0.75;       // 走路速度（公尺／秒，未縮放）
 const TURN = 1.6;         // 轉身速度（弧度／秒）
 
 // 骨頭名稱（Meshy SmartRig）：腿由上到下
@@ -29,9 +29,12 @@ const rand = (a, b) => a + Math.random() * (b - a);
  * 在場景裡放 count 隻鹿。
  * walkable(x, z)：這個地面位置能不能走（草地、不在河裡、不撞到東西）
  * pick()：隨機挑一個可以走去的地面位置 { x, z }
+ * spawn(i)：第 i 隻鹿出現的位置（沒給就用 pick）；出現後很快就開始走
+ * roam：每次走多遠（[最近, 最遠]，場景單位）
+ * waterAt(x, z)：這裡有沒有水（0～1）；走進河裡時身體往下沉 wade，像涉水
  * 回傳 { update(t, dt), dispose() }
  */
-export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick }) {
+export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spawn, roam = [1, 7], waterAt, wade = 0 }) {
   const herd = [];
   const shadowMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
@@ -74,7 +77,7 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick }) {
       shadow.position.y = 0.012;
       shadow.scale.setScalar(s);
       group.add(shadow);
-      const start = pick() ?? { x: 0, z: 0 };
+      const start = spawn?.(i) ?? pick() ?? { x: 0, z: 0 };
       group.position.set(start.x, 0, start.z);
       const heading = rand(0, Math.PI * 2);
       group.rotation.y = heading;
@@ -83,7 +86,8 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick }) {
       model.traverse(o => { if (o.isBone) bones[o.name] = o; });
       const deer = {
         group, model, bones, s, heading,
-        state: 'graze', timer: rand(1, 6),   // 一開始先低頭吃草，錯開出發時間
+        state: 'graze', timer: spawn ? rand(0.3, 2) : rand(1, 6),   // 一開始先低頭吃草，錯開出發時間
+        wet: 0, shadow,
         target: null, phase: Math.random(), walk: 0, graze: 1, look: 0, lookYaw: 0, tail: 0, tailT: rand(2, 6),
         seed: Math.random() * 100,
       };
@@ -120,7 +124,7 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick }) {
       const p = pick();
       if (!p) continue;
       const d = Math.hypot(p.x - x, p.z - z);
-      if (d > 1 && d < 7 && clearPath(x, z, p.x, p.z, deer)) return p;
+      if (d > roam[0] && d < roam[1] && clearPath(x, z, p.x, p.z, deer)) return p;
     }
     return null;
   }
@@ -159,6 +163,12 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick }) {
           }
         }
         g.rotation.y = deer.heading;
+        // 涉水：走進河裡時慢慢沉下去，水面蓋住小腿；水裡不畫地上的影子
+        if (waterAt) {
+          deer.wet = ease(deer.wet, waterAt(g.position.x, g.position.z) > 0.3 ? 1 : 0, 3, step);
+          g.position.y = -wade * deer.wet;
+          deer.shadow.visible = deer.wet < 0.5;
+        }
 
         // 動作的權重慢慢過渡，切換狀態時不會突然跳動
         deer.walk = ease(deer.walk, deer.state === 'walk' ? Math.max(moving, 0.35) : 0, 6, step);

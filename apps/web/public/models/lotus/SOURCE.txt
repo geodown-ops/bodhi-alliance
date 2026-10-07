@@ -1,0 +1,2 @@
+蓮花模型：Geodown 用自己的 Meshy 帳號生成（Lotus Flower、Lotus seed pod、Lotus Serenity，皆為靜態模型）。
+處理：gltf-transform optimize（減面、貼圖 512 webp、meshopt 壓縮）：蓮花 94MB → 580KB、蓮蓬 52MB → 130KB、睡蓮 6MB → 140KB。

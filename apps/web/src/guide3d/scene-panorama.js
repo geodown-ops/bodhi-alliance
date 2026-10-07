@@ -36,7 +36,7 @@ const css = c => Array.isArray(c) ? new THREE.Color().setRGB(...c) : new THREE.C
  *   glint       水面反光的顏色（[r, g, b]）
  *   sunDir, sun: [顏色, 強度], hemi: [天色, 地色, 強度], fill: 正面補光強度
  *   ripple      腳邊漣漪的顏色（[r, g, b]）
- *   extras(ctx) 額外的物件（例如菩提樹、鹿）：ctx = { scene, uTime, height, at(u, v), riverAt(x, z), standAt, camZ, q }，
+ *   extras(ctx) 額外的物件（例如菩提樹、鹿）：ctx = { scene, uTime, height, at(u, v), riverAt(x, z), riverReady, standAt, camZ, q }，
  *               回傳 { update(t, dt), dispose() }
  */
 export function buildPanoramaScene(scene, camera, renderer, cfg) {
@@ -65,13 +65,15 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
   let sky = null;
   const loader = new THREE.TextureLoader();
   // 河道遮罩同時讀成像素資料，讓鹿之類會走動的東西知道哪裡是河
-  let riverData = null;
+  let riverData = null, riverLoaded;
+  const riverReady = new Promise(r => { riverLoaded = r; });
   const mask = loader.load(cfg.riverMask, tex => {
     const img = tex.image, c = document.createElement('canvas');
     c.width = img.width; c.height = img.height;
     const g = c.getContext('2d', { willReadFrequently: true });
     g.drawImage(img, 0, 0);
     riverData = { w: c.width, h: c.height, px: g.getImageData(0, 0, c.width, c.height).data };
+    riverLoaded();
   });
   /** 場景裡的地面位置 → 河道遮罩的值（0 = 陸地，1 = 河）；遮罩還沒載入時一律當成河 */
   const riverAt = (x, z) => {
@@ -130,7 +132,7 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
     }
   });
 
-  const extras = cfg.extras?.({ scene, uTime, height, at, riverAt, standAt, camZ: CAM_Z, q });
+  const extras = cfg.extras?.({ scene, uTime, height, at, riverAt, riverReady, standAt, camZ: CAM_Z, q });
 
   // 腳邊的漣漪：一圈圈往外擴散、慢慢淡出
   const ripple = new THREE.Mesh(
