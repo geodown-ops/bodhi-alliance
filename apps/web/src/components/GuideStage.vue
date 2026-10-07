@@ -168,7 +168,7 @@ const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次�
 
 <template>
   <div class="stage">
-    <GuideScene ref="scene" :state="sceneState" />
+    <GuideScene ref="scene" :state="sceneState" :page="compact ? 'home' : 'guide'" />
     <button
       v-if="voice.supported"
       type="button"

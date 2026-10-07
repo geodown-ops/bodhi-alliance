@@ -1,19 +1,19 @@
 <script setup lang="ts">
 // 組長所在的畫境：解說員的 3D 湖景與 VRM 人物（three.js）。
-// 早上六點到下午五點是藍天白雲、清澈湖水、綠色蘆葦，其餘時間是黃昏、金色緩丘、白色蘆葦。
+// 場景依時間切換（見 sceneTime.ts）：首頁是晨霧草原／黃昏湖景，線上問答頁是松林雪山／晨霧草原。
 // 下面的 CSS／SVG 插畫是底圖：模型載入前、或瀏覽器不支援 WebGL 時看到的就是它。
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Avatar } from '../guide3d/avatar.js'
-import { sceneTime } from '../sceneTime'
+import { sceneTime, type ScenePage } from '../sceneTime'
 
-defineProps<{ state: 'idle' | 'listening' | 'speaking' }>()
+const props = defineProps<{ state: 'idle' | 'listening' | 'speaking'; page?: ScenePage }>()
 
 const canvas = ref<HTMLCanvasElement>()
 const progress = ref(0)
 const phase = ref<'loading' | 'ready' | 'fallback'>('loading')
 let avatar: Avatar | null = null
 let gone = false
-const time = sceneTime()
+const time = sceneTime(props.page)
 
 onMounted(async () => {
   try {
