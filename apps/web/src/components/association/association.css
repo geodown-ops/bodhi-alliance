@@ -5,32 +5,32 @@ body:has(.assoc) {
 .assoc h1,
 .assoc h2,
 .assoc h3 {
-  color: #a02a27;
+  color: #ba5854;
 }
 .assoc .join-btn {
-  background: #a02a27 !important;
+  background: #ba5854 !important;
   color: #f3e6c8 !important;
 }
 .assoc {
-  color: #a02a27;
-  --ink: #a02a27;
-  --ink-soft: #a02a27;
-  --ink-faint: #a02a27;
+  color: #ba5854;
+  --ink: #ba5854;
+  --ink-soft: #ba5854;
+  --ink-faint: #ba5854;
   --ground: #f3e6c8;
   --ground-raised: #f1d9d4;
   --ground-sunk: #dfe9d8;
   --rule: #f1d9d4;
-  --weba: #a02a27;
+  --weba: #ba5854;
   --weba-soft: #f1d9d4;
-  --sky: #a02a27;
+  --sky: #ba5854;
   --sky-soft: #dfe9d8;
-  --sage: #a02a27;
+  --sage: #ba5854;
   --sage-soft: #dfe9d8;
-  --gold: #a02a27;
+  --gold: #ba5854;
   --gold-soft: #f3e6c8;
-  --plum: #a02a27;
+  --plum: #ba5854;
   --plum-soft: #f1d9d4;
-  --night: #a02a27;
+  --night: #ba5854;
 }
 
 /* 章節橫幅 */
@@ -39,11 +39,11 @@ body:has(.assoc) {
   padding: 28px 24px;
   border-radius: 16px;
   color: #f3e6c8;
-  background: linear-gradient(120deg, #a02a27, var(--sky) 60%, #a02a27);
+  background: linear-gradient(120deg, #ba5854, var(--sky) 60%, #ba5854);
   scroll-margin-top: 72px;
 }
 .assoc .chapter.members {
-  background: linear-gradient(120deg, #a02a27, var(--sage) 60%, #a02a27);
+  background: linear-gradient(120deg, #ba5854, var(--sage) 60%, #ba5854);
 }
 .assoc .chapter .kicker {
   margin: 0;
@@ -101,11 +101,11 @@ body:has(.assoc) {
 .assoc .figure.dark {
   background: #dfe9d8;
   border-color: #dfe9d8;
-  color: #a02a27;
+  color: #ba5854;
 }
 .assoc .figure.dark p,
 .assoc .figure.dark li {
-  color: #a02a27;
+  color: #ba5854;
 }
 
 /* 引言卡 */
@@ -151,7 +151,7 @@ body:has(.assoc) {
   padding: 2px 10px;
   border-radius: 999px;
   background: #f3e6c8;
-  color: #a02a27;
+  color: #ba5854;
   font-size: 0.85rem;
 }
 .assoc .aim-link p {

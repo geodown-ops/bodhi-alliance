@@ -47,7 +47,7 @@ const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavio
   width: 104px;
   height: 104px;
   border-radius: 50%;
-  box-shadow: 0 8px 22px rgba(160, 42, 39, 0.25);
+  box-shadow: 0 8px 22px rgba(186, 88, 84, 0.25);
 }
 .toc {
   display: flex;

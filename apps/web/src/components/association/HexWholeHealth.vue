@@ -46,15 +46,15 @@ const head = (q: (typeof axes)[number]) => {
 <template>
   <svg viewBox="0 0 440 340" class="hex" role="img" aria-label="全人健康：環境、理智、感情、社會、身體、精神六個面向">
     <g v-for="q in axes" :key="q.name">
-      <line :x1="cx" :y1="cy" :x2="q.x2" :y2="q.y2" stroke="#a02a27" stroke-width="2" />
-      <polygon :points="head(q)" fill="#a02a27" />
+      <line :x1="cx" :y1="cy" :x2="q.x2" :y2="q.y2" stroke="#ba5854" stroke-width="2" />
+      <polygon :points="head(q)" fill="#ba5854" />
       <text :x="q.lx" :y="q.ly" text-anchor="middle" class="axis">{{ q.name }}</text>
     </g>
     <g v-for="f in facets" :key="f.name">
       <polygon :points="hex(f.x, f.y)" fill="#f3e6c8" stroke="#f3e6c8" stroke-width="1.5" />
       <text :x="f.x" :y="f.y + 6" text-anchor="middle" class="facet">{{ f.name }}</text>
     </g>
-    <polygon :points="hex(cx, cy)" fill="#f1d9d4" stroke="#a02a27" stroke-width="2" />
+    <polygon :points="hex(cx, cy)" fill="#f1d9d4" stroke="#ba5854" stroke-width="2" />
     <text :x="cx" :y="cy - 4" text-anchor="middle" class="core">全人</text>
     <text :x="cx" :y="cy + 20" text-anchor="middle" class="core">健康</text>
   </svg>
@@ -70,15 +70,15 @@ const head = (q: (typeof axes)[number]) => {
 .axis {
   font-size: 15px;
   font-weight: 700;
-  fill: #a02a27;
+  fill: #ba5854;
 }
 .facet {
   font-size: 16px;
-  fill: #a02a27;
+  fill: #ba5854;
 }
 .core {
   font-size: 18px;
   font-weight: 700;
-  fill: #a02a27;
+  fill: #ba5854;
 }
 </style>

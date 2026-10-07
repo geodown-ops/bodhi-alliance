@@ -22,7 +22,7 @@ const dash = `${(c * props.value) / 100} ${c}`
       :stroke-dasharray="dash"
       transform="rotate(-90 64 64)"
     />
-    <text x="64" y="74" text-anchor="middle" class="value" fill="#a02a27">
+    <text x="64" y="74" text-anchor="middle" class="value" fill="#ba5854">
       {{ value }}<tspan class="pct">%</tspan>
     </text>
   </svg>

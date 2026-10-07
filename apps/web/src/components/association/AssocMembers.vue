@@ -42,7 +42,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
 .member {
   padding: 22px 20px;
   border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(160, 42, 39, 0.16);
+  box-shadow: 0 10px 24px rgba(186, 88, 84, 0.16);
 }
 .member.light {
   background: #dfe9d8;
@@ -51,21 +51,21 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
   background: #f3e6c8;
 }
 .member.deep {
-  background: #a02a27;
+  background: #ba5854;
 }
 .role {
   margin: 0 0 10px;
   font-family: var(--wenkai);
   font-size: 1.5rem !important;
   font-weight: 700;
-  color: #a02a27 !important;
+  color: #ba5854 !important;
 }
 .member.deep .role {
   color: #f3e6c8 !important;
 }
 .text {
   margin: 0;
-  color: #a02a27 !important;
+  color: #ba5854 !important;
 }
 .member.deep .text {
   color: #f3e6c8 !important;

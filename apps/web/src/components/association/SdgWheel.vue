@@ -3,20 +3,20 @@
 const props = defineProps<{ label: string; goals: number[] }>()
 
 const sdg: Record<number, { name: string; color: string }> = {
-  1: { name: '消除貧窮', color: '#a02a27' },
-  2: { name: '消除飢餓', color: '#a02a27' },
-  3: { name: '健康與福祉', color: '#a02a27' },
-  4: { name: '教育品質', color: '#a02a27' },
-  5: { name: '性別平等', color: '#a02a27' },
-  6: { name: '淨水與衛生', color: '#a02a27' },
-  7: { name: '可負擔能源', color: '#a02a27' },
-  8: { name: '就業與經濟成長', color: '#a02a27' },
-  9: { name: '工業、創新基礎建設', color: '#a02a27' },
-  11: { name: '永續城市', color: '#a02a27' },
-  12: { name: '責任消費與生產', color: '#a02a27' },
-  13: { name: '氣候行動', color: '#a02a27' },
-  15: { name: '陸地生態', color: '#a02a27' },
-  16: { name: '和平與正義制度', color: '#a02a27' },
+  1: { name: '消除貧窮', color: '#ba5854' },
+  2: { name: '消除飢餓', color: '#ba5854' },
+  3: { name: '健康與福祉', color: '#ba5854' },
+  4: { name: '教育品質', color: '#ba5854' },
+  5: { name: '性別平等', color: '#ba5854' },
+  6: { name: '淨水與衛生', color: '#ba5854' },
+  7: { name: '可負擔能源', color: '#ba5854' },
+  8: { name: '就業與經濟成長', color: '#ba5854' },
+  9: { name: '工業、創新基礎建設', color: '#ba5854' },
+  11: { name: '永續城市', color: '#ba5854' },
+  12: { name: '責任消費與生產', color: '#ba5854' },
+  13: { name: '氣候行動', color: '#ba5854' },
+  15: { name: '陸地生態', color: '#ba5854' },
+  16: { name: '和平與正義制度', color: '#ba5854' },
 }
 
 const R = 120
@@ -78,7 +78,7 @@ const segments = props.goals.map((g, i) => {
 .label {
   font-size: 22px;
   font-weight: 700;
-  fill: #a02a27;
+  fill: #ba5854;
 }
 figcaption {
   display: flex;

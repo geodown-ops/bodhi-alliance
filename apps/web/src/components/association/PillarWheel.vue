@@ -9,12 +9,12 @@ const sectors = [
 
 <template>
   <svg viewBox="0 0 300 300" class="wheel" role="img" aria-label="協會三主軸：慈悲關懷、智慧無礙、善巧方便">
-    <path v-for="s in sectors" :key="s.name" :d="s.d" :fill="s.fill" stroke="#a02a27" stroke-width="3" />
+    <path v-for="s in sectors" :key="s.name" :d="s.d" :fill="s.fill" stroke="#ba5854" stroke-width="3" />
     <g v-for="s in sectors" :key="`t-${s.name}`" text-anchor="middle">
       <text :x="s.x" :y="s.y - 18" class="no">{{ s.no }}</text>
       <text :x="s.x" :y="s.y + 6" class="name">{{ s.name }}</text>
     </g>
-    <circle cx="150" cy="150" r="47" fill="#f3e6c8" stroke="#a02a27" stroke-width="3" />
+    <circle cx="150" cy="150" r="47" fill="#f3e6c8" stroke="#ba5854" stroke-width="3" />
     <image href="/images/association/logo.webp" x="108" y="108" width="84" height="84" />
   </svg>
 </template>
@@ -29,13 +29,13 @@ const sectors = [
 }
 .no {
   font-size: 13px;
-  fill: #a02a27;
+  fill: #ba5854;
   font-weight: 700;
 }
 .name {
   font-size: 19px;
   font-weight: 600;
-  fill: #a02a27;
+  fill: #ba5854;
   letter-spacing: 1px;
 }
 </style>

@@ -31,11 +31,11 @@ const audiences = [
 const csrDims = ['公司治理', '員工、供應鏈、顧客', '環境績效', '社會關懷']
 const csrAll = [66.1, 85.5, 67.4, 76.5]
 const industries = [
-  { name: '電信業', score: 85.8, dims: [72.6, 89.8, 89.7, 91.0], color: '#a02a27' },
-  { name: '金融保險業', score: 73.5, dims: [67.3, 86.9, 63.1, 81.3], color: '#a02a27' },
-  { name: '電子科技業', score: 73.1, dims: [65.7, 91.7, 67.6, 71.3], color: '#a02a27' },
-  { name: '傳統產業', score: 70.5, dims: [65.2, 79.8, 67.7, 71.3], color: '#a02a27' },
-  { name: '服務業', score: 70.4, dims: [62.4, 84.8, 63.2, 75.2], color: '#a02a27' },
+  { name: '電信業', score: 85.8, dims: [72.6, 89.8, 89.7, 91.0], color: '#ba5854' },
+  { name: '金融保險業', score: 73.5, dims: [67.3, 86.9, 63.1, 81.3], color: '#ba5854' },
+  { name: '電子科技業', score: 73.1, dims: [65.7, 91.7, 67.6, 71.3], color: '#ba5854' },
+  { name: '傳統產業', score: 70.5, dims: [65.2, 79.8, 67.7, 71.3], color: '#ba5854' },
+  { name: '服務業', score: 70.4, dims: [62.4, 84.8, 63.2, 75.2], color: '#ba5854' },
 ]
 
 const issues = [
@@ -95,18 +95,18 @@ const dharma = [
   <div class="figure dark">
     <div class="stats3">
       <div class="stat">
-        <PeopleIcons :total="3" :filled="1" color="#a02a27" />
+        <PeopleIcons :total="3" :filled="1" color="#ba5854" />
         <p class="big teal">三分之一</p>
         <p>Z 世代感覺大部分的時間都處於<b class="gold">壓力</b>和<b class="gold">孤獨</b>狀況</p>
       </div>
       <div class="stat">
-        <PeopleIcons :total="4" :filled="3" color="#a02a27" />
+        <PeopleIcons :total="4" :filled="3" color="#ba5854" />
         <p class="big teal">四分之三</p>
         <p>Z 世代屬於<b class="gold">無宗教信仰</b>傾向</p>
         <p class="small">但只有 <b class="coral">16%</b> 面對無助時，會尋求<b class="gold">信仰</b>的<b class="gold">求助</b></p>
       </div>
       <div class="stat">
-        <RingStat :value="52" color="#a02a27" />
+        <RingStat :value="52" color="#ba5854" />
         <p>Z 世代幾乎<b class="gold">不信任</b>宗教組織</p>
       </div>
     </div>
@@ -137,15 +137,15 @@ const dharma = [
   <div class="figure warm">
     <div class="stats3">
       <div class="stat">
-        <RingStat :value="68" color="#a02a27" />
+        <RingStat :value="68" color="#ba5854" />
         <p><b class="red">Z 世代</b>認為<b>壓力</b>是他們<b>幸福的障礙</b>，相對於 2021 年 65% 比例<b class="red">成長了 3%</b></p>
       </div>
       <div class="stat">
-        <RingStat :value="48" color="#a02a27" />
+        <RingStat :value="48" color="#ba5854" />
         <p><b class="red">Z 世代</b>認為他們自己是<b>無法</b>或<b>沒有能力有效管理</b>和<b>解決</b>他們自己的<b>壓力</b></p>
       </div>
       <div class="stat">
-        <RingStat :value="53" color="#a02a27" />
+        <RingStat :value="53" color="#ba5854" />
         <p><b class="red">Z 世代</b>在<b>疫情</b>大流行期間，<b>無法</b>有效<b>處理壓力</b>感到更加<b>孤獨</b>、<b>寂寞</b>與<b>空虛</b></p>
       </div>
     </div>
@@ -288,7 +288,7 @@ const dharma = [
         question="問：請根據貴公司永續發展藍圖，勾選出所呼應之聯合國永續發展目標（SDGs）？"
         :items="sdgs"
         note="註：僅列出前10項"
-        color="#a02a27"
+        color="#ba5854"
       />
     </div>
   </div>
@@ -344,13 +344,13 @@ const dharma = [
   font-size: 0.95rem !important;
 }
 .teal {
-  color: #a02a27 !important;
+  color: #ba5854 !important;
 }
 .gold {
-  color: #a02a27;
+  color: #ba5854;
 }
 .coral {
-  color: #a02a27;
+  color: #ba5854;
   font-size: 1.2rem;
 }
 .red {
@@ -364,13 +364,13 @@ const dharma = [
 }
 .figure.dark .takeaway {
   background: #f3e6c8;
-  color: #a02a27 !important;
+  color: #ba5854 !important;
 }
 .figure.dark .takeaway b {
-  color: #a02a27;
+  color: #ba5854;
 }
 .figure.dark .source {
-  color: #a02a27 !important;
+  color: #ba5854 !important;
 }
 .figure.warm {
   background: var(--gold-soft);
@@ -424,8 +424,8 @@ const dharma = [
   font-size: 5.5rem !important;
   line-height: 1.1 !important;
   font-weight: 800;
-  color: #a02a27 !important;
-  border-bottom: 5px solid #a02a27;
+  color: #ba5854 !important;
+  border-bottom: 5px solid #ba5854;
   display: inline-block;
 }
 .huge span {
@@ -445,7 +445,7 @@ const dharma = [
   margin: 0;
   font-size: 1.2rem !important;
   font-weight: 700;
-  color: #a02a27 !important;
+  color: #ba5854 !important;
   line-height: 1.4 !important;
 }
 .svc small {
@@ -521,12 +521,12 @@ const dharma = [
 .down {
   margin-left: 6px;
   font-size: 1.1rem;
-  color: #a02a27;
+  color: #ba5854;
 }
 .up {
   margin-left: 6px;
   font-size: 1.1rem;
-  color: #a02a27;
+  color: #ba5854;
 }
 .maps {
   margin: 0 0 4px;
@@ -542,7 +542,7 @@ const dharma = [
   line-height: 1.6;
 }
 .takeaway.navy {
-  background: #a02a27;
+  background: #ba5854;
   color: #f3e6c8 !important;
   text-align: center;
 }
@@ -605,7 +605,7 @@ const dharma = [
 }
 .csr-score b {
   font-size: 2.8rem;
-  color: #a02a27;
+  color: #ba5854;
 }
 .mini {
   display: grid;
@@ -627,7 +627,7 @@ const dharma = [
   display: block;
   height: 100%;
   border-radius: 6px;
-  background: #a02a27;
+  background: #ba5854;
 }
 .mini b {
   font-variant-numeric: tabular-nums;
@@ -696,7 +696,7 @@ const dharma = [
 }
 .chain span {
   margin: 0 6px;
-  color: #a02a27;
+  color: #ba5854;
 }
 .good-lead {
   margin: 0 0 6px;
