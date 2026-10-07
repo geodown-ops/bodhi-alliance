@@ -1,6 +1,7 @@
-/* 協會介紹頁共用樣式：全頁只用四色，協會簡介圓餅圖的粉、綠、米三色，加上協會標誌的紅。 */
+/* 協會介紹頁共用樣式：全頁只用四色，協會簡介圓餅圖的粉、綠、米三色，加上協會標誌的紅；
+   頁面最底色用米色再調淡一半（#f9f3e4）。 */
 body:has(.assoc) {
-  background: #f3e6c8;
+  background: #f9f3e4;
 }
 .assoc h1,
 .assoc h2,
@@ -16,7 +17,7 @@ body:has(.assoc) {
   --ink: #ba5854;
   --ink-soft: #ba5854;
   --ink-faint: #ba5854;
-  --ground: #f3e6c8;
+  --ground: #f9f3e4;
   --ground-raised: #f1d9d4;
   --ground-sunk: #dfe9d8;
   --rule: #f1d9d4;
