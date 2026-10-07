@@ -13,10 +13,10 @@ const TREE_HEIGHT = 4.5;
 const DEER_COUNT = 3;
 const DEER_SCALE = 0.42;   // Sunny 身後遠處的鹿（原本 0.5，縮小後再放大一點）
 const DEER_BEHIND = 0.8, DEER_FAR = 15, DEER_ANGLE = 0.85;   // 比 Sunny 遠 0.8 以上；左右到畫面邊緣
-// 蓮花：三朵，放在河道中央（鏡頭看出去的角度、距離）；右邊那朵放在標題右側
+// 蓮花：三朵，都放在畫面左邊的河道中央（鏡頭看出去的角度、距離；scale 是額外放大倍數）
 const LOTUS = [
   { kind: 'flower', a: -0.72, d: 9 },
-  { kind: 'serenity', a: 0.76, d: 11 },
+  { kind: 'serenity', a: -0.64, d: 10, scale: 1.3 },
   { kind: 'pod', a: -0.6, d: 8.3 },
 ];
 
@@ -68,7 +68,7 @@ export function buildMeadowScene(scene, camera, renderer) {
         count: Number(q.get('deer') ?? DEER_COUNT), scale: DEER_SCALE, walkable, pick, spawn,
         roam: [3, 14], waterAt: riverAt, wade: 0.11,
       });
-      const lotus = addLotus(scene, LOTUS.map(({ kind, a, d }) => ({ kind, ...polar(a, d) })));
+      const lotus = addLotus(scene, LOTUS.map(({ a, d, ...rest }) => ({ ...rest, ...polar(a, d) })));
       return {
         update(t, dt) { tree.update(t, dt); herd.update(t, dt); lotus.update(t); },
         dispose() { tree.dispose(); herd.dispose(); lotus.dispose(); },

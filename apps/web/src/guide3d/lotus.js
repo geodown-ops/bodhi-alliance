@@ -13,7 +13,7 @@ const KINDS = {
 };
 
 /**
- * spots：[{ kind: 'flower' | 'pod' | 'serenity', x, z }]
+ * spots：[{ kind: 'flower' | 'pod' | 'serenity', x, z, scale? }]（scale：額外放大倍數）
  * 回傳 { update(t), dispose() }
  */
 export function addLotus(scene, spots) {
@@ -34,7 +34,7 @@ export function addLotus(scene, spots) {
       const scale = k.size / Math.max(size.x, size.z);
       for (const s of mine) {
         const o = gltf.scene.clone();
-        o.scale.setScalar(scale * (0.85 + Math.random() * 0.3));
+        o.scale.setScalar(scale * (s.scale ?? 1) * (0.85 + Math.random() * 0.3));
         const baseY = -box.min.y * o.scale.y - size.y * o.scale.y * k.sink;   // 底部沉進水裡一點
         o.position.set(s.x, baseY, s.z);
         o.rotation.y = Math.random() * Math.PI * 2;
