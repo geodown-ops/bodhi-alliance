@@ -44,7 +44,7 @@ const arc = (x: number, r: number) => `M${x - r},${base} A${r},${r} 0 0 1 ${x + 
 }
 .share {
   font-size: 26px;
-  fill: #f3e6c8;
+  fill: #fff;
   font-weight: 600;
 }
 .years {

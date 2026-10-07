@@ -10,7 +10,7 @@ body:has(.assoc) {
 }
 .assoc .join-btn {
   background: #ba5854 !important;
-  color: #f3e6c8 !important;
+  color: #fff !important;
 }
 .assoc {
   color: #ba5854;
@@ -39,7 +39,7 @@ body:has(.assoc) {
   margin: 56px -16px 8px;
   padding: 28px 24px;
   border-radius: 16px;
-  color: #f3e6c8;
+  color: #fff;
   background: linear-gradient(120deg, #ba5854, var(--sky) 60%, #ba5854);
   scroll-margin-top: 72px;
 }
@@ -50,11 +50,11 @@ body:has(.assoc) {
   margin: 0;
   font-size: 0.95rem;
   letter-spacing: 0.2em;
-  color: #f3e6c8;
+  color: #fff;
 }
 .assoc .chapter h2 {
   margin: 4px 0 0;
-  color: #f3e6c8;
+  color: #fff;
   font-size: 1.8rem;
 }
 
@@ -142,7 +142,7 @@ body:has(.assoc) {
   padding: 14px 18px;
   border-radius: 12px;
   background: var(--night);
-  color: #f3e6c8;
+  color: #fff;
 }
 .assoc .aim-link.red {
   background: var(--weba);
@@ -157,10 +157,10 @@ body:has(.assoc) {
 }
 .assoc .aim-link p {
   margin: 0;
-  color: #f3e6c8;
+  color: #fff;
 }
 .assoc .aim-link b {
-  color: #f3e6c8;
+  color: #fff;
 }
 
 @media (max-width: 600px) {

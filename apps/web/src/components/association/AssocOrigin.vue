@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// 第二章「協會起源」：世代變遷、全人健康、社會責任（簡報第 6–20 頁），圖表依簡報數據重畫。
-import BarChart from './BarChart.vue'
+// 第二章「協會起源」：世代變遷、全人健康、社會責任，圖表依簡報數據重畫。
 import GenerationChart from './GenerationChart.vue'
 import HexWholeHealth from './HexWholeHealth.vue'
 import PeopleIcons from './PeopleIcons.vue'
@@ -26,41 +25,6 @@ const audiences = [
   ['需要在工作挑戰與家庭責任中找到平衡點者', '', ''],
   ['希望增進', '情緒管理能力', '與改善人際關係者'],
   ['希望成長自我並提昇生活品質與幸福感者', '', ''],
-]
-
-const csrDims = ['公司治理', '員工、供應鏈、顧客', '環境績效', '社會關懷']
-const csrAll = [66.1, 85.5, 67.4, 76.5]
-const industries = [
-  { name: '電信業', score: 85.8, dims: [72.6, 89.8, 89.7, 91.0], color: '#ba5854' },
-  { name: '金融保險業', score: 73.5, dims: [67.3, 86.9, 63.1, 81.3], color: '#ba5854' },
-  { name: '電子科技業', score: 73.1, dims: [65.7, 91.7, 67.6, 71.3], color: '#ba5854' },
-  { name: '傳統產業', score: 70.5, dims: [65.2, 79.8, 67.7, 71.3], color: '#ba5854' },
-  { name: '服務業', score: 70.4, dims: [62.4, 84.8, 63.2, 75.2], color: '#ba5854' },
-]
-
-const issues = [
-  { label: '法令遵循', value: 64.9 },
-  { label: '經營績效', value: 62.2 },
-  { label: '內稽內控與風險品質管理（涵蓋產品品質追蹤、危機處理）', value: 59.5 },
-  { label: '能源管理', value: 56.8 },
-  { label: '公司治理與誠信經營', value: 51.4 },
-  { label: '職場安全衛生', value: 51.4 },
-  { label: '員工權益與人權（含友善職場、溝通管道）', value: 51.4 },
-  { label: '永續發展策略', value: 48.6 },
-  { label: '人才管理與培育（教育訓練）', value: 45.9 },
-  { label: '廢物、污染管理', value: 45.9 },
-]
-const sdgs = [
-  { label: '教育品質', value: 86.5 },
-  { label: '就業與經濟成長', value: 83.8 },
-  { label: '責任消費與生產', value: 83.8 },
-  { label: '氣候行動', value: 83.8 },
-  { label: '可負擔能源', value: 78.4 },
-  { label: '健康與福祉', value: 75.7 },
-  { label: '工作、創新和基礎設施', value: 73.0 },
-  { label: '性別平等', value: 70.3 },
-  { label: '永續城市', value: 70.3 },
-  { label: '和平與正義制度', value: 67.6 },
 ]
 
 // 佛法教育對企業管理的啟發：[前文, 重點, 中間, 重點, 後文]
@@ -236,63 +200,6 @@ const dharma = [
 
   <!-- 社會責任 -->
   <h2>社會責任</h2>
-  <h3>企業社會責任（CSR）成績</h3>
-  <div class="figure csr-all">
-    <div>
-      <p class="csr-title">2020 年 CSR<br />全產業成績總平均 73 分</p>
-      <p class="csr-score">總平均 <b>73.0</b> 分</p>
-    </div>
-    <div>
-      <div v-for="(dim, i) in csrDims" :key="dim" class="mini">
-        <span>{{ dim }}</span>
-        <i><em :style="{ width: `${csrAll[i]}%` }" /></i>
-        <b>{{ csrAll[i].toFixed(1) }}</b>
-      </div>
-    </div>
-  </div>
-  <div class="figure">
-    <p class="csr-title">五大產業別成績，電信業居冠、金融保險業亞軍</p>
-    <div class="table-wrap">
-      <table class="ind-table">
-        <thead>
-          <tr>
-            <th>產業</th>
-            <th>CSR 總平均</th>
-            <th v-for="dim in csrDims" :key="dim">{{ dim }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="ind in industries" :key="ind.name">
-            <td><i class="dot" :style="{ background: ind.color }" />{{ ind.name }}</td>
-            <td class="total" :style="{ color: ind.color }">{{ ind.score.toFixed(1) }}</td>
-            <td v-for="(v, i) in ind.dims" :key="i" :class="{ best: v === Math.max(...industries.map((x) => x.dims[i])) }">{{ v.toFixed(1) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="source">每一欄最高分以粗體標示</p>
-  </div>
-
-  <div class="two">
-    <div class="figure">
-      <BarChart
-        title="企業認為法令遵循、經營績效，是最重要兩大議題（可複選，%）"
-        question="問：請以治理面、社會面、環境面，列出貴公司「前10大重大性議題」為何？"
-        :items="issues"
-        note="註：僅列出前10項"
-      />
-    </div>
-    <div class="figure">
-      <BarChart
-        title="教育品質是國內企業呼應最高的 SDGs（可複選，%）"
-        question="問：請根據貴公司永續發展藍圖，勾選出所呼應之聯合國永續發展目標（SDGs）？"
-        :items="sdgs"
-        note="註：僅列出前10項"
-        color="#ba5854"
-      />
-    </div>
-  </div>
-
   <div class="good">
     <p class="chain">品德 <span>➜</span> 善管理 <span>➜</span> 善企業 <span>➜</span> 善經濟</p>
     <p class="good-lead">企業家從自我的品德要求，進而走向能利他的善管理的善企業</p>
@@ -374,7 +281,7 @@ const dharma = [
 }
 .figure.warm {
   background: var(--gold-soft);
-  border-color: #f3e6c8;
+  border-color: #fff;
 }
 .figure.warm .takeaway {
   background: #f1d9d4;
@@ -473,7 +380,7 @@ const dharma = [
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #f3e6c8;
+  color: #fff;
 }
 .tag-market.all {
   left: 14px;
@@ -543,7 +450,7 @@ const dharma = [
 }
 .takeaway.navy {
   background: #ba5854;
-  color: #f3e6c8 !important;
+  color: #fff !important;
   text-align: center;
 }
 
@@ -582,104 +489,6 @@ const dharma = [
 .focus .ours {
   background: var(--weba-soft);
   color: var(--ink) !important;
-}
-
-.csr-all {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 24px;
-  align-items: center;
-  background: linear-gradient(120deg, #f3e6c8, #dfe9d8) !important;
-  border-color: #dfe9d8 !important;
-}
-.csr-title {
-  margin: 0 0 10px;
-  font-weight: 700;
-  font-size: 1.15rem !important;
-  line-height: 1.5 !important;
-  color: var(--ink) !important;
-}
-.csr-score {
-  margin: 0;
-  font-size: 1.1rem !important;
-}
-.csr-score b {
-  font-size: 2.8rem;
-  color: #ba5854;
-}
-.mini {
-  display: grid;
-  grid-template-columns: minmax(0, 9em) minmax(0, 1fr) 2.8em;
-  gap: 10px;
-  align-items: center;
-  margin: 8px 0;
-}
-.mini span {
-  color: var(--ink-soft);
-}
-.mini i {
-  height: 12px;
-  border-radius: 6px;
-  background: #f1d9d4;
-  overflow: hidden;
-}
-.mini em {
-  display: block;
-  height: 100%;
-  border-radius: 6px;
-  background: #ba5854;
-}
-.mini b {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.table-wrap {
-  overflow-x: auto;
-}
-.ind-table {
-  width: 100%;
-  min-width: 560px;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-}
-.ind-table th,
-.ind-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--rule);
-  text-align: right;
-  color: var(--ink-soft);
-}
-.ind-table th {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink-faint);
-}
-.ind-table th:first-child,
-.ind-table td:first-child {
-  text-align: left;
-  color: var(--ink);
-  font-weight: 600;
-}
-.ind-table .total {
-  font-size: 1.15rem;
-  font-weight: 800;
-}
-.ind-table .best {
-  font-weight: 800;
-  color: var(--ink);
-}
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 8px;
-  border-radius: 50%;
-}
-
-.two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
 }
 
 .good {
@@ -735,7 +544,7 @@ const dharma = [
   height: 130px;
   border-radius: 14px;
   background: var(--ink-soft);
-  color: #f3e6c8;
+  color: #fff;
   font-family: var(--wenkai);
   font-size: 2rem;
   line-height: 1.25;
@@ -750,6 +559,7 @@ const dharma = [
 }
 .dharma li {
   position: relative;
+  color: #3b2a20;
   margin: 6px 0;
   font-size: 1.1rem;
 }
@@ -766,8 +576,6 @@ const dharma = [
   .stats3,
   .market,
   .whole,
-  .csr-all,
-  .two,
   .sdg-row {
     grid-template-columns: 1fr;
   }

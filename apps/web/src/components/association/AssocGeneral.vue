@@ -34,7 +34,7 @@ const tasks = [
   </div>
 
   <h2>協會任務</h2>
-  <p>本會之任務如下，並依相關法令規定推動及執行：</p>
+  <p class="task-intro">本會之任務如下，並依相關法令規定推動及執行：</p>
   <ol class="tasks">
     <li v-for="(t, i) in tasks" :key="i">
       <span class="numeral">{{ numerals[i] }}</span>
@@ -63,6 +63,11 @@ const tasks = [
 .facts {
   margin: 0;
   padding-left: 1.2em;
+}
+.facts li,
+.task-intro,
+.tasks li {
+  color: #3b2a20;
 }
 .facts li {
   margin: 6px 0;
@@ -107,7 +112,7 @@ const tasks = [
   padding: 18px 22px;
   border-radius: 12px;
   background: var(--night);
-  color: #f3e6c8 !important;
+  color: #fff !important;
   text-align: center;
   font-size: 1.08rem;
   line-height: 1.8;
@@ -116,11 +121,11 @@ const tasks = [
   background: var(--weba);
 }
 .aim-bar b {
-  color: #f3e6c8;
+  color: #fff;
   font-size: 1.22rem;
 }
 .aim-bar.red b {
-  color: #f3e6c8;
+  color: #fff;
 }
 @media (max-width: 680px) {
   .intro-grid {

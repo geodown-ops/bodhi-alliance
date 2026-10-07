@@ -73,7 +73,7 @@ const segments = props.goals.map((g, i) => {
 .num {
   font-size: 22px;
   font-weight: 700;
-  fill: #f3e6c8;
+  fill: #fff;
 }
 .label {
   font-size: 22px;
