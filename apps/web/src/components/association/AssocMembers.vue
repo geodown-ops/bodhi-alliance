@@ -48,7 +48,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
   background: #dfe9d8;
 }
 .member.mid {
-  background: #f3e6c8;
+  background: #fff;
 }
 .member.deep {
   background: #ba5854;
