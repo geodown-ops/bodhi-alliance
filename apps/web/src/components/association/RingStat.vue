@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // 圓環百分比：value 是 0–100。
-const props = withDefaults(defineProps<{ value: number; color: string; track?: string; dark?: boolean }>(), {
-  track: 'rgba(59, 42, 32, 0.12)',
-  dark: false,
+const props = withDefaults(defineProps<{ value: number; color: string; track?: string }>(), {
+  track: '#f1d9d4',
 })
 const r = 52
 const c = 2 * Math.PI * r
@@ -23,7 +22,7 @@ const dash = `${(c * props.value) / 100} ${c}`
       :stroke-dasharray="dash"
       transform="rotate(-90 64 64)"
     />
-    <text x="64" y="74" text-anchor="middle" class="value" :fill="dark ? '#fff' : '#3b2a20'">
+    <text x="64" y="74" text-anchor="middle" class="value" fill="#ba5854">
       {{ value }}<tspan class="pct">%</tspan>
     </text>
   </svg>

@@ -107,7 +107,7 @@ const tasks = [
   padding: 18px 22px;
   border-radius: 12px;
   background: var(--night);
-  color: #f2df8a !important;
+  color: #f3e6c8 !important;
   text-align: center;
   font-size: 1.08rem;
   line-height: 1.8;
@@ -116,11 +116,11 @@ const tasks = [
   background: var(--weba);
 }
 .aim-bar b {
-  color: #fff;
+  color: #f3e6c8;
   font-size: 1.22rem;
 }
 .aim-bar.red b {
-  color: #ffe36e;
+  color: #f3e6c8;
 }
 @media (max-width: 680px) {
   .intro-grid {
