@@ -147,7 +147,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
   };
   const onMove = e => {
     if (!look.dragging) return;
-    const k = Math.PI / canvas.clientWidth;   // 拖過整個畫面寬度約轉 180°
+    const k = Math.PI / canvas.clientWidth * zoom.cur;   // 拖過整個畫面寬度約轉 180°（拉近時轉得少一些）
     look.yaw += (e.clientX - look.lastX) * k;
     look.pitch = THREE.MathUtils.clamp(look.pitch + (e.clientY - look.lastY) * k, -0.6, 0.6);
     look.lastX = e.clientX; look.lastY = e.clientY; look.idle = 0;
@@ -166,6 +166,29 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     canvas.addEventListener('pointercancel', onUp);
   }
   const lookDir = new THREE.Vector3(), lookRight = new THREE.Vector3();
+
+  // 滑鼠滾輪縮放：往上滾拉近（朝游標所指的地方）、往下滾拉遠回原本的構圖；
+  // 已經是原本大小時再往下滾，就照常捲動頁面
+  const ZOOM_MIN = 0.3;   // 最多拉近到原本視角的 0.3 倍（約 3 倍望遠）
+  const zoom = { target: 1, cur: 1 };
+  const onWheel = e => {
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;   // 以行為單位的滾輪換成像素
+    if (dy > 0 && zoom.target >= 1) return;                    // 沒有拉近時往下滾：讓頁面捲動
+    e.preventDefault();
+    const before = zoom.target;
+    zoom.target = THREE.MathUtils.clamp(zoom.target * Math.exp(dy * 0.0015), ZOOM_MIN, 1);
+    // 朝游標方向拉近：鏡頭跟著轉一點，讓游標下的景物大致留在原處
+    if (env.wide && zoom.target < before) {
+      const r = canvas.getBoundingClientRect();
+      const nx = ((e.clientX - r.left) / r.width) * 2 - 1, ny = 1 - ((e.clientY - r.top) / r.height + 0.14) * 2;   // 0.14：畫面往上挪的量（見 resize）
+      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), shift = 1 - zoom.target / before;
+      look.yaw -= Math.atan(nx * tanV * camera.aspect) * shift;
+      look.pitch = THREE.MathUtils.clamp(look.pitch + Math.atan(ny * tanV) * shift, -0.6, 0.6);
+    }
+    look.idle = 0;
+  };
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  const baseFov = camera.fov;
 
   const visibleObs = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; });
   visibleObs.observe(canvas);
@@ -278,7 +301,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
     camLook.lerpVectors(wideLook, closeLook, shot);
     camera.position.lerp(camPos, Math.min(1, dt * 3));
     if (env.wide) {
-      if (!look.dragging && (look.idle += dt) > 3) {   // 放開 3 秒後慢慢轉回來（走最短的方向）
+      if (!look.dragging && zoom.target >= 1 && (look.idle += dt) > 3) {   // 放開 3 秒後慢慢轉回來（走最短的方向）；拉近時停在原處
         look.yaw = Math.atan2(Math.sin(look.yaw), Math.cos(look.yaw));
         look.yaw = ease(look.yaw, 0, 1.2, dt); look.pitch = ease(look.pitch, 0, 1.2, dt);
       }
@@ -288,13 +311,15 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
       camLook.copy(camera.position).add(lookDir);
     }
     camera.lookAt(camLook);
+    zoom.cur = Math.exp(ease(Math.log(zoom.cur), Math.log(zoom.target), 8, dt));   // 平滑過渡
     if (env.wideHFov) {   // 草原場景：遠景放寬視角，構圖和全景圖網站上一樣；回答時用望遠拉近
       const wideV = THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(env.wideHFov / 2)) / camera.aspect)), 35, 60);
       const dist = camera.position.distanceTo(closeLook);
       const closeV = 2 * THREE.MathUtils.radToDeg(Math.atan((camera.aspect < 1 ? 1.5 : 1.1) * S / 2 / dist));   // 框住上半身和捧茶的雙手（手機畫面窄，多留一些）
-      const fov = wideV * Math.pow(closeV / wideV, shot);   // 以等比例縮放，拉近的速度看起來平均
+      const fov = wideV * Math.pow(closeV / wideV, shot) * zoom.cur;   // 以等比例縮放，拉近的速度看起來平均；再乘上滾輪縮放
       if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
     }
+    else if (Math.abs(baseFov * zoom.cur - camera.fov) > 0.01) { camera.fov = baseFov * zoom.cur; camera.updateProjectionMatrix(); }
     if (debugCam) { camera.position.set(debugCam[0], debugCam[1], debugCam[2]); camera.lookAt(debugCam[3], debugCam[4], debugCam[5]); }
     gaze.position.copy(camera.position);
 
@@ -324,6 +349,7 @@ export async function createAvatar(canvas, url, { onProgress, onIdle, time = 'da
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointercancel', onUp);
+      canvas.removeEventListener('wheel', onWheel);
       visibleObs.disconnect();
       VRMUtils.deepDispose(vrm.scene);
       cup.dispose();
