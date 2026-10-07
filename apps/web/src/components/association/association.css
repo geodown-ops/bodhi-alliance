@@ -1,16 +1,36 @@
-/* 協會介紹頁共用樣式：顏色取自協會標誌的紅，搭配網站原本的紙色與墨色。 */
+/* 協會介紹頁共用樣式：全頁只用四色，協會簡介圓餅圖的粉、綠、米三色，加上協會標誌的紅。 */
+body:has(.assoc) {
+  background: #f3e6c8;
+}
+.assoc h1,
+.assoc h2,
+.assoc h3 {
+  color: #a02a27;
+}
+.assoc .join-btn {
+  background: #a02a27 !important;
+  color: #f3e6c8 !important;
+}
 .assoc {
-  --weba: #ab2b27;
-  --weba-soft: #f4dfdb;
-  --sky: #2f6f93;
-  --sky-soft: #dbe9f0;
-  --sage: #5d7f52;
-  --sage-soft: #e1ead9;
-  --gold: #c08a1e;
-  --gold-soft: #f6ead0;
-  --plum: #6a4c8c;
-  --plum-soft: #e9e1f1;
-  --night: #2f2a28;
+  color: #a02a27;
+  --ink: #a02a27;
+  --ink-soft: #a02a27;
+  --ink-faint: #a02a27;
+  --ground: #f3e6c8;
+  --ground-raised: #f1d9d4;
+  --ground-sunk: #dfe9d8;
+  --rule: #f1d9d4;
+  --weba: #a02a27;
+  --weba-soft: #f1d9d4;
+  --sky: #a02a27;
+  --sky-soft: #dfe9d8;
+  --sage: #a02a27;
+  --sage-soft: #dfe9d8;
+  --gold: #a02a27;
+  --gold-soft: #f3e6c8;
+  --plum: #a02a27;
+  --plum-soft: #f1d9d4;
+  --night: #a02a27;
 }
 
 /* 章節橫幅 */
@@ -18,22 +38,22 @@
   margin: 56px -16px 8px;
   padding: 28px 24px;
   border-radius: 16px;
-  color: #fff;
-  background: linear-gradient(120deg, #24597a, var(--sky) 60%, #4a8db0);
+  color: #f3e6c8;
+  background: linear-gradient(120deg, #a02a27, var(--sky) 60%, #a02a27);
   scroll-margin-top: 72px;
 }
 .assoc .chapter.members {
-  background: linear-gradient(120deg, #3a5c2e, var(--sage) 60%, #7da26b);
+  background: linear-gradient(120deg, #a02a27, var(--sage) 60%, #a02a27);
 }
 .assoc .chapter .kicker {
   margin: 0;
   font-size: 0.95rem;
   letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.85);
+  color: #f3e6c8;
 }
 .assoc .chapter h2 {
   margin: 4px 0 0;
-  color: #fff;
+  color: #f3e6c8;
   font-size: 1.8rem;
 }
 
@@ -79,13 +99,13 @@
   border: 1px solid var(--rule);
 }
 .assoc .figure.dark {
-  background: var(--night);
-  border-color: var(--night);
-  color: #f3ede4;
+  background: #dfe9d8;
+  border-color: #dfe9d8;
+  color: #a02a27;
 }
 .assoc .figure.dark p,
 .assoc .figure.dark li {
-  color: #e8e0d4;
+  color: #a02a27;
 }
 
 /* 引言卡 */
@@ -121,7 +141,7 @@
   padding: 14px 18px;
   border-radius: 12px;
   background: var(--night);
-  color: #f6e7a8;
+  color: #f3e6c8;
 }
 .assoc .aim-link.red {
   background: var(--weba);
@@ -130,16 +150,16 @@
   flex: none;
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: #f3e6c8;
+  color: #a02a27;
   font-size: 0.85rem;
 }
 .assoc .aim-link p {
   margin: 0;
-  color: #f6e7a8;
+  color: #f3e6c8;
 }
 .assoc .aim-link b {
-  color: #fff;
+  color: #f3e6c8;
 }
 
 @media (max-width: 600px) {

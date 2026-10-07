@@ -3,20 +3,20 @@
 const props = defineProps<{ label: string; goals: number[] }>()
 
 const sdg: Record<number, { name: string; color: string }> = {
-  1: { name: '消除貧窮', color: '#e5243b' },
-  2: { name: '消除飢餓', color: '#dda63a' },
-  3: { name: '健康與福祉', color: '#4c9f38' },
-  4: { name: '教育品質', color: '#c5192d' },
-  5: { name: '性別平等', color: '#ff3a21' },
-  6: { name: '淨水與衛生', color: '#26bde2' },
-  7: { name: '可負擔能源', color: '#fcc30b' },
-  8: { name: '就業與經濟成長', color: '#a21942' },
-  9: { name: '工業、創新基礎建設', color: '#fd6925' },
-  11: { name: '永續城市', color: '#fd9d24' },
-  12: { name: '責任消費與生產', color: '#bf8b2e' },
-  13: { name: '氣候行動', color: '#3f7e44' },
-  15: { name: '陸地生態', color: '#56c02b' },
-  16: { name: '和平與正義制度', color: '#00689d' },
+  1: { name: '消除貧窮', color: '#a02a27' },
+  2: { name: '消除飢餓', color: '#a02a27' },
+  3: { name: '健康與福祉', color: '#a02a27' },
+  4: { name: '教育品質', color: '#a02a27' },
+  5: { name: '性別平等', color: '#a02a27' },
+  6: { name: '淨水與衛生', color: '#a02a27' },
+  7: { name: '可負擔能源', color: '#a02a27' },
+  8: { name: '就業與經濟成長', color: '#a02a27' },
+  9: { name: '工業、創新基礎建設', color: '#a02a27' },
+  11: { name: '永續城市', color: '#a02a27' },
+  12: { name: '責任消費與生產', color: '#a02a27' },
+  13: { name: '氣候行動', color: '#a02a27' },
+  15: { name: '陸地生態', color: '#a02a27' },
+  16: { name: '和平與正義制度', color: '#a02a27' },
 }
 
 const R = 120
@@ -45,11 +45,11 @@ const segments = props.goals.map((g, i) => {
 <template>
   <figure class="sdg">
     <svg viewBox="0 0 300 300" role="img" :aria-label="`${label}：${segments.map((s) => `${s.goal} ${s.name}`).join('、')}`">
-      <path v-for="s in segments" :key="s.goal" :d="s.d" :fill="s.color" stroke="#fff" stroke-width="3" />
+      <path v-for="s in segments" :key="s.goal" :d="s.d" :fill="s.color" stroke="#f3e6c8" stroke-width="3" />
       <text v-for="s in segments" :key="`n-${s.goal}`" :x="s.lx" :y="s.ly + 8" text-anchor="middle" class="num">
         {{ String(s.goal).padStart(2, '0') }}
       </text>
-      <circle cx="150" cy="150" :r="r - 4" fill="#fbf9f3" />
+      <circle cx="150" cy="150" :r="r - 4" fill="#f3e6c8" />
       <text x="150" y="158" text-anchor="middle" class="label">{{ label }}</text>
     </svg>
     <figcaption>
@@ -73,12 +73,12 @@ const segments = props.goals.map((g, i) => {
 .num {
   font-size: 22px;
   font-weight: 700;
-  fill: #fff;
+  fill: #f3e6c8;
 }
 .label {
   font-size: 22px;
   font-weight: 700;
-  fill: #3b2a20;
+  fill: #a02a27;
 }
 figcaption {
   display: flex;

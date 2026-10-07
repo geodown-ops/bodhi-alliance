@@ -49,8 +49,8 @@ const lines = [
   'M897,410 H915',
 ]
 
-const fill = (b: Box) => (b.tone === 'red' ? '#ab2b27' : b.tone === 'plum' ? '#6a4c8c' : '#f3eee6')
-const ink = (b: Box) => (b.tone ? '#fff' : '#4a3b31')
+const fill = (b: Box) => (b.tone === 'red' ? '#a02a27' : b.tone === 'plum' ? '#a02a27' : '#f3e6c8')
+const ink = (b: Box) => (b.tone ? '#f3e6c8' : '#a02a27')
 const chars = (b: Box) => {
   const step = 21
   const top = b.y + (b.h - b.label.length * step) / 2 + 16
@@ -61,9 +61,9 @@ const chars = (b: Box) => {
 <template>
   <div class="scroll">
     <svg viewBox="0 0 985 560" class="org" role="img" aria-label="協會組織架構圖">
-      <path v-for="(d, i) in lines" :key="i" :d="d" fill="none" stroke="#9b8f84" stroke-width="1.5" />
+      <path v-for="(d, i) in lines" :key="i" :d="d" fill="none" stroke="#a02a27" stroke-width="1.5" />
       <g v-for="b in boxes" :key="b.label">
-        <rect :x="b.x" :y="b.y" :width="b.w" :height="b.h" rx="6" :fill="fill(b)" :stroke="b.tone ? 'none' : '#bdb2a5'" />
+        <rect :x="b.x" :y="b.y" :width="b.w" :height="b.h" rx="6" :fill="fill(b)" :stroke="b.tone ? 'none' : '#a02a27'" />
         <template v-if="b.vertical">
           <text v-for="t in chars(b)" :key="t.y" :x="b.x + b.w / 2" :y="t.y" text-anchor="middle" class="t" :fill="ink(b)">{{ t.c }}</text>
         </template>

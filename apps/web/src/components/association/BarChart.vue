@@ -17,9 +17,9 @@ const max = Math.max(...props.items.map((i) => i.value))
     <div v-for="(item, i) in items" :key="item.label" class="row" :class="{ top: i === 0 }">
       <span class="label">{{ item.label }}</span>
       <span class="track">
-        <span class="fill" :style="{ width: `${(item.value / max) * 100}%`, background: i === 0 ? color ?? '#5d7f52' : undefined }" />
+        <span class="fill" :style="{ width: `${(item.value / max) * 100}%`, background: i === 0 ? color ?? '#a02a27' : undefined }" />
       </span>
-      <span class="value" :style="i === 0 ? { color: color ?? '#5d7f52' } : undefined">{{ item.value.toFixed(1) }}</span>
+      <span class="value" :style="i === 0 ? { color: color ?? '#a02a27' } : undefined">{{ item.value.toFixed(1) }}</span>
     </div>
     <p v-if="note" class="note-line">{{ note }}</p>
   </div>
@@ -62,7 +62,7 @@ const max = Math.max(...props.items.map((i) => i.value))
   display: block;
   height: 100%;
   border-radius: 7px;
-  background: #c9bfae;
+  background: #a02a27;
 }
 .value {
   font-variant-numeric: tabular-nums;
