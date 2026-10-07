@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { account } from '../../account'
 
-// 第四章「協會會員招募中」：會員人設。
+// 第四章「協會會員招募中」：邀請加入。
 // 每種會員：[前文, 重點, 後文]
 const members = [
   { role: '策略夥伴', text: ['以策略投資的方式，支援協會在初始階段及未來營運過程中的', '財務需求', '。'], tone: 'light' },
@@ -20,7 +20,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
     <h2>產業的專業會員</h2>
   </section>
 
-  <h2>會員人設</h2>
+  <h2>邀請加入</h2>
   <div class="member-grid">
     <div v-for="m in members" :key="m.role" class="member" :class="m.tone">
       <p class="role">{{ m.role }}</p>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// 第三章「協會營運特色分享」：總結。
+// 第三章「協會營運特色分享」：核心共識。
 </script>
 
 <template>
   <section id="operation" class="chapter">
     <p class="kicker">協會營運特色分享</p>
-    <h2>總結</h2>
+    <h2>核心共識</h2>
   </section>
 
   <div class="quote">

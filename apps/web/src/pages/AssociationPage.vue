@@ -10,7 +10,7 @@ import AssocOrigin from '../components/association/AssocOrigin.vue'
 const chapters = [
   { id: 'general', label: '協會總則' },
   { id: 'origin', label: '協會起源' },
-  { id: 'operation', label: '總結' },
+  { id: 'operation', label: '核心共識' },
   { id: 'members', label: '會員招募' },
 ]
 const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
