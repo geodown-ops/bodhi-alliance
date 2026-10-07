@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 世界佛教教育協會介紹：完整呈現協會簡報《世界佛教教育協會介紹》36 頁的內容，簡介與任務的文字以協會提供的《協會簡介》為準。
-// 圖表依簡報數據重畫（components/association/）；照片、系統截圖與標誌取自簡報原檔，放在 public/images/association/。
+// 圖表依簡報數據重畫（components/association/）；照片與標誌取自簡報原檔，放在 public/images/association/。
 import '../components/association/association.css'
 import AssocGeneral from '../components/association/AssocGeneral.vue'
 import AssocMembers from '../components/association/AssocMembers.vue'
@@ -10,7 +10,7 @@ import AssocOrigin from '../components/association/AssocOrigin.vue'
 const chapters = [
   { id: 'general', label: '協會總則' },
   { id: 'origin', label: '協會起源' },
-  { id: 'operation', label: '營運特色' },
+  { id: 'operation', label: '總結' },
   { id: 'members', label: '會員招募' },
 ]
 const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })

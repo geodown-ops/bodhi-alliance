@@ -157,12 +157,11 @@ const dharma = [
 
   <h3>更大壓力</h3>
   <div class="figure stress">
-    <img src="/images/association/stress.webp" alt="被各種壓力念頭包圍、抱膝坐著的年輕人插圖" loading="lazy" />
     <div>
       <p class="stress-lead"><b class="sage">Z 世代</b>比<b>老一代</b>承受著<b class="red">更大</b>的<b class="sky">壓力</b></p>
       <p class="huge">91<span>%</span></p>
       <p>Z 世代過去一個月因<b class="sky">壓力</b>經歷<b>至少一種</b>身體或情緒<b class="sky">症狀</b></p>
-      <p class="source left">資料來源：SocialBee 發布的《Z世代壓力調查》</p>
+      <p class="source">資料來源：SocialBee 發布的《Z世代壓力調查》</p>
     </div>
   </div>
 
@@ -410,18 +409,9 @@ const dharma = [
 }
 
 .figure.stress {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  align-items: center;
+  text-align: center;
   background: #ffca08;
   border-color: #ffca08;
-}
-.figure.stress img {
-  display: block;
-  width: 100%;
-  max-width: 410px;
-  margin: 0 auto;
 }
 .figure.stress p {
   color: var(--ink);
@@ -440,9 +430,6 @@ const dharma = [
 }
 .huge span {
   font-size: 2rem;
-}
-.source.left {
-  text-align: left;
 }
 
 .market {
@@ -777,7 +764,6 @@ const dharma = [
 
 @media (max-width: 760px) {
   .stats3,
-  .figure.stress,
   .market,
   .whole,
   .csr-all,
