@@ -48,7 +48,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
   background: #dfe9d8;
 }
 .member.mid {
-  background: #f3e6c8;
+  background: #fff;
 }
 .member.deep {
   background: #ba5854;
@@ -61,14 +61,14 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
   color: #ba5854 !important;
 }
 .member.deep .role {
-  color: #f3e6c8 !important;
+  color: #fff !important;
 }
 .text {
   margin: 0;
   color: #ba5854 !important;
 }
 .member.deep .text {
-  color: #f3e6c8 !important;
+  color: #fff !important;
 }
 .key {
   color: var(--weba);
@@ -77,7 +77,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
   text-underline-offset: 4px;
 }
 .member.deep .key {
-  color: #f3e6c8;
+  color: #fff;
 }
 .join {
   margin-top: 32px;
