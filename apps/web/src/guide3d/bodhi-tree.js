@@ -9,6 +9,7 @@ const MODEL_HEIGHT = 36;     // 模型地面以上的高度（模型單位）
 const FALLING = 70;          // 同時飄落的葉子數
 const LIFT = 0.55;           // 樹枝往上抬：離樹幹每 1 單位，抬高 0.55 單位（原模型的枝條較平展、下垂）
 const SPREAD = 0.3;          // 樹冠同時向四周展開 30%
+const WIDEN = 0.45;          // 樹冠再往畫面左右兩側多伸展 45%，更舒展
 
 /** 把（量化過的）模型轉回一般座標，並讓樹枝往上伸展；回傳抬高後的樹高 */
 function raiseBranches(mesh) {
@@ -39,6 +40,20 @@ function raiseBranches(mesh) {
   mesh.geometry = out;
   mesh.position.set(0, 0, 0); mesh.quaternion.identity(); mesh.scale.set(1, 1, 1);
   return top;
+}
+
+/** 樹枝沿著水平方向 (dx, dz) 往兩側再拉長 k 倍（樹幹下段不動） */
+function widen(geo, dx, dz, k) {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), t = THREE.MathUtils.smoothstep(y, 3, 14);
+    if (!t) continue;
+    const a = (pos.getX(i) * dx + pos.getZ(i) * dz) * k * t;
+    pos.setX(i, pos.getX(i) + dx * a);
+    pos.setZ(i, pos.getZ(i) + dz * a);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
 }
 
 const WIND = `
@@ -107,13 +122,14 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
     const leaves = gltf.scene.getObjectByName('leaves');
     if (leaves) {
       for (const [turn, k] of [[0.7, 0.93], [-1.3, 1.04]]) {
-        const extra = new THREE.Mesh(leaves.geometry, leafMat);
-        extra.rotation.y = turn;
-        extra.scale.setScalar(k);
+        const geo = leaves.geometry.clone().applyMatrix4(new THREE.Matrix4().makeRotationY(turn).scale(new THREE.Vector3(k, k, k)));
+        const extra = new THREE.Mesh(geo, leafMat);
         extra.frustumCulled = false;
         leaves.parent.add(extra);
       }
     }
+    // 往畫面左右兩側伸展：鏡頭的橫向（世界 x 軸）換算到樹自己的座標
+    gltf.scene.traverse(o => { if (o.isMesh) widen(o.geometry, Math.cos(yaw), Math.sin(yaw), WIDEN); });
     // 樹枝抬高後整棵樹變高，縮回指定的高度
     treeH.value = top;
     tree.scale.setScalar(height / top);
@@ -126,12 +142,15 @@ export function plantBodhiTree(scene, { x, z, height, yaw = 0, uTime }) {
   const fall = new THREE.InstancedMesh(new THREE.PlaneGeometry(leafSize * 0.67, leafSize), fallMat, FALLING);
   fall.frustumCulled = false;
   group.add(fall);
+  const wx = Math.cos(yaw), wz = Math.sin(yaw);
   const crownR = 14 * s, crownLow = height * 0.45, crownHigh = height * 0.9;
   const leaves = Array.from({ length: FALLING }, () => spawn({}, true));
   function spawn(l, anywhere) {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * crownR;
-    l.x = Math.cos(a) * r;
-    l.z = Math.sin(a) * r;
+    // 樹冠往左右拉長了，飄落的範圍也跟著拉長（在樹的座標裡沿 wx, wz 方向）
+    const u = Math.cos(a) * r * (1 + WIDEN), w = Math.sin(a) * r;
+    l.x = u * wx - w * wz;
+    l.z = u * wz + w * wx;
     l.y = anywhere ? Math.random() * crownHigh : crownLow + Math.random() * (crownHigh - crownLow);
     l.speed = (0.35 + Math.random() * 0.35) * height / 7;
     l.phase = Math.random() * 100;
