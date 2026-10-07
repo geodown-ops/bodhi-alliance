@@ -28,7 +28,7 @@ async function submit() {
 <template>
   <q-page class="page narrow">
     <h1>登入</h1>
-    <q-form class="card q-gutter-md" @submit.prevent="submit">
+    <q-form class="card card-form" @submit.prevent="submit">
       <q-input v-model="email" type="email" label="電子郵件" autocomplete="username" outlined />
       <q-input v-model="password" type="password" label="密碼" autocomplete="current-password" outlined />
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>

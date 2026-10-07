@@ -85,7 +85,7 @@ watchEffect(() => {
   margin-bottom: 8px;
 }
 .dedication {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.15rem;
   line-height: 2;
   color: var(--ink);

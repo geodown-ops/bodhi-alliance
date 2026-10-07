@@ -32,7 +32,7 @@
 }
 .flow {
   margin: 8px 0 4px;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 2.2rem !important;
   font-weight: 700;
   color: var(--plum) !important;

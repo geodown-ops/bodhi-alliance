@@ -70,7 +70,7 @@ async function submit() {
 
     <h2 id="register">登記</h2>
     <div v-if="sent" class="note"><strong>已收到你的登記。</strong>籌備小組會在七個工作日內回覆。</div>
-    <q-form v-else class="card q-gutter-md" @submit.prevent="submit">
+    <q-form v-else class="card card-form" @submit.prevent="submit">
       <q-select v-model="form.kind" :options="kinds" emit-value map-options label="身份 *" outlined />
       <q-input v-model="form.org_name" label="單位名稱 *" outlined :rules="[(v) => !!v.trim() || '請填寫單位名稱']" />
       <q-input v-model="form.contact_name" label="聯絡人 *" outlined :rules="[(v) => !!v.trim() || '請填寫聯絡人']" />
