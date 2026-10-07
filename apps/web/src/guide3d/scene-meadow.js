@@ -13,8 +13,8 @@ const TREE_HEIGHT = 4.5;
 const DEER_COUNT = 3;
 const DEER_SCALE = 0.5 * 2 / 3;   // 比原本小三分之一
 const DEER_BEHIND = 0.8, DEER_FAR = 15, DEER_ANGLE = 0.85;   // 比 Sunny 遠 0.8 以上；左右到畫面邊緣
-// 蓮花：少量散在河面上（種類與數量）
-const LOTUS = ['flower', 'flower', 'flower', 'pod', 'pod', 'serenity', 'serenity'];
+// 蓮花：只放三朵散在河面上（種類與數量）
+const LOTUS = ['flower', 'serenity', 'pod'];
 
 export function buildMeadowScene(scene, camera, renderer) {
   return buildPanoramaScene(scene, camera, renderer, {
