@@ -11,11 +11,14 @@ const TREE_SPOT = [0.1, 0.565];
 const TREE_HEIGHT = 4.5;
 // 梅花鹿：從畫面兩邊的河裡出發，涉水走向 Sunny 身後的草地，之後在草地上大範圍散步
 const DEER_COUNT = 3;
-const DEER_SCALE = 0.5 * 2 / 3;   // 比原本小三分之一
+const DEER_SCALE = 0.42;   // Sunny 身後遠處的鹿（原本 0.5，縮小後再放大一點）
 const DEER_BEHIND = 0.8, DEER_FAR = 15, DEER_ANGLE = 0.85;   // 比 Sunny 遠 0.8 以上；左右到畫面邊緣
-// 蓮花：只放三朵散在河面上（種類與數量）
-const LOTUS = ['flower', 'serenity', 'pod'];
-const LOTUS_AWAY = 0.5;   // 和 Sunny 在畫面上至少錯開這麼多（鏡頭看出去的角度，弧度）
+// 蓮花：三朵，放在河道中央（鏡頭看出去的角度、距離）；右邊那朵放在標題右側
+const LOTUS = [
+  { kind: 'flower', a: -0.72, d: 9 },
+  { kind: 'serenity', a: 0.76, d: 11 },
+  { kind: 'pod', a: -0.6, d: 8.3 },
+];
 
 export function buildMeadowScene(scene, camera, renderer) {
   return buildPanoramaScene(scene, camera, renderer, {
@@ -26,7 +29,8 @@ export function buildMeadowScene(scene, camera, renderer) {
     // 遠景構圖：比照 Geodown 在 Skybox 網站上截的角度（山坡上的樹、河流在草地前分岔）
     viewU: 0.078,
     viewPitch: 2,        // 頁面把畫面往上挪了一些（setViewOffset），這裡稍微抬頭補回來
-    spot: [0.043, 0.549],
+    spot: [0.043, 0.556],   // Sunny 往前（離鏡頭近一點）
+    avatarScale: 0.6,
     wideHFov: 66,        // 和 Skybox 網站上的畫面一樣寬
     background: '#d9a6b8',   // 全景圖載入前的粉色晨空
     glint: [1, 0.96, 0.98],
@@ -35,7 +39,7 @@ export function buildMeadowScene(scene, camera, renderer) {
     hemi: ['#f3d6e4', '#7d9458', 1.2],
     fill: 0.6,
     ripple: [1, 0.96, 0.97],
-    extras({ scene, uTime, at, riverAt, riverReady, standAt, camZ, q }) {
+    extras({ scene, uTime, at, riverAt, standAt, camZ, q }) {
       const treeAt = at(Number(q.get('treeU')) || TREE_SPOT[0], Number(q.get('treeV')) || TREE_SPOT[1]);
       const tree = plantBodhiTree(scene, { ...treeAt, height: Number(q.get('treeH')) || TREE_HEIGHT, yaw: 0.6, uTime });
       // 鹿能走的地方：比 Sunny 離鏡頭更遠（在她身後）、左右不超出畫面，不撞到菩提樹和 Sunny
@@ -45,7 +49,6 @@ export function buildMeadowScene(scene, camera, renderer) {
         if (d < near || d > DEER_FAR || Math.abs(Math.atan2(x, dz)) > DEER_ANGLE) return false;
         return Math.hypot(x - treeAt.x, z - treeAt.z) > 1 && Math.hypot(x - standAt.x, z - standAt.z) > 1.2;
       };
-      const sunnyAngle = Math.atan2(standAt.x, camZ - standAt.z);
       const polar = (a, d) => ({ x: Math.sin(a) * d, z: camZ - Math.cos(a) * d });
       // 目的地只挑草地（路上可以涉水過河）
       const pick = () => {
@@ -63,27 +66,12 @@ export function buildMeadowScene(scene, camera, renderer) {
       };
       const herd = addDeerHerd(scene, {
         count: Number(q.get('deer') ?? DEER_COUNT), scale: DEER_SCALE, walkable, pick, spawn,
-        roam: [3, 14], waterAt: riverAt, wade: 0.09,
+        roam: [3, 14], waterAt: riverAt, wade: 0.11,
       });
-      // 蓮花：在河道裡挑位置（固定的亂數，每次打開都一樣），遠離 Sunny，彼此也留點距離
-      let lotus = null, disposed = false;
-      riverReady.then(() => {
-        if (disposed) return;
-        let seed = 7;
-        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-        const spots = [];
-        for (let k = 0; k < 2000 && spots.length < LOTUS.length; k++) {
-          const a = -0.8 + rnd() * 1.25, p = polar(a, 4 + rnd() * 5);   // 4 以內會被輸入框擋住；右邊太遠會被標題擋住
-          const inWater = [[0, 0], [0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]].every(([ox, oz]) => riverAt(p.x + ox, p.z + oz) > 0.6);
-          if (!inWater || Math.abs(a - sunnyAngle) < LOTUS_AWAY) continue;
-          if (spots.some(o => Math.hypot(o.x - p.x, o.z - p.z) < 1)) continue;
-          spots.push({ ...p, kind: LOTUS[spots.length] });
-        }
-        lotus = addLotus(scene, spots);
-      });
+      const lotus = addLotus(scene, LOTUS.map(({ kind, a, d }) => ({ kind, ...polar(a, d) })));
       return {
-        update(t, dt) { tree.update(t, dt); herd.update(t, dt); lotus?.update(t); },
-        dispose() { disposed = true; tree.dispose(); herd.dispose(); lotus?.dispose(); },
+        update(t, dt) { tree.update(t, dt); herd.update(t, dt); lotus.update(t); },
+        dispose() { tree.dispose(); herd.dispose(); lotus.dispose(); },
       };
     },
   });
