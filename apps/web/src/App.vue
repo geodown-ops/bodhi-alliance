@@ -57,6 +57,7 @@ const drawer = ref(false)
 
     <q-footer class="footer">
       <div>一即一切，一切即一</div>
+      <router-link to="/privacy" class="footer-link">隱私權保護聲明</router-link>
     </q-footer>
   </q-layout>
 </template>
@@ -79,5 +80,13 @@ const drawer = ref(false)
   padding: 20px 16px;
   line-height: 1.9;
   font-size: 0.9rem;
+}
+.footer-link {
+  color: inherit;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.footer-link:hover {
+  opacity: 1;
 }
 </style>
