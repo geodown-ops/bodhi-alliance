@@ -30,6 +30,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/join', component: () => import('./pages/JoinPage.vue'), meta: { title: '加入會員' } },
   { path: '/login', component: () => import('./pages/LoginPage.vue'), meta: { title: '登入' } },
   { path: '/me', component: () => import('./pages/MePage.vue'), meta: { title: '我的個人頁', signedIn: true } },
+  { path: '/privacy', component: () => import('./pages/PrivacyPage.vue'), meta: { title: '隱私權保護聲明' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
