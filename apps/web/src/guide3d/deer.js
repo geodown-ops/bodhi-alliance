@@ -42,6 +42,24 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spa
     fragmentShader: 'varying vec2 vUv; void main(){ float r = length(vUv - .5) * 2.; gl_FragColor = vec4(0.12, 0.1, 0.08, smoothstep(1., .2, r) * .32); }',
   });
   const shadowGeo = new THREE.PlaneGeometry(0.75, 1.7);
+  // 涉水時腳邊的漣漪：一圈圈往外擴散，走路時擴散得快、圈也多
+  const rippleGeo = new THREE.PlaneGeometry(4.5, 4.5);
+  const rippleMat = () => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uRing: { value: 0 }, uWet: { value: 0 }, uMove: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+    fragmentShader: `uniform float uRing, uWet, uMove; varying vec2 vUv;
+      void main(){
+        float r = length(vUv - .5) * 2.;
+        float a = 0.;
+        for (int i = 0; i < 4; i++) {
+          float p = fract(uRing + float(i) / 4.);
+          a += smoothstep(.06, 0., abs(r - (.1 + p * .85))) * (1. - p) * (.6 + .3 * uMove);
+        }
+        a += smoothstep(.2, .08, r) * (.25 + .2 * uMove);   // 腳邊踢起的白色水花
+        gl_FragColor = vec4(1., .97, .97, a * uWet * smoothstep(1., .75, r));
+      }`,
+  });
   let disposed = false, source = null, pose = null;
 
   new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(MODEL, gltf => {
@@ -77,6 +95,11 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spa
       shadow.position.y = 0.012;
       shadow.scale.setScalar(s);
       group.add(shadow);
+      const ripple = new THREE.Mesh(rippleGeo, rippleMat());
+      ripple.rotation.x = -Math.PI / 2;
+      ripple.scale.setScalar(s);
+      ripple.visible = false;
+      group.add(ripple);
       const start = spawn?.(i) ?? pick() ?? { x: 0, z: 0 };
       group.position.set(start.x, 0, start.z);
       const heading = rand(0, Math.PI * 2);
@@ -87,7 +110,7 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spa
       const deer = {
         group, model, bones, s, heading,
         state: 'graze', timer: spawn ? rand(0.3, 2) : rand(1, 6),   // 一開始先低頭吃草，錯開出發時間
-        wet: 0, shadow,
+        wet: 0, shadow, ripple, ring: Math.random(),
         target: null, phase: Math.random(), walk: 0, graze: 1, look: 0, lookYaw: 0, tail: 0, tailT: rand(2, 6),
         seed: Math.random() * 100,
       };
@@ -168,6 +191,14 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spa
           deer.wet = ease(deer.wet, waterAt(g.position.x, g.position.z) > 0.3 ? 1 : 0, 3, step);
           g.position.y = -wade * deer.wet;
           deer.shadow.visible = deer.wet < 0.5;
+          // 漣漪貼在水面上（鹿沉下去多少，漣漪就往上補多少）
+          const u = deer.ripple.material.uniforms;
+          deer.ring += step * (0.22 + 0.5 * moving);
+          u.uRing.value = deer.ring;
+          u.uWet.value = deer.wet;
+          u.uMove.value = ease(u.uMove.value, moving, 4, step);
+          deer.ripple.visible = deer.wet > 0.02;
+          deer.ripple.position.y = wade * deer.wet + 0.006;
         }
 
         // 動作的權重慢慢過渡，切換狀態時不會突然跳動
@@ -207,9 +238,9 @@ export function addDeerHerd(scene, { count = 3, scale = 0.5, walkable, pick, spa
     },
     dispose() {
       disposed = true;
-      for (const d of herd) scene.remove(d.group);
+      for (const d of herd) { scene.remove(d.group); d.ripple.material.dispose(); }
       source?.traverse(o => { o.geometry?.dispose(); o.material?.map?.dispose(); o.material?.dispose(); });
-      shadowGeo.dispose(); shadowMat.dispose();
+      shadowGeo.dispose(); shadowMat.dispose(); rippleGeo.dispose();
     },
   };
 }
