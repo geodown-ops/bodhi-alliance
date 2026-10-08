@@ -72,8 +72,18 @@ async function chatStream(body: ChatRequest, onText: (text: string) => void): Pr
   }
 }
 
+export type ChainInfo = {
+  enabled: boolean
+  chain_id?: number
+  network?: string
+  explorer?: string
+  contract?: string
+  contract_url?: string
+}
+
 export const api = {
   groups: () => request<Group[]>(`${apiBase}/api/groups`),
+  chainInfo: () => request<ChainInfo>(`${apiBase}/api/chain`),
   joinGroup: (body: Record<string, unknown>) =>
     request(`${apiBase}/api/group-applications`, { method: 'POST', body: JSON.stringify(body) }),
   registerPartner: (body: Record<string, unknown>) =>

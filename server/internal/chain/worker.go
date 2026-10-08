@@ -53,6 +53,9 @@ func New(ctx context.Context, db *pgxpool.Pool, b Backend, cfg Config) (*Service
 	if err != nil {
 		return nil, fmt.Errorf("chain id: %w", err)
 	}
+	if cfg.ChainID != 0 && id.Int64() != cfg.ChainID {
+		return nil, fmt.Errorf("node is on chain %s, but BODHI_CHAIN_NETWORK=%s expects %d", id, cfg.Network, cfg.ChainID)
+	}
 	s := &Service{DB: db, Backend: b, Explorer: cfg.ExplorerURL, ChainID: id, operator: op, seed: seed,
 		ReceiptWait: 2 * time.Minute, Poll: 20 * time.Second}
 	if cfg.Contract != "" {
@@ -187,8 +190,8 @@ func (s *Service) ensureContract(ctx context.Context) error {
 func (s *Service) enrolMembers(ctx context.Context) error {
 	rows, err := s.DB.Query(ctx, `
 		SELECT v.id FROM volunteer v
-		WHERE NOT EXISTS (SELECT 1 FROM member_chain_account a WHERE a.volunteer_id = v.id)
-		ORDER BY v.created_at LIMIT 500`)
+		WHERE NOT EXISTS (SELECT 1 FROM member_chain_account a WHERE a.volunteer_id = v.id AND a.chain_id = $1)
+		ORDER BY v.created_at LIMIT 500`, s.ChainID.Int64())
 	if err != nil {
 		return err
 	}
@@ -301,7 +304,12 @@ var (
 	errDropped  = errors.New("transaction dropped")
 	minTipFloor = map[int64]*big.Int{
 		80002: big.NewInt(25_000_000_000), // Polygon Amoy
-		137:   big.NewInt(25_000_000_000), // Polygon PoS
+		137:   big.NewInt(30_000_000_000), // Polygon PoS
+	}
+	// maxFee caps what one unit of gas may cost on a real-money chain; above it the
+	// worker waits for a calmer moment instead of overpaying.
+	maxFee = map[int64]*big.Int{
+		137: big.NewInt(500_000_000_000),
 	}
 )
 
@@ -357,6 +365,12 @@ func (s *Service) send(ctx context.Context, to *common.Address, data []byte) (*t
 		return nil, err
 	}
 	feeCap := new(big.Int).Add(tip, new(big.Int).Mul(head.BaseFee, big.NewInt(2)))
+	if limit := maxFee[s.ChainID.Int64()]; limit != nil && feeCap.Cmp(limit) > 0 {
+		if new(big.Int).Add(head.BaseFee, tip).Cmp(limit) > 0 {
+			return nil, fmt.Errorf("gas price %s wei is above the cap; waiting", new(big.Int).Add(head.BaseFee, tip))
+		}
+		feeCap = new(big.Int).Set(limit)
+	}
 	gas, err := s.Backend.EstimateGas(ctx, ethereum.CallMsg{From: from, To: to, Data: data, GasTipCap: tip, GasFeeCap: feeCap})
 	if err != nil {
 		return nil, fmt.Errorf("estimate gas: %w", err)
