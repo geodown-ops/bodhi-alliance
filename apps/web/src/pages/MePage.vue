@@ -489,14 +489,15 @@ async function signOut() {
     <q-dialog v-model="creating">
       <q-card style="width: 560px; max-width: 95vw">
         <q-form @submit.prevent="create">
-          <q-card-section>
+          <q-card-section class="q-pb-none">
             <div class="text-h6">發起共修活動</div>
             <div class="text-caption">三人以上（含你自己）就可以進行一次正念減壓實作。</div>
           </q-card-section>
-          <q-card-section class="q-gutter-md">
-            <q-input v-model="draft.title" label="活動名稱 *" outlined dense :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
+          <q-card-section class="create-form">
+            <q-input v-model="draft.title" label="活動名稱 *" outlined dense hide-bottom-space :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
             <q-btn-toggle
               v-model="draft.is_online"
+              class="self-start mode-toggle"
               no-caps
               unelevated
               toggle-color="secondary"
@@ -513,7 +514,7 @@ async function signOut() {
               map-options
               clearable
               label="活動場域"
-              hint="選了場域，活動會列在覺行小組頁的這個場域底下；也可以不選，自己填地點"
+              hint="選了場域，活動會列在覺行小組頁的場域底下；不選也可以，自己填地點"
               outlined
               dense
               @update:model-value="pickVenue"
@@ -521,13 +522,14 @@ async function signOut() {
             <q-input
               v-model="draft.location"
               :label="draft.is_online ? '會議連結或集合方式 *' : '地點 *'"
-              :hint="draft.is_online ? '只有報名的人看得到' : ''"
+              :hint="draft.is_online ? '只有報名的人看得到' : undefined"
               outlined
               dense
+              hide-bottom-space
               :rules="[(v) => !!v.trim() || '請填寫地點']"
             />
-            <div class="row q-col-gutter-sm">
-              <q-input v-model="draft.date" label="日期 *" stack-label outlined dense readonly class="col-12 col-sm-4 cursor-pointer date-field">
+            <div class="time-row">
+              <q-input v-model="draft.date" label="日期 *" stack-label outlined dense readonly class="cursor-pointer date-field">
                 <template #append><q-icon name="event" /></template>
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                   <q-date v-model="draft.date" mask="YYYY/MM/DD" minimal>
@@ -535,7 +537,7 @@ async function signOut() {
                   </q-date>
                 </q-popup-proxy>
               </q-input>
-              <q-input :model-value="draft.start" label="開始 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space class="col-6 col-sm-4" @update:model-value="(v) => pickStart(String(v ?? ''))">
+              <q-input :model-value="draft.start" label="開始 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space @update:model-value="(v) => pickStart(String(v ?? ''))">
                 <template #append>
                   <q-icon name="schedule" class="cursor-pointer">
                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -546,7 +548,7 @@ async function signOut() {
                   </q-icon>
                 </template>
               </q-input>
-              <q-input v-model="draft.end" label="結束 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space :hint="draft.end && draft.end <= draft.start ? '隔天結束' : ''" class="col-6 col-sm-4">
+              <q-input v-model="draft.end" label="結束 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space :hint="draft.end && draft.end <= draft.start ? '隔天結束' : undefined">
                 <template #append>
                   <q-icon name="schedule" class="cursor-pointer">
                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -558,7 +560,7 @@ async function signOut() {
                 </template>
               </q-input>
             </div>
-            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" />
+            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" hide-bottom-space />
             <q-input v-model="draft.description" type="textarea" autogrow label="說明" hint="例如：帶一張瑜伽墊、第一次參加也歡迎" outlined dense />
           </q-card-section>
           <q-card-actions align="right">
@@ -636,5 +638,28 @@ async function signOut() {
 /* 日期欄點了會跳出月曆；不要顯示成唯讀的虛線框 */
 .date-field :deep(.q-field__control:before) {
   border-style: solid;
+}
+/* 發起共修表單：欄位等距排列，日期／開始／結束同一列（手機上日期獨佔一列） */
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mode-toggle {
+  border: 1px solid rgba(0, 0, 0, 0.24);
+}
+.time-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 599px) {
+  .time-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .time-row .date-field {
+    grid-column: 1 / -1;
+  }
 }
 </style>
