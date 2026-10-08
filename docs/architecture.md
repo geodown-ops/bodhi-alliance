@@ -141,7 +141,7 @@ flowchart TB
 - 合約 `contracts/BodhiCoin.sol`：ERC-20「菩提幣」BODHI，小數 2 位、總量 5 億全部鑄給金庫；只有「機構地址」（金庫、營運地址，之後的中心與共好企業）能收發，會員對會員的轉帳一律拒絕。`cd contracts && npm ci && npm run build` 會把 ABI 與 bytecode 寫進 `server/internal/chain/`。
 - `api` 服務設定 `BODHI_CHAIN_OPERATOR_KEY` 與 `BODHI_CHAIN_MEMBER_SEED` 後才啟用（見 deploy-railway.md）。第一次啟用時自己部署合約（測試鏈上營運地址兼金庫），之後每 20 秒替新會員（含既有會員）建立地址並送出入會贈幣，一筆確認後再送下一筆。
 - 會員私鑰不儲存，由 `BODHI_CHAIN_MEMBER_SEED` 和會員 id 推導；種子遺失就無法替會員簽名，要另外備份。
-- 資料表：`chain_setting`（合約地址）、`member_chain_account`、`chain_grant`（migration 009）。協助共修得到的菩提幣仍記在 `coin_ledger`，還沒上鏈。
+- 資料表：`chain_setting`（合約地址）、`member_chain_account`、`chain_grant`（migration 012）。協助共修得到的菩提幣仍記在 `coin_ledger`，還沒上鏈。
 
 ## 線上覺行小組 AI 組長
 
