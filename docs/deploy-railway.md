@@ -52,3 +52,17 @@
 
 免費方案（F0）每月 50 萬字；網站一次送一句，`/guide/tts` 每個 IP 有頻率限制，組長關閉或超過每月預算時也一併停用。
 
+
+## 菩提幣上鏈（api 服務）
+
+`api` 設定下面兩個金鑰後就會啟用入會贈幣上鏈；沒設定時個人頁不顯示鏈上區塊。金鑰只放在 Railway 變數，不要寫進程式碼庫。
+
+| 變數 | 預設 | 說明 |
+| --- | --- | --- |
+| `BODHI_CHAIN_OPERATOR_KEY` | （空，表示關閉） | 營運地址的私鑰（hex）。測試鏈上它也是金庫；地址要有一點 POL 付手續費 |
+| `BODHI_CHAIN_MEMBER_SEED` | （空，表示關閉） | 32 位元組以上的 hex 密鑰，會員地址由它推導；要另外備份，換掉會員地址就會變 |
+| `BODHI_CHAIN_RPC` | `https://rpc-amoy.polygon.technology` | 鏈的 JSON-RPC 節點 |
+| `BODHI_CHAIN_EXPLORER` | `https://amoy.polygonscan.com` | 區塊瀏覽器，個人頁的連結用 |
+| `BODHI_CHAIN_CONTRACT` | （空，表示自動部署） | 已部署的 BodhiCoin 地址；空的時候 api 自己部署一次並記在資料庫 |
+
+測試鏈的手續費用 Polygon 官方水龍頭（faucet.polygon.technology）領 Amoy POL 到營運地址。上 mainnet 前要換新的金鑰、改用多簽金庫，並等法務結論。

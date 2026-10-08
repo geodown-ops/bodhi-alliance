@@ -21,7 +21,7 @@ func TestVolunteersAndCenterAdmins(t *testing.T) {
 	if err := authSvc.Bootstrap(context.Background(), "admin@example.org", "a-long-admin-password"); err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(config.Config{}, authSvc)
+	r := NewRouter(config.Config{}, authSvc, nil)
 	admin := login(t, r, "admin@example.org", "a-long-admin-password")
 
 	newCenter := func(name string) string {

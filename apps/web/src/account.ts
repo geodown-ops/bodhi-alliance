@@ -53,6 +53,17 @@ export type AssociationFeed = {
   events: { id: string; title: string; starts_at: string; ends_at: string | null; location: string; description: string }[]
   notices: { id: string; title: string; body: string; created_at: string }[]
 }
+export type ChainGrant = { kind: string; amount: string; status: 'pending' | 'sent' | 'confirmed' | 'failed'; tx_hash: string; tx_url: string; confirmed_at: string | null }
+export type ChainAccount = {
+  enabled: boolean
+  network?: string
+  address?: string
+  address_url?: string
+  token_url?: string
+  contract_url?: string
+  balance?: string
+  grants?: ChainGrant[]
+}
 export type Wallet = { balance: number; entries: { amount: number; kind: string; memo: string; created_at: string }[] }
 
 const apiBase = import.meta.env.VITE_API_BASE ?? ''
@@ -140,6 +151,7 @@ export const me = {
   join: (groupId: string) => call('POST', `/api/me/groups/${groupId}`),
   leave: (groupId: string) => call('DELETE', `/api/me/groups/${groupId}`),
   wallet: () => call<Wallet>('GET', '/api/me/wallet'),
+  chain: () => call<ChainAccount>('GET', '/api/me/chain'),
   events: () => call<PracticeEvent[]>('GET', '/api/me/events'),
   createEvent: (body: Record<string, unknown>) => call<{ id: string }>('POST', '/api/me/events', body),
   joinEvent: (id: string, role: 'participant' | 'helper') => call('POST', `/api/me/events/${id}/join`, { role }),
