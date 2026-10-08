@@ -19,7 +19,7 @@ import (
 type Handler struct {
 	DB   *pgxpool.Pool
 	Auth *auth.Service
-	Svc  *Service // nil when the chain keys are not configured
+	Svc  *Holder // empty when the chain keys are not configured or the node is unreachable
 }
 
 func (h *Handler) Routes(r *gin.RouterGroup) {
@@ -36,11 +36,11 @@ type grantView struct {
 }
 
 func (h *Handler) myChain(c *gin.Context) {
-	if h.Svc == nil {
+	s := h.Svc.Get()
+	if s == nil {
 		c.JSON(http.StatusOK, gin.H{"enabled": false})
 		return
 	}
-	s := h.Svc
 	var vid, address string
 	err := h.DB.QueryRow(c, `
 		SELECT v.id, coalesce(a.address, '') FROM volunteer v
