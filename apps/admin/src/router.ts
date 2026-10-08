@@ -15,7 +15,7 @@ export const router = createRouter({
     { path: '/volunteers', component: () => import('./pages/VolunteersPage.vue'), meta: { center: true, title: '會員名冊' } },
     { path: '/knowledge', component: () => import('./pages/KnowledgePage.vue'), meta: { knowledge: true, title: '知識庫' } },
     { path: '/knowledge/:id', component: () => import('./pages/DocumentPage.vue'), meta: { knowledge: true, title: '知識文件' } },
-    { path: '/guide-settings', component: () => import('./pages/GuideSettingsPage.vue'), meta: { knowledge: true, title: 'AI 組長設定' } },
+    { path: '/guide-settings', component: () => import('./pages/GuideSettingsPage.vue'), meta: { knowledge: true, title: 'Sunny訓練設定' } },
     { path: '/users', component: () => import('./pages/UsersPage.vue'), meta: { admin: true, title: '帳號' } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

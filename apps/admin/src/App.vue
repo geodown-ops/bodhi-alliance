@@ -22,7 +22,7 @@ const items = computed(() => [
   ...(isKnowledgeManager()
     ? [
         { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
-        { to: '/guide-settings', label: 'AI 組長設定', icon: 'tune' },
+        { to: '/guide-settings', label: 'Sunny訓練設定', icon: 'tune' },
       ]
     : []),
   ...(isAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),

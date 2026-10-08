@@ -60,10 +60,10 @@ function restore(p: Persona) {
 
 <template>
   <q-page class="admin-page">
-    <h1>AI 組長設定</h1>
+    <h1>Sunny訓練設定</h1>
 
     <q-banner v-if="!configured" class="bg-orange-1 q-mb-md" rounded>
-      伺服器還沒有設定 ANTHROPIC_API_KEY，官網上的 AI 組長目前不會回答。知識庫仍可以先整理。
+      伺服器還沒有設定 ANTHROPIC_API_KEY，官網上的 Sunny 目前不會回答。知識庫仍可以先整理。
     </q-banner>
 
     <div class="row q-col-gutter-lg">

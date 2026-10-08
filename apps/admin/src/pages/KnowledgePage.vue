@@ -63,7 +63,7 @@ async function upload() {
       <q-btn color="secondary" unelevated no-caps icon="upload" label="上傳知識" @click="showUpload = true" />
     </div>
     <p class="text-grey-8">
-      上傳後是草稿，可以先在文件頁「試問」看 AI 組長會怎麼回答，確認沒問題再上架。只有「已上架」的文件會被 AI 組長使用。
+      上傳後是草稿，可以先在文件頁「試問」看 Sunny 會怎麼回答，確認沒問題再上架。只有「已上架」的文件會被 Sunny 使用。
       「共修腳本」是帶領共修用的流程，會出現在官網「帶我共修」的選單裡。
     </p>
     <q-table
