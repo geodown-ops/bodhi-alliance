@@ -18,7 +18,7 @@ const items = computed(() => [
         { to: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
       ]
     : []),
-  ...(isCenterStaff() ? [{ to: '/volunteers', label: '志工名冊', icon: 'badge' }] : []),
+  ...(isCenterStaff() ? [{ to: '/volunteers', label: '會員名冊', icon: 'badge' }] : []),
   ...(isKnowledgeManager()
     ? [
         { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
