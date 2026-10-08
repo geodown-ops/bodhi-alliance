@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanForSpeech, pickVoice, splitSentences } from '../voice'
+import { cleanForSpeech, fixPronunciation, pickVoice, splitSentences } from '../voice'
 
 describe('voice', () => {
   it('speaks finished sentences and keeps the unfinished half', () => {
@@ -12,6 +12,12 @@ describe('voice', () => {
   it('breaks a long sentence at a comma', () => {
     const long = '一'.repeat(70) + '，' + '二'.repeat(5)
     expect(splitSentences(long)).toEqual({ sentences: ['一'.repeat(70) + '，'], rest: '二'.repeat(5) })
+  })
+
+  it('reads 覺 as jué except in 睡覺', () => {
+    expect(fixPronunciation('歡迎加入覺行小組，覺察呼吸；睡覺前、午覺後也可以練')).toBe(
+      '歡迎加入絕行小組，絕察呼吸；睡覺前、午覺後也可以練',
+    )
   })
 
   it('does not read links, markdown or emoji aloud', () => {

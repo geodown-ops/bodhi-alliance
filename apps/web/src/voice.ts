@@ -30,6 +30,13 @@ export function cleanForSpeech(text: string): string {
     .trim()
 }
 
+// 語音引擎常把多音字唸錯，朗讀前換成同音字（畫面上的字不變）。
+// 「覺」在覺行、覺知、覺悟、感覺都唸 jué，常被唸成睡覺的 jiào；只有睡覺、午覺這類才唸 jiào。
+/** 把容易唸錯的字換成唸起來正確的同音字，只用在朗讀 */
+export function fixPronunciation(text: string): string {
+  return text.replace(/([睡午晚一]?)覺/g, (m, sleep: string) => (sleep ? m : '絕'))
+}
+
 // 優先挑臺灣華語，其次其他華語語音（不唸粵語）；同一種語言裡先挑自然的女聲：
 // Edge 的 HsiaoChen（Natural）、Chrome 的 Google 國語（臺灣）、Safari 的美佳
 const FEMALE = /HsiaoChen|HsiaoYu|Hanhan|Yating|Mei-?Jia|Tingting|Xiaoxiao|Xiaoyi|female|女/i
@@ -104,7 +111,7 @@ export function createVoice(hooks: VoiceHooks) {
 
   const sayCloud = (text: string) => {
     const gen = generation
-    const audio = cloud!(text)
+    const audio = cloud!(fixPronunciation(text))
       .then((b) => ctx!.decodeAudioData(b))
       .catch(() => null)
     queued++
@@ -140,7 +147,7 @@ export function createVoice(hooks: VoiceHooks) {
       after?.()
       return
     }
-    const u = new SpeechSynthesisUtterance(text)
+    const u = new SpeechSynthesisUtterance(fixPronunciation(text))
     if (v) u.voice = v
     u.lang = v?.lang ?? 'zh-TW'
     u.pitch = 1.05
