@@ -26,22 +26,26 @@ type Membership struct {
 }
 
 type Volunteer struct {
-	ID           string     `json:"id"`
-	UserID       string     `json:"user_id"`
-	Email        string     `json:"email"`
-	DisplayName  string     `json:"display_name"`
-	LegalName    string     `json:"legal_name"`
-	Phone        string     `json:"phone"`
-	LineID       string     `json:"line_id"`
-	HomeCenterID string     `json:"home_center_id"`
-	CenterName   string     `json:"center_name"`
-	WantsCoach   bool       `json:"wants_coach"`
-	IsCoach      bool       `json:"is_coach"`
-	Status       string     `json:"status"`
-	ReviewNote   string     `json:"review_note"`
-	VerifiedAt   *time.Time `json:"verified_at"`
-	Frozen       bool       `json:"frozen"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID           string `json:"id"`
+	UserID       string `json:"user_id"`
+	Email        string `json:"email"`
+	DisplayName  string `json:"display_name"`
+	LegalName    string `json:"legal_name"`
+	Phone        string `json:"phone"`
+	LineID       string `json:"line_id"`
+	HomeCenterID string `json:"home_center_id"`
+	CenterName   string `json:"center_name"`
+	WantsCoach   bool   `json:"wants_coach"`
+	IsCoach      bool   `json:"is_coach"`
+	// 覺行小組長：會員身分，後台會員名冊打勾設定
+	IsGroupLeader bool `json:"is_group_leader"`
+	// 菩提幣決策小組成員：會員身分，後台會員名冊打勾設定
+	IsCommittee bool       `json:"is_committee"`
+	Status      string     `json:"status"`
+	ReviewNote  string     `json:"review_note"`
+	VerifiedAt  *time.Time `json:"verified_at"`
+	Frozen      bool       `json:"frozen"`
+	CreatedAt   time.Time  `json:"created_at"`
 	// 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
 	InGroups            bool         `json:"in_groups"`
 	InAssociation       bool         `json:"in_association"`
@@ -51,7 +55,7 @@ type Volunteer struct {
 
 const volunteerSelect = `
 	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.line_id, coalesce(v.home_center_id::text, ''), coalesce(c.name, ''),
-	       v.wants_coach, v.is_coach, v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
+	       v.wants_coach, v.is_coach, v.is_group_leader, v.is_committee, v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
 	       v.in_groups, v.in_association, v.association_joined_at,
 	       coalesce((SELECT json_agg(json_build_object('group_id', g.id, 'name', g.name, 'role', m.role, 'joined_at', m.joined_at) ORDER BY m.joined_at)
 	                 FROM group_member m JOIN practice_group g ON g.id = m.group_id WHERE m.volunteer_id = v.id), '[]')
@@ -60,7 +64,7 @@ const volunteerSelect = `
 func scanVolunteer(row pgx.CollectableRow) (Volunteer, error) {
 	var v Volunteer
 	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.LineID, &v.HomeCenterID, &v.CenterName,
-		&v.WantsCoach, &v.IsCoach, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
+		&v.WantsCoach, &v.IsCoach, &v.IsGroupLeader, &v.IsCommittee, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
 		&v.InGroups, &v.InAssociation, &v.AssociationJoinedAt, &v.Groups)
 	return v, err
 }
@@ -386,10 +390,13 @@ func canManage(c *gin.Context, center string) bool {
 
 func (h *Handler) reviewVolunteer(c *gin.Context) {
 	var req struct {
-		Status     string `json:"status" binding:"required,oneof=pending verified rejected"`
-		IsCoach    bool   `json:"is_coach"`
-		ReviewNote string `json:"review_note" binding:"max=2000"`
-		Frozen     bool   `json:"frozen"`
+		Status  string `json:"status" binding:"required,oneof=pending verified rejected"`
+		IsCoach bool   `json:"is_coach"`
+		// 沒送就維持原值（舊版後台不會送這個欄位）
+		IsGroupLeader *bool  `json:"is_group_leader"`
+		IsCommittee   *bool  `json:"is_committee"`
+		ReviewNote    string `json:"review_note" binding:"max=2000"`
+		Frozen        bool   `json:"frozen"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		httpx.Error(c, http.StatusBadRequest, "狀態不正確")
@@ -409,11 +416,13 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 	}
 	_, err := h.DB.Exec(c, `
 		UPDATE volunteer SET status = $2, is_coach = $3, review_note = $4, updated_at = now(),
+		       is_group_leader = coalesce($7, is_group_leader),
+		       is_committee = coalesce($8, is_committee),
 		       verified_by = CASE WHEN $2 = 'verified' THEN coalesce(CASE WHEN status = 'verified' THEN verified_by END, $5) END,
 		       verified_at = CASE WHEN $2 = 'verified' THEN coalesce(CASE WHEN status = 'verified' THEN verified_at END, now()) END,
 		       qr_frozen_at = CASE WHEN $6 THEN coalesce(qr_frozen_at, now()) END
 		WHERE id = $1`,
-		c.Param("id"), req.Status, req.IsCoach, strings.TrimSpace(req.ReviewNote), auth.CurrentUser(c).ID, req.Frozen)
+		c.Param("id"), req.Status, req.IsCoach, strings.TrimSpace(req.ReviewNote), auth.CurrentUser(c).ID, req.Frozen, req.IsGroupLeader, req.IsCommittee)
 	if err != nil {
 		fail(c, err)
 		return

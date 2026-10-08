@@ -107,6 +107,16 @@ func TestVolunteersAndCenterAdmins(t *testing.T) {
 	if !strings.Contains(w.Body.String(), `"legal_name":"林美玲"`) || !strings.Contains(w.Body.String(), `"is_coach":true`) {
 		t.Errorf("members = %s", w.Body)
 	}
+	// 覺行小組長：打勾設定，之後不帶這個欄位的儲存不會把它清掉
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, tp, map[string]any{"status": "verified", "is_coach": true, "is_group_leader": true, "is_committee": true}); w.Code != http.StatusNoContent {
+		t.Fatalf("set group leader: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, tp, review); w.Code != http.StatusNoContent {
+		t.Fatalf("save without group leader: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/volunteers", tp, nil); !strings.Contains(w.Body.String(), `"is_group_leader":true`) || !strings.Contains(w.Body.String(), `"is_committee":true`) {
+		t.Errorf("group leader lost: %s", w.Body)
+	}
 	if w := call(t, r, http.MethodPut, "/api/admin/groups/"+group+"/members/"+me.ID, tp, map[string]string{"role": "leader"}); w.Code != http.StatusNoContent {
 		t.Errorf("make leader: %d %s", w.Code, w.Body)
 	}
