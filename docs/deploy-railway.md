@@ -55,14 +55,19 @@
 
 ## 菩提幣上鏈（api 服務）
 
-`api` 設定下面兩個金鑰後就會啟用入會贈幣上鏈；沒設定時個人頁不顯示鏈上區塊。金鑰只放在 Railway 變數，不要寫進程式碼庫。
+`api` 設定下面兩個金鑰後就會啟用入會贈幣上鏈；沒設定時個人頁不顯示鏈上區塊。金鑰只放在 Railway 變數，不要寫進程式碼庫，並另外備份一份。
 
 | 變數 | 預設 | 說明 |
 | --- | --- | --- |
-| `BODHI_CHAIN_OPERATOR_KEY` | （空，表示關閉） | 營運地址的私鑰（hex）。測試鏈上它也是金庫；地址要有一點 POL 付手續費 |
-| `BODHI_CHAIN_MEMBER_SEED` | （空，表示關閉） | 32 位元組以上的 hex 密鑰，會員地址由它推導；要另外備份，換掉會員地址就會變 |
-| `BODHI_CHAIN_RPC` | Polygon 官方、PublicNode、dRPC 三個 Amoy 公開節點 | 鏈的 JSON-RPC 節點，可用逗號列多個；連不上時每分鐘重試 |
-| `BODHI_CHAIN_EXPLORER` | `https://amoy.polygonscan.com` | 區塊瀏覽器，個人頁的連結用 |
+| `BODHI_CHAIN_NETWORK` | `amoy` | `amoy`（Polygon 測試鏈）或 `polygon`（Polygon 主網，要花真的 POL）。決定預設節點與區塊瀏覽器，並檢查節點真的在那條鏈上 |
+| `BODHI_CHAIN_OPERATOR_KEY` | （空，表示關閉） | 營運地址的私鑰（hex）。它也是金庫，合約部署時 5 億枚全部存在這裡；地址要有 POL 付手續費 |
+| `BODHI_CHAIN_MEMBER_SEED` | （空，表示關閉） | 32 位元組以上的 hex 密鑰，會員地址由它推導；換掉會員地址就會變 |
+| `BODHI_CHAIN_RPC` | 依網路預設三個公開節點 | 鏈的 JSON-RPC 節點，可用逗號列多個；連不上時每分鐘重試 |
+| `BODHI_CHAIN_EXPLORER` | 依網路：`https://amoy.polygonscan.com` 或 `https://polygonscan.com` | 區塊瀏覽器，個人頁與菩提幣介紹頁的連結用 |
 | `BODHI_CHAIN_CONTRACT` | （空，表示自動部署） | 已部署的 BodhiCoin 地址；空的時候 api 自己部署一次並記在資料庫 |
 
-測試鏈的手續費用 Polygon 官方水龍頭（faucet.polygon.technology）領 Amoy POL 到營運地址。上 mainnet 前要換新的金鑰、改用多簽金庫，並等法務結論。
+換鏈時會員在新鏈上各有新的地址與一筆入會贈幣，舊鏈的紀錄保留在資料庫（`chain_id` 分開）。主網上每單位 gas 超過 500 gwei 時暫停發送，等手續費回落再送。
+
+### 手續費估算
+
+在模擬鏈上量到：部署合約約 130 萬 gas，每筆入會贈幣上限約 15 萬 gas（實際通常更少）。以 Polygon 主網每單位 50 gwei 計，部署約 0.065 POL，每位會員約 0.0075 POL；營運地址先放 5 POL 約可部署並發給 600 位以上會員。
