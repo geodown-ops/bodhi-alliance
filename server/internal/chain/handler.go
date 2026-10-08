@@ -23,7 +23,23 @@ type Handler struct {
 }
 
 func (h *Handler) Routes(r *gin.RouterGroup) {
+	r.GET("/chain", h.publicInfo)
 	r.GET("/me/chain", h.Auth.RequireUser(), h.myChain)
+}
+
+// publicInfo tells the 菩提幣介紹 page which chain and contract to point visitors to.
+func (h *Handler) publicInfo(c *gin.Context) {
+	s := h.Svc.Get()
+	if s == nil {
+		c.JSON(http.StatusOK, gin.H{"enabled": false})
+		return
+	}
+	out := gin.H{"enabled": true, "chain_id": s.ChainID.Int64(), "network": NetworkName(s.ChainID.Int64()), "explorer": s.Explorer}
+	if contract := s.Contract(); contract != (common.Address{}) {
+		out["contract"] = contract.Hex()
+		out["contract_url"] = s.Explorer + "/token/" + contract.Hex()
+	}
+	c.JSON(http.StatusOK, out)
 }
 
 type grantView struct {

@@ -91,6 +91,10 @@ func TestJoinGiftOnChain(t *testing.T) {
 	if svc.Contract() == (common.Address{}) {
 		t.Fatal("token was not deployed")
 	}
+	if w := call(t, r, http.MethodGet, "/api/chain", "", nil); w.Code != http.StatusOK ||
+		!strings.Contains(w.Body.String(), `"contract_url":"https://explorer.test/token/`+svc.Contract().Hex()+`"`) {
+		t.Errorf("public chain info: %d %s", w.Code, w.Body)
+	}
 	// A second run neither redeploys nor gives twice.
 	deployed := svc.Contract()
 	if err := svc.Step(ctx); err != nil {
