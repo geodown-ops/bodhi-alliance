@@ -10,6 +10,7 @@ import {
   publicEvents,
   publicVenues,
   type AssociationFeed,
+  type ChainAccount,
   type PracticeEvent,
   type Venue,
   type Volunteer,
@@ -25,6 +26,18 @@ const groups = ref<Group[]>([])
 const myEvents = ref<PracticeEvent[]>([])
 const openEvents = ref<PracticeEvent[]>([])
 const kind = ref<'all' | 'online' | 'offline'>('all')
+const chainAcct = ref<ChainAccount>({ enabled: false })
+const joinGift = computed(() => chainAcct.value.grants?.find((g) => g.kind === 'join'))
+const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+const giftStatus = { pending: '排隊上鏈中', sent: '上鏈中', confirmed: '已上鏈', failed: '上鏈失敗，管理員會處理' }
+async function copyAddress() {
+  try {
+    await navigator.clipboard.writeText(chainAcct.value.address ?? '')
+    Notify.create({ type: 'positive', message: '已複製鏈上地址' })
+  } catch {
+    Notify.create({ type: 'negative', message: '無法複製，請手動選取地址' })
+  }
+}
 const feed = ref<AssociationFeed>({ issues: [], events: [], notices: [] })
 const notVolunteer = ref(false)
 const loading = ref(true)
@@ -47,13 +60,14 @@ async function load() {
   const p = profile.value
   const none = Promise.reject()
   none.catch(() => {})
-  const [w, mine, open, g, v, f] = await Promise.allSettled([
+  const [w, mine, open, g, v, f, ch] = await Promise.allSettled([
     p.in_groups ? me.wallet() : none,
     p.in_groups ? me.events() : none,
     p.in_groups ? publicEvents() : none,
     p.in_groups ? api.groups() : none,
     p.in_groups ? publicVenues() : none,
     p.in_association ? me.association() : none,
+    me.chain(),
   ])
   if (w.status === 'fulfilled') wallet.value = w.value
   if (mine.status === 'fulfilled') myEvents.value = mine.value
@@ -61,6 +75,7 @@ async function load() {
   if (g.status === 'fulfilled') groups.value = g.value
   if (v.status === 'fulfilled') venues.value = v.value
   if (f.status === 'fulfilled') feed.value = f.value
+  if (ch.status === 'fulfilled') chainAcct.value = ch.value
   loading.value = false
 }
 
@@ -340,6 +355,38 @@ async function signOut() {
             </div>
           </q-toggle>
         </div>
+      </div>
+
+      <div v-if="chainAcct.enabled" class="card q-mt-lg">
+        <h2 class="q-mt-none q-mb-xs">鏈上菩提幣</h2>
+        <p class="text-caption q-mb-md">
+          每位會員入會都會得到 1 枚菩提幣，記錄在區塊鏈上，任何人都能在公開的區塊瀏覽器查到。地址由平台替你保管，會員之間不能互轉。
+        </p>
+        <template v-if="chainAcct.address">
+          <div class="chain-grid">
+            <div>
+              <div class="text-caption">鏈上餘額</div>
+              <div class="balance">{{ chainAcct.balance ?? '—' }} <span>菩提幣</span></div>
+            </div>
+            <div>
+              <div class="text-caption">入會贈幣</div>
+              <div class="q-mt-xs">
+                {{ joinGift?.amount ?? '1.00' }} 枚
+                <span class="status-chip q-ml-sm">{{ giftStatus[joinGift?.status ?? 'pending'] }}</span>
+              </div>
+              <a v-if="joinGift?.tx_url" :href="joinGift.tx_url" target="_blank" rel="noopener" class="text-caption">查看這筆交易</a>
+            </div>
+            <div>
+              <div class="text-caption">我的鏈上地址</div>
+              <div class="q-mt-xs row items-center no-wrap">
+                <a :href="chainAcct.token_url ?? chainAcct.address_url" target="_blank" rel="noopener" class="mono" :title="chainAcct.address">{{ shortAddr(chainAcct.address) }}</a>
+                <q-btn flat dense round size="sm" icon="content_copy" aria-label="複製地址" @click="copyAddress" />
+              </div>
+              <div class="text-caption">{{ chainAcct.network }}</div>
+            </div>
+          </div>
+        </template>
+        <p v-else class="q-mb-none">正在為你建立鏈上地址，入會贈幣 1 枚稍後入帳。</p>
       </div>
 
       <template v-if="profile.in_association">
@@ -625,6 +672,19 @@ async function signOut() {
   .assoc {
     grid-template-columns: 1fr;
   }
+}
+.chain-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .chain-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 .balance {
   font-size: 2.2rem;

@@ -136,6 +136,13 @@ flowchart TB
 
 如果之後希望每位志工都有自己的鏈上錢包，SPEC §4.8 已預留開放路徑，但會碰到 Q19（多用途支付工具）的法務問題，建議先維持現行設計。
 
+**2026-10-08 更新（Geodown）：入會贈幣上鏈。** 每位系統會員都有一個平台保管的鏈上地址，入會時金庫轉 1 枚菩提幣給他，個人頁顯示地址與交易，連到公開的區塊瀏覽器。這改變了上面「志工沒有個人鏈上地址」；上 mainnet 前要先確認 Q19。目前只在 Polygon Amoy 測試鏈運作：
+
+- 合約 `contracts/BodhiCoin.sol`：ERC-20「菩提幣」BODHI，小數 2 位、總量 5 億全部鑄給金庫；只有「機構地址」（金庫、營運地址，之後的中心與共好企業）能收發，會員對會員的轉帳一律拒絕。`cd contracts && npm ci && npm run build` 會把 ABI 與 bytecode 寫進 `server/internal/chain/`。
+- `api` 服務設定 `BODHI_CHAIN_OPERATOR_KEY` 與 `BODHI_CHAIN_MEMBER_SEED` 後才啟用（見 deploy-railway.md）。第一次啟用時自己部署合約（測試鏈上營運地址兼金庫），之後每 20 秒替新會員（含既有會員）建立地址並送出入會贈幣，一筆確認後再送下一筆。
+- 會員私鑰不儲存，由 `BODHI_CHAIN_MEMBER_SEED` 和會員 id 推導；種子遺失就無法替會員簽名，要另外備份。
+- 資料表：`chain_setting`（合約地址）、`member_chain_account`、`chain_grant`（migration 012）。協助共修得到的菩提幣仍記在 `coin_ledger`，還沒上鏈。
+
 ## 線上覺行小組 AI 組長
 
 目前的原型是使用者電腦上的 bodhi-guide（localhost:8080/#guide，打包成 bodhi-guide.exe，金鑰放在本機 .env），已改名為「覺行小組線上組長 Sunny」。正式版把它搬上伺服器，原型的角色設定與知識庫內容直接沿用。
