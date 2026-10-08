@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PasswordInput from '../components/PasswordInput.vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api'
@@ -30,7 +31,7 @@ async function submit() {
     <h1>登入</h1>
     <q-form class="card q-gutter-md" @submit.prevent="submit">
       <q-input v-model="email" type="email" label="電子郵件" autocomplete="username" outlined />
-      <q-input v-model="password" type="password" label="密碼" autocomplete="current-password" outlined />
+      <PasswordInput v-model="password" label="密碼" autocomplete="current-password" outlined />
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
       <q-btn type="submit" color="secondary" unelevated no-caps size="lg" :loading="loading" label="登入" />
     </q-form>

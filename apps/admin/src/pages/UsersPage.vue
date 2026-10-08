@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PasswordInput from '../components/PasswordInput.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Dialog, Notify } from 'quasar'
 import { api, session, type User } from '../session'
@@ -68,7 +69,7 @@ function disable(u: User) {
         <q-card-section class="q-gutter-md">
           <q-input v-model="form.display_name" label="名稱" outlined dense />
           <q-input v-model="form.email" type="email" label="電子郵件" outlined dense />
-          <q-input v-model="form.password" type="password" label="初始密碼（至少 10 個字元）" outlined dense />
+          <PasswordInput v-model="form.password" label="初始密碼（至少 10 個字元）" outlined dense />
           <q-select
             v-model="form.role"
             :options="[
