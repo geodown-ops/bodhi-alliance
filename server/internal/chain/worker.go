@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -29,7 +30,8 @@ type Service struct {
 	ChainID  *big.Int
 	operator *ecdsa.PrivateKey
 	seed     []byte
-	contract common.Address // zero until deployed or configured
+	mu       sync.RWMutex
+	contract common.Address // zero until deployed or configured; guarded by mu
 
 	// ReceiptWait bounds how long one transaction is waited on before moving on.
 	ReceiptWait time.Duration
@@ -57,13 +59,23 @@ func New(ctx context.Context, db *pgxpool.Pool, b Backend, cfg Config) (*Service
 		if !common.IsHexAddress(cfg.Contract) {
 			return nil, errors.New("BODHI_CHAIN_CONTRACT is not an address")
 		}
-		s.contract = common.HexToAddress(cfg.Contract)
+		s.setContract(common.HexToAddress(cfg.Contract))
 	}
 	return s, nil
 }
 
 func (s *Service) Operator() common.Address { return crypto.PubkeyToAddress(s.operator.PublicKey) }
-func (s *Service) Contract() common.Address { return s.contract }
+func (s *Service) Contract() common.Address {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.contract
+}
+
+func (s *Service) setContract(a common.Address) {
+	s.mu.Lock()
+	s.contract = a
+	s.mu.Unlock()
+}
 
 func (s *Service) settingKey(name string) string { return name + ":" + s.ChainID.String() }
 
@@ -111,13 +123,13 @@ func (s *Service) Step(ctx context.Context) error {
 
 // ensureContract loads the token address, or deploys BodhiCoin with the operator as treasury.
 func (s *Service) ensureContract(ctx context.Context) error {
-	if s.contract != (common.Address{}) {
+	if s.Contract() != (common.Address{}) {
 		return nil
 	}
 	var addr string
 	err := s.DB.QueryRow(ctx, `SELECT value FROM chain_setting WHERE key = $1`, s.settingKey("contract")).Scan(&addr)
 	if err == nil {
-		s.contract = common.HexToAddress(addr)
+		s.setContract(common.HexToAddress(addr))
 		return nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
@@ -166,8 +178,8 @@ func (s *Service) ensureContract(ctx context.Context) error {
 	if _, err := s.DB.Exec(ctx, `INSERT INTO chain_setting (key, value) VALUES ($1, $2)`, s.settingKey("contract"), rcpt.ContractAddress.Hex()); err != nil {
 		return err
 	}
-	s.contract = rcpt.ContractAddress
-	log.Printf("chain: BodhiCoin at %s", s.contract.Hex())
+	s.setContract(rcpt.ContractAddress)
+	log.Printf("chain: BodhiCoin at %s", rcpt.ContractAddress.Hex())
 	return nil
 }
 
@@ -245,7 +257,7 @@ func (s *Service) sendPending(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		contract := s.contract
+		contract := s.Contract()
 		tx, err := s.send(ctx, &contract, data)
 		if err != nil {
 			s.DB.Exec(ctx, `UPDATE chain_grant SET last_error = $2 WHERE id = $1`, id, truncate(err.Error()))
@@ -365,14 +377,14 @@ func (s *Service) send(ctx context.Context, to *common.Address, data []byte) (*t
 
 // BalanceOf reads an address's 菩提幣 balance (smallest units) straight from the chain.
 func (s *Service) BalanceOf(ctx context.Context, addr common.Address) (*big.Int, error) {
-	if s.contract == (common.Address{}) {
+	contract := s.Contract()
+	if contract == (common.Address{}) {
 		return nil, errors.New("token not deployed yet")
 	}
 	data, err := tokenABI.Pack("balanceOf", addr)
 	if err != nil {
 		return nil, err
 	}
-	contract := s.contract
 	out, err := s.Backend.CallContract(ctx, ethereum.CallMsg{To: &contract, Data: data}, nil)
 	if err != nil {
 		return nil, err

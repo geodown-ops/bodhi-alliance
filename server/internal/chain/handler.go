@@ -55,17 +55,18 @@ func (h *Handler) myChain(c *gin.Context) {
 		return
 	}
 	out := gin.H{"enabled": true, "chain_id": s.ChainID.Int64(), "network": NetworkName(s.ChainID.Int64()), "address": address, "grants": []grantView{}}
-	if s.contract != (common.Address{}) {
-		out["contract"] = s.contract.Hex()
-		out["contract_url"] = s.Explorer + "/token/" + s.contract.Hex()
+	contract := s.Contract()
+	if contract != (common.Address{}) {
+		out["contract"] = contract.Hex()
+		out["contract_url"] = s.Explorer + "/token/" + contract.Hex()
 	}
 	if address == "" {
 		c.JSON(http.StatusOK, out)
 		return
 	}
 	out["address_url"] = s.Explorer + "/address/" + address
-	if s.contract != (common.Address{}) {
-		out["token_url"] = s.Explorer + "/token/" + s.contract.Hex() + "?a=" + address
+	if contract != (common.Address{}) {
+		out["token_url"] = s.Explorer + "/token/" + contract.Hex() + "?a=" + address
 	}
 
 	rows, err := h.DB.Query(c, `SELECT kind, amount, status, coalesce(tx_hash, ''), confirmed_at
