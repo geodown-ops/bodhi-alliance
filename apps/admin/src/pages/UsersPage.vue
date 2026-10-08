@@ -73,7 +73,7 @@ function disable(u: User) {
           <q-select
             v-model="form.role"
             :options="[
-              { label: '知識管理員：只能管理 AI 組長與知識庫', value: 'knowledge_manager' },
+              { label: '知識管理員：只能管理 Sunny 訓練設定與知識庫', value: 'knowledge_manager' },
               { label: '中心管理員：核可自己中心的志工、管理小組成員', value: 'center_admin' },
               { label: '超級管理員：全部功能', value: 'alliance_admin' },
             ]"
