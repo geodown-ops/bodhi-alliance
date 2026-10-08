@@ -62,7 +62,7 @@
 | `BODHI_CHAIN_NETWORK` | `amoy` | `amoy`（Polygon 測試鏈）或 `polygon`（Polygon 主網，要花真的 POL）。決定預設節點與區塊瀏覽器，並檢查節點真的在那條鏈上 |
 | `BODHI_CHAIN_OPERATOR_KEY` | （空，表示關閉） | 營運地址的私鑰（hex）。它也是金庫，合約部署時 5 億枚全部存在這裡；地址要有 POL 付手續費 |
 | `BODHI_CHAIN_MEMBER_SEED` | （空，表示關閉） | 32 位元組以上的 hex 密鑰，會員地址由它推導；換掉會員地址就會變 |
-| `BODHI_CHAIN_RPC` | 依網路預設三個公開節點 | 鏈的 JSON-RPC 節點，可用逗號列多個；連不上時每分鐘重試 |
+| `BODHI_CHAIN_RPC` | 依網路預設的公開節點（主網四個、測試鏈兩個） | 鏈的 JSON-RPC 節點，可用逗號列多個；某個節點出錯或逾時，就自動改用下一個；全部連不上時每分鐘重試 |
 | `BODHI_CHAIN_EXPLORER` | 依網路：`https://amoy.polygonscan.com` 或 `https://polygonscan.com` | 區塊瀏覽器，個人頁與菩提幣介紹頁的連結用 |
 | `BODHI_CHAIN_CONTRACT` | （空，表示自動部署） | 已部署的 BodhiCoin 地址；空的時候 api 自己部署一次並記在資料庫 |
 

@@ -5,7 +5,7 @@ import "testing"
 func TestNetworkPresets(t *testing.T) {
 	t.Setenv("BODHI_CHAIN_NETWORK", "polygon")
 	c := ConfigFromEnv()
-	if c.ChainID != 137 || c.ExplorerURL != "https://polygonscan.com" || len(c.RPCs()) != 3 {
+	if c.ChainID != 137 || c.ExplorerURL != "https://polygonscan.com" || len(c.RPCs()) != 4 {
 		t.Errorf("polygon preset = %+v", c)
 	}
 	t.Setenv("BODHI_CHAIN_NETWORK", "")

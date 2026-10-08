@@ -351,18 +351,18 @@ func (s *Service) send(ctx context.Context, to *common.Address, data []byte) (*t
 	from := s.Operator()
 	nonce, err := s.Backend.PendingNonceAt(ctx, from)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("nonce: %w", err)
 	}
 	tip, err := s.Backend.SuggestGasTipCap(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("gas tip: %w", err)
 	}
 	if floor := minTipFloor[s.ChainID.Int64()]; floor != nil && tip.Cmp(floor) < 0 {
 		tip = new(big.Int).Set(floor)
 	}
 	head, err := s.Backend.HeaderByNumber(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("latest block: %w", err)
 	}
 	feeCap := new(big.Int).Add(tip, new(big.Int).Mul(head.BaseFee, big.NewInt(2)))
 	if limit := maxFee[s.ChainID.Int64()]; limit != nil && feeCap.Cmp(limit) > 0 {
@@ -384,7 +384,7 @@ func (s *Service) send(ctx context.Context, to *common.Address, data []byte) (*t
 		return nil, err
 	}
 	if err := s.Backend.SendTransaction(ctx, signed); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("send: %w", err)
 	}
 	return signed, nil
 }
