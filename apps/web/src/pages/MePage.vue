@@ -187,7 +187,23 @@ function pad(n: number) {
 function localInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
-const draft = reactive({ title: '', is_online: false, venue_id: null as string | null, location: '', starts_at: '', ends_at: '', capacity: 6, description: '' })
+const draft = reactive({ title: '', is_online: false, venue_id: null as string | null, location: '', date: '', start: '', end: '', capacity: 6, description: '' })
+// 時間一律 24 小時制（HH:mm）；選了開始時間，結束自動帶開始 +2 小時
+const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
+const timeRule = (v: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v) || '請用 24 小時制，例如 19:00'
+function pickStart(v: string | null) {
+  draft.start = v ?? ''
+  if (timeRule(draft.start) !== true) return
+  const [h, m] = draft.start.split(':').map(Number)
+  draft.end = hhmm(new Date(2000, 0, 1, h + 2, m))
+}
+// 組成開始／結束時刻；結束時間早於開始，就當作隔天
+function eventRange() {
+  const s = new Date(`${draft.date.replace(/\//g, '-')}T${draft.start}`)
+  const e = new Date(`${draft.date.replace(/\//g, '-')}T${draft.end}`)
+  if (e <= s) e.setDate(e.getDate() + 1)
+  return { s, e }
+}
 const venueOptions = computed(() => venues.value.map((v) => ({ label: `${v.name}（${v.center_name}）`, value: v.id })))
 // 選了場域，地點自動帶場域地址（還可以再改）
 function pickVenue(id: string | null) {
@@ -204,8 +220,9 @@ function startCreate() {
     is_online: false,
     venue_id: null,
     location: '',
-    starts_at: localInput(s),
-    ends_at: localInput(new Date(s.getTime() + 90 * 60 * 1000)),
+    date: localInput(s).slice(0, 10).replace(/-/g, '/'),
+    start: hhmm(s),
+    end: hhmm(new Date(s.getTime() + 2 * 3600 * 1000)),
     capacity: 6,
     description: '',
   })
@@ -213,12 +230,14 @@ function startCreate() {
 }
 async function create() {
   try {
+    const { date: _d, start: _s, end: _e, ...rest } = draft
+    const { s, e } = eventRange()
     await me.createEvent({
-      ...draft,
+      ...rest,
       venue_id: draft.is_online ? '' : (draft.venue_id ?? ''),
       capacity: Number(draft.capacity),
-      starts_at: new Date(draft.starts_at).toISOString(),
-      ends_at: new Date(draft.ends_at).toISOString(),
+      starts_at: s.toISOString(),
+      ends_at: e.toISOString(),
     })
     creating.value = false
     Notify.create({ type: 'positive', message: '活動已發起，覺行小組頁上看得到' })
@@ -470,14 +489,15 @@ async function signOut() {
     <q-dialog v-model="creating">
       <q-card style="width: 560px; max-width: 95vw">
         <q-form @submit.prevent="create">
-          <q-card-section>
+          <q-card-section class="q-pb-none">
             <div class="text-h6">發起共修活動</div>
             <div class="text-caption">三人以上（含你自己）就可以進行一次正念減壓實作。</div>
           </q-card-section>
-          <q-card-section class="q-gutter-md">
-            <q-input v-model="draft.title" label="活動名稱 *" outlined dense :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
+          <q-card-section class="create-form">
+            <q-input v-model="draft.title" label="活動名稱 *" outlined dense hide-bottom-space :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
             <q-btn-toggle
               v-model="draft.is_online"
+              class="self-start mode-toggle"
               no-caps
               unelevated
               toggle-color="secondary"
@@ -494,7 +514,7 @@ async function signOut() {
               map-options
               clearable
               label="活動場域"
-              hint="選了場域，活動會列在覺行小組頁的這個場域底下；也可以不選，自己填地點"
+              hint="選了場域，活動會列在覺行小組頁的場域底下；不選也可以，自己填地點"
               outlined
               dense
               @update:model-value="pickVenue"
@@ -502,16 +522,45 @@ async function signOut() {
             <q-input
               v-model="draft.location"
               :label="draft.is_online ? '會議連結或集合方式 *' : '地點 *'"
-              :hint="draft.is_online ? '只有報名的人看得到' : ''"
+              :hint="draft.is_online ? '只有報名的人看得到' : undefined"
               outlined
               dense
+              hide-bottom-space
               :rules="[(v) => !!v.trim() || '請填寫地點']"
             />
-            <div class="row q-col-gutter-sm">
-              <q-input v-model="draft.starts_at" type="datetime-local" label="開始 *" stack-label outlined dense class="col-12 col-sm-6" />
-              <q-input v-model="draft.ends_at" type="datetime-local" label="結束 *" stack-label outlined dense class="col-12 col-sm-6" />
+            <div class="time-row">
+              <q-input v-model="draft.date" label="日期 *" stack-label outlined dense readonly class="cursor-pointer date-field">
+                <template #append><q-icon name="event" /></template>
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="draft.date" mask="YYYY/MM/DD" minimal>
+                    <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-input>
+              <q-input :model-value="draft.start" label="開始 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space @update:model-value="(v) => pickStart(String(v ?? ''))">
+                <template #append>
+                  <q-icon name="schedule" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-time :model-value="draft.start" format24h :minute-options="[0, 15, 30, 45]" @update:model-value="pickStart">
+                        <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                      </q-time>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+              <q-input v-model="draft.end" label="結束 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space :hint="draft.end && draft.end <= draft.start ? '隔天結束' : undefined">
+                <template #append>
+                  <q-icon name="schedule" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-time v-model="draft.end" format24h :minute-options="[0, 15, 30, 45]">
+                        <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                      </q-time>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
             </div>
-            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" />
+            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" hide-bottom-space />
             <q-input v-model="draft.description" type="textarea" autogrow label="說明" hint="例如：帶一張瑜伽墊、第一次參加也歡迎" outlined dense />
           </q-card-section>
           <q-card-actions align="right">
@@ -585,5 +634,32 @@ async function signOut() {
 .balance span {
   font-size: 1rem;
   color: var(--ink-soft);
+}
+/* 日期欄點了會跳出月曆；不要顯示成唯讀的虛線框 */
+.date-field :deep(.q-field__control:before) {
+  border-style: solid;
+}
+/* 發起共修表單：欄位等距排列，日期／開始／結束同一列（手機上日期獨佔一列） */
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mode-toggle {
+  border: 1px solid rgba(0, 0, 0, 0.24);
+}
+.time-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 599px) {
+  .time-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .time-row .date-field {
+    grid-column: 1 / -1;
+  }
 }
 </style>
