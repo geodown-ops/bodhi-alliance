@@ -50,7 +50,7 @@ export type Venue = { id: string; name: string; center_name: string; region: str
 // 協會會員看得到的會刊、行事曆與通知
 export type AssociationFeed = {
   issues: { id: string; title: string; issued_on: string; summary: string; url: string }[]
-  events: { id: string; title: string; starts_at: string; ends_at: string | null; location: string; description: string }[]
+  events: { id: string; title: string; starts_at: string; ends_at: string | null; location: string; description: string; kind: string; tag_name: string }[]
   notices: { id: string; title: string; body: string; created_at: string }[]
 }
 export type ChainGrant = { kind: string; amount: string; status: 'pending' | 'sent' | 'confirmed' | 'failed'; tx_hash: string; tx_url: string; confirmed_at: string | null }

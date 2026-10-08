@@ -16,6 +16,8 @@ import {
   type Volunteer,
   type Wallet,
 } from '../account'
+import CalendarBoard from '../../../shared/calendar/CalendarBoard.vue'
+import { kindOf, rangeText, type CalEvent, type CalView } from '../../../shared/calendar/cal'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,6 +129,28 @@ const now = Date.now()
 const ended = (e: PracticeEvent) => new Date(e.ends_at).getTime() <= now
 
 const roleText = { organizer: '發起人', helper: '協辦', participant: '參加' } as const
+
+// 我的行事曆（照 dengo 的日程表）：協會行程、我參加或發起的共修、還可以報名的共修放在同一個行事曆
+const calView = ref<CalView>('list')
+const calShow = reactive({ assoc: true, mine: true, open: true })
+type CalItem = { kind: 'assoc'; e: AssociationFeed['events'][number] } | { kind: 'mine' | 'open'; e: PracticeEvent }
+const calItems = computed(() => {
+  const items = new Map<string, CalItem>()
+  if (calShow.assoc) for (const e of feed.value.events) items.set('a' + e.id, { kind: 'assoc', e })
+  if (calShow.mine) for (const e of myEvents.value) if (e.status === 'open') items.set('m' + e.id, { kind: 'mine', e })
+  if (calShow.open) for (const e of openEvents.value) if (!joinedEvents.value.has(e.id)) items.set('o' + e.id, { kind: 'open', e })
+  return items
+})
+const calEvents = computed<CalEvent[]>(() =>
+  [...calItems.value].map(([id, it]) => {
+    const base = { id, title: it.e.title, start: it.e.starts_at, end: it.e.ends_at, location: it.e.location, description: it.e.description }
+    if (it.kind === 'assoc')
+      return { ...base, color: kindOf(it.e.kind).color, prefix: '協會', badge: it.e.tag_name ? `#${it.e.tag_name}` : undefined }
+    if (it.kind === 'mine') return { ...base, color: '#426631', bg: '#eef4e8', prefix: roleText[it.e.my_role!] }
+    return { ...base, color: '#8dae78', dashed: true, prefix: '可報名', location: it.e.is_online ? '線上' : it.e.location }
+  }),
+)
+const calOpen = ref<CalItem | null>(null)
 function claimText(e: PracticeEvent) {
   if (e.status === 'cancelled') return '已取消'
   switch (e.claim_status) {
@@ -389,6 +413,42 @@ async function signOut() {
         <p v-else class="q-mb-none">正在為你建立鏈上地址，入會贈幣 1 枚稍後入帳。</p>
       </div>
 
+      <h2>我的行事曆</h2>
+      <CalendarBoard v-model:view="calView" :events="calEvents" :empty-text="profile.in_groups ? '還沒有行程。從下面挑一場共修參加，或自己發起一場。' : '近期沒有排定的協會活動。'" @select="(id) => (calOpen = calItems.get(id) ?? null)">
+        <template v-if="profile.in_groups" #filters>
+          <div class="row items-center cal-legend">
+            <q-checkbox v-if="profile.in_association" v-model="calShow.assoc" dense label="協會" color="secondary" />
+            <q-checkbox v-model="calShow.mine" dense label="我的共修" color="secondary" />
+            <q-checkbox v-model="calShow.open" dense label="可報名" color="secondary" />
+          </div>
+        </template>
+      </CalendarBoard>
+
+      <q-dialog :model-value="!!calOpen" @update:model-value="calOpen = null">
+        <q-card v-if="calOpen" style="width: 480px; max-width: 95vw">
+          <q-card-section>
+            <div class="row q-gutter-xs q-mb-sm">
+              <span class="status-chip">{{ calOpen.kind === 'assoc' ? '協會' : calOpen.kind === 'mine' ? roleText[calOpen.e.my_role!] : '可報名' }}</span>
+              <span v-if="calOpen.kind === 'assoc'" class="status-chip">{{ kindOf(calOpen.e.kind).label }}</span>
+              <span v-if="calOpen.kind === 'assoc' && calOpen.e.tag_name" class="status-chip">#{{ calOpen.e.tag_name }}</span>
+              <span v-if="calOpen.kind !== 'assoc'" class="status-chip">{{ calOpen.e.is_online ? '線上' : '線下' }}</span>
+            </div>
+            <div class="text-h6">{{ calOpen.e.title }}</div>
+            <div class="q-mt-xs">{{ rangeText(calOpen.e.starts_at, calOpen.e.ends_at) }}</div>
+            <div v-if="calOpen.e.location">{{ calOpen.kind !== 'assoc' && calOpen.e.venue_name ? `${calOpen.e.venue_name} · ` : '' }}{{ calOpen.e.location }}</div>
+            <div v-if="calOpen.kind !== 'assoc'" class="text-caption q-mt-xs">發起人 {{ calOpen.e.organizer_name }} · 已報名 {{ calOpen.e.joined }}／{{ calOpen.e.capacity }} 人</div>
+            <p v-if="calOpen.e.description" class="pre q-mt-sm q-mb-none">{{ calOpen.e.description }}</p>
+          </q-card-section>
+          <q-card-actions align="right">
+            <template v-if="calOpen.kind === 'open' && calOpen.e.joined < calOpen.e.capacity">
+              <q-btn flat color="secondary" no-caps label="我來協辦" @click="joinEvent(calOpen.e, 'helper'), (calOpen = null)" />
+              <q-btn outline color="secondary" no-caps label="報名參加" @click="joinEvent(calOpen.e, 'participant'), (calOpen = null)" />
+            </template>
+            <q-btn flat no-caps label="關閉" @click="calOpen = null" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <template v-if="profile.in_association">
         <h2>世界佛教教育協會</h2>
         <div class="assoc">
@@ -399,16 +459,6 @@ async function signOut() {
               <div class="text-caption">{{ day(n.created_at) }}</div>
               <div class="text-weight-bold">{{ n.title }}</div>
               <p v-if="n.body" class="q-mb-none pre">{{ n.body }}</p>
-            </div>
-          </div>
-          <div class="card">
-            <h3 class="q-mt-none">會員行事曆</h3>
-            <p v-if="!feed.events.length" class="q-mb-none">近期沒有排定的協會活動。</p>
-            <div v-for="e in feed.events" :key="e.id" class="item">
-              <div class="text-caption">{{ e.ends_at ? eventTime({ starts_at: e.starts_at, ends_at: e.ends_at }) : day(e.starts_at) }}</div>
-              <div class="text-weight-bold">{{ e.title }}</div>
-              <div v-if="e.location" class="text-caption">{{ e.location }}</div>
-              <p v-if="e.description" class="q-mb-none pre">{{ e.description }}</p>
             </div>
           </div>
           <div class="card">
@@ -657,7 +707,10 @@ async function signOut() {
 .assoc {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cal-legend {
+  gap: 4px 12px;
 }
 .item + .item {
   margin-top: 12px;
