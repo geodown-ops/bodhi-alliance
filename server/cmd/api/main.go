@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -52,7 +53,8 @@ func main() {
 }
 
 // startChain connects to the chain in the background when its keys are configured,
-// retrying every minute across the listed nodes, then runs the 菩提幣 worker.
+// retrying every minute until one of the listed nodes answers, then runs the 菩提幣
+// worker. The worker's calls fail over between the nodes from then on.
 func startChain(pool *pgxpool.Pool) *chain.Holder {
 	cc := chain.ConfigFromEnv()
 	h := &chain.Holder{}
@@ -66,36 +68,47 @@ func startChain(pool *pgxpool.Pool) *chain.Holder {
 	}
 	go func() {
 		for {
-			for _, url := range cc.RPCs() {
-				svc, err := connectChain(pool, cc, url)
-				if err != nil {
-					log.Printf("chain: %s: %v", url, err)
-					continue
-				}
-				log.Printf("chain: connected to %s", url)
-				h.Set(svc)
-				svc.Run(context.Background())
-				return
+			svc, nodes, err := connectChain(pool, cc)
+			if err != nil {
+				log.Printf("chain: %v", err)
+				time.Sleep(time.Minute)
+				continue
 			}
-			time.Sleep(time.Minute)
+			log.Printf("chain: connected to %s", nodes.Current())
+			h.Set(svc)
+			svc.Run(context.Background())
+			return
 		}
 	}()
 	return h
 }
 
-func connectChain(pool *pgxpool.Pool, cc chain.Config, url string) (*chain.Service, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+func connectChain(pool *pgxpool.Pool, cc chain.Config) (*chain.Service, *chain.Failover, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	client, err := ethclient.DialContext(ctx, url)
-	if err != nil {
-		return nil, err
+	var urls []string
+	var nodes []chain.Backend
+	for _, url := range cc.RPCs() {
+		client, err := ethclient.DialContext(ctx, url)
+		if err != nil {
+			log.Printf("chain: %s: %v", url, err)
+			continue
+		}
+		urls = append(urls, url)
+		nodes = append(nodes, client)
 	}
-	svc, err := chain.New(ctx, pool, client, cc)
-	if err != nil {
-		client.Close()
-		return nil, err
+	if len(nodes) == 0 {
+		return nil, nil, errors.New("no usable node")
 	}
-	return svc, nil
+	f := chain.NewFailover(urls, nodes)
+	svc, err := chain.New(ctx, pool, f, cc)
+	if err != nil {
+		for _, n := range nodes {
+			n.(*ethclient.Client).Close()
+		}
+		return nil, nil, err
+	}
+	return svc, f, nil
 }
 
 func NewRouter(cfg config.Config, authSvc *auth.Service, chainSvc *chain.Holder) *gin.Engine {

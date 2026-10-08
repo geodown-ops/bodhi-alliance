@@ -73,8 +73,8 @@ type Network struct {
 }
 
 var Networks = map[string]Network{
-	"amoy":    {80002, "https://rpc-amoy.polygon.technology,https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org", "https://amoy.polygonscan.com"},
-	"polygon": {137, "https://polygon-rpc.com,https://polygon-bor-rpc.publicnode.com,https://polygon.drpc.org", "https://polygonscan.com"},
+	"amoy":    {80002, "https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org", "https://amoy.polygonscan.com"},
+	"polygon": {137, "https://polygon.drpc.org,https://polygon-bor-rpc.publicnode.com,https://1rpc.io/matic,https://polygon.gateway.tenderly.co", "https://polygonscan.com"},
 }
 
 func ConfigFromEnv() Config {
