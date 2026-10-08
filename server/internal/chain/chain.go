@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -55,7 +56,7 @@ type Backend interface {
 
 // Config comes from environment variables; the feature is off unless both keys are set.
 type Config struct {
-	RPCURL      string
+	RPCURL      string // one or more JSON-RPC URLs, comma separated
 	OperatorKey string // hex private key of the platform operator (also the testnet treasury)
 	MemberSeed  string // hex secret that member addresses are derived from
 	Contract    string // optional: use an existing BodhiCoin instead of deploying one
@@ -70,7 +71,7 @@ func ConfigFromEnv() Config {
 		return def
 	}
 	return Config{
-		RPCURL:      get("BODHI_CHAIN_RPC", "https://rpc-amoy.polygon.technology"),
+		RPCURL:      get("BODHI_CHAIN_RPC", DefaultRPCs),
 		OperatorKey: get("BODHI_CHAIN_OPERATOR_KEY", ""),
 		MemberSeed:  get("BODHI_CHAIN_MEMBER_SEED", ""),
 		Contract:    get("BODHI_CHAIN_CONTRACT", ""),
@@ -134,3 +135,36 @@ func FormatAmount(units *big.Int) string {
 }
 
 func bigInt(v int64) *big.Int { return big.NewInt(v) }
+
+// Holder hands the handler a Service that may only appear once the node is reachable.
+type Holder struct{ p atomic.Pointer[Service] }
+
+func NewHolder(s *Service) *Holder {
+	h := &Holder{}
+	h.p.Store(s)
+	return h
+}
+
+// Get is nil when the holder is nil or the chain is not connected yet.
+func (h *Holder) Get() *Service {
+	if h == nil {
+		return nil
+	}
+	return h.p.Load()
+}
+
+func (h *Holder) Set(s *Service) { h.p.Store(s) }
+
+// DefaultRPCs are public Polygon Amoy nodes, tried in order.
+const DefaultRPCs = "https://rpc-amoy.polygon.technology,https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org"
+
+// RPCs splits BODHI_CHAIN_RPC, which may list several nodes separated by commas.
+func (c Config) RPCs() []string {
+	var out []string
+	for _, u := range strings.Split(c.RPCURL, ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			out = append(out, u)
+		}
+	}
+	return out
+}

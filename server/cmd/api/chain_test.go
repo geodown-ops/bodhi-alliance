@@ -55,7 +55,7 @@ func TestJoinGiftOnChain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(config.Config{}, authSvc, svc)
+	r := NewRouter(config.Config{}, authSvc, chain.NewHolder(svc))
 
 	signup := func(email string) string {
 		w := call(t, r, http.MethodPost, "/api/volunteers", "", map[string]any{"email": email, "password": "lotus-pond-evening", "legal_name": "陳大華"})

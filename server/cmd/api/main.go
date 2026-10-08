@@ -51,30 +51,50 @@ func main() {
 	log.Fatal(r.Run(cfg.Addr))
 }
 
-// startChain starts the 菩提幣 chain worker when its keys are configured; nil means off.
-func startChain(pool *pgxpool.Pool) *chain.Service {
+// startChain connects to the chain in the background when its keys are configured,
+// retrying every minute across the listed nodes, then runs the 菩提幣 worker.
+func startChain(pool *pgxpool.Pool) *chain.Holder {
 	cc := chain.ConfigFromEnv()
+	h := &chain.Holder{}
 	if !cc.Enabled() {
 		log.Printf("chain: off (set BODHI_CHAIN_OPERATOR_KEY and BODHI_CHAIN_MEMBER_SEED to turn it on)")
-		return nil
+		return h
 	}
+	go func() {
+		for {
+			for _, url := range cc.RPCs() {
+				svc, err := connectChain(pool, cc, url)
+				if err != nil {
+					log.Printf("chain: %s: %v", url, err)
+					continue
+				}
+				log.Printf("chain: connected to %s", url)
+				h.Set(svc)
+				svc.Run(context.Background())
+				return
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
+	return h
+}
+
+func connectChain(pool *pgxpool.Pool, cc chain.Config, url string) (*chain.Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	client, err := ethclient.DialContext(ctx, cc.RPCURL)
+	client, err := ethclient.DialContext(ctx, url)
 	if err != nil {
-		log.Printf("chain: off, cannot reach %s: %v", cc.RPCURL, err)
-		return nil
+		return nil, err
 	}
 	svc, err := chain.New(ctx, pool, client, cc)
 	if err != nil {
-		log.Printf("chain: off: %v", err)
-		return nil
+		client.Close()
+		return nil, err
 	}
-	go svc.Run(context.Background())
-	return svc
+	return svc, nil
 }
 
-func NewRouter(cfg config.Config, authSvc *auth.Service, chainSvc *chain.Service) *gin.Engine {
+func NewRouter(cfg config.Config, authSvc *auth.Service, chainSvc *chain.Holder) *gin.Engine {
 	r := httpx.NewEngine(cfg.AllowedOrigins, cfg.TrustedProxies)
 	api := r.Group("/api")
 	authSvc.Routes(api.Group("/auth"))
