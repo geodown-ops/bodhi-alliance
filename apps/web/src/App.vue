@@ -20,17 +20,16 @@ const drawer = ref(false)
         <nav class="gt-sm row no-wrap">
           <q-btn v-for="item in menu" :key="item.path" :to="item.path" flat no-caps :label="item.label" />
         </nav>
+        <!-- 文字直接寫在按鈕上（原本只有圖示＋滑過才出現的提示，提示本身按不到） -->
         <q-btn
           :to="account.user ? '/me' : '/login'"
-          flat
-          round
-          dense
+          outline
+          rounded
+          no-caps
           icon="account_circle"
-          class="q-ml-xs"
-          :aria-label="account.user ? '我的個人頁' : '登入'"
-        >
-          <q-tooltip>{{ account.user ? '我的個人頁' : '登入' }}</q-tooltip>
-        </q-btn>
+          :label="account.user ? '個人頁' : '登入'"
+          class="q-ml-xs account-btn"
+        />
       </q-toolbar>
     </q-header>
 
@@ -77,6 +76,13 @@ const drawer = ref(false)
   height: 20px;
   width: auto;
   display: block;
+}
+.account-btn {
+  padding: 2px 12px 2px 8px;
+  white-space: nowrap;
+}
+.account-btn :deep(.q-icon) {
+  margin-right: 6px;
 }
 .footer {
   background: var(--ground-sunk);
