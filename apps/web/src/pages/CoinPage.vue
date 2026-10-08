@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Notify } from 'quasar'
 import { api, type ChainInfo } from '../api'
 
-// 數字取自企劃書 v1.0 草案的初始建議值，正式數字以菩提幣決策小組決議為準
+// 服務梯級表；之後調整由菩提幣決策小組決議公告
 const tiers = [
   ['半日服務', '4 小時', '1,500'],
   ['全日服務', '8 小時', '3,000'],
@@ -36,6 +36,9 @@ async function copyContract() {
     Notify.create({ type: 'negative', message: '無法複製，請手動選取地址' })
   }
 }
+const testnet = computed(() => chain.value.chain_id !== 137)
+const explorer = computed(() => chain.value.explorer ?? 'https://polygonscan.com')
+const explorerHost = computed(() => explorer.value.replace('https://', ''))
 const lookups = [
   {
     title: '看整個菩提幣',
@@ -81,7 +84,7 @@ const lookups = [
         </tr>
       </tbody>
     </table>
-    <p class="text-caption q-mt-sm">初始建議值，正式梯級表由菩提幣決策小組決議公告。</p>
+    <p class="text-caption q-mt-sm">梯級表的調整由菩提幣決策小組決議公告。</p>
 
     <h2>兩種券</h2>
     <div class="grid">
@@ -106,7 +109,7 @@ const lookups = [
       <table class="facts">
         <tbody>
           <tr><th>名稱</th><td>菩提幣（代號 BODHI）</td></tr>
-          <tr><th>網路</th><td>{{ chain.network ?? 'Polygon Amoy 測試鏈' }}<span v-if="chain.chain_id" class="text-caption">（Chain ID {{ chain.chain_id }}）</span></td></tr>
+          <tr><th>網路</th><td>{{ chain.network ?? 'Polygon' }}<span v-if="chain.chain_id" class="text-caption">（Chain ID {{ chain.chain_id }}）</span></td></tr>
           <tr>
             <th>合約地址</th>
             <td>
@@ -126,7 +129,7 @@ const lookups = [
 
     <h3>什麼是 PolygonScan</h3>
     <p>
-      PolygonScan 是 Polygon 區塊鏈的公開查詢網站（區塊瀏覽器），由經營 Etherscan 的團隊維護，可以把它想成鏈上帳本的「查帳網站」。不用註冊、不用下載錢包，打開網頁就能查任何地址的餘額、任何一筆交易的時間與金額，以及合約本身的資訊。菩提幣現在在 Polygon 的測試鏈 Amoy 上運作，對應的網址是<a :href="chain.explorer ?? 'https://amoy.polygonscan.com'" target="_blank" rel="noopener">{{ (chain.explorer ?? 'https://amoy.polygonscan.com').replace('https://', '') }}</a>；正式上線後會改到 Polygon 主網，網址是 polygonscan.com。網站介面是英文。
+      PolygonScan 是 Polygon 區塊鏈的公開查詢網站（區塊瀏覽器），由經營 Etherscan 的團隊維護，可以把它想成鏈上帳本的「查帳網站」。不用註冊、不用下載錢包，打開網頁就能查任何地址的餘額、任何一筆交易的時間與金額，以及合約本身的資訊。<template v-if="testnet">菩提幣現在在 Polygon 的測試鏈 Amoy 上運作，對應的網址是 <a :href="explorer" target="_blank" rel="noopener">{{ explorerHost }}</a>；正式上線後會改到 Polygon 主網，網址是 polygonscan.com。</template><template v-else>菩提幣發行在 Polygon 主網，網址是 <a :href="explorer" target="_blank" rel="noopener">{{ explorerHost }}</a>。</template>網站介面是英文。
     </p>
 
     <h3>怎麼查</h3>
@@ -145,11 +148,12 @@ const lookups = [
       <li><b>區塊（Block）</b>：鏈上每隔幾秒把新交易打包成一個區塊，交易所在的區塊編號越早，代表越早寫入。</li>
       <li><b>Token</b>：PolygonScan 上把菩提幣這類合約發行的幣叫做 Token，合約頁會標示 BODHI。</li>
     </ul>
-    <p class="note">目前在測試鏈上的菩提幣沒有任何市場價值，也無法在交易所買賣；正式上線前，合約地址會在本頁更新公告。</p>
+    <p v-if="testnet" class="note">目前在測試鏈上的菩提幣沒有任何市場價值，也無法在交易所買賣；正式上線時，合約地址會在本頁更新公告。</p>
+    <p v-else class="note">菩提幣不販售、不提領、不可兌現，也沒有在任何交易所上架；鏈上紀錄只是讓大家都能自己查證。</p>
 
     <h2>現況</h2>
     <p>
-      菩提幣目前是 v1.0 草案，正處於「法務諮詢與治理籌組」階段。覺行小組活動的登錄、送審與錢包餘額已經開放；志工定性與券的定性兩題取得律師結論後，才會啟動兌換功能。
+      菩提幣已經發行在 Polygon 區塊鏈上，每位會員入會都會得到 1 枚。覺行小組活動的登錄、送審與錢包餘額已經開放；兌換券功能籌備中，開放時會在官網公告。
       現在可以先<router-link to="/groups">參加覺行小組</router-link>（隨興或定期相約一起做正念減壓，任何人都可發起，三人以上即可）或<router-link to="/partners">登記成為共好企業</router-link>。
     </p>
   </q-page>

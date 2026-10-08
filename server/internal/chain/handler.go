@@ -126,7 +126,7 @@ func NetworkName(id int64) string {
 	case 80002:
 		return "Polygon Amoy 測試鏈"
 	case 137:
-		return "Polygon"
+		return "Polygon 主網"
 	default:
 		return "測試鏈"
 	}

@@ -56,6 +56,8 @@ type Backend interface {
 
 // Config comes from environment variables; the feature is off unless both keys are set.
 type Config struct {
+	Network     string // amoy (測試鏈，預設) or polygon (主網)
+	ChainID     int64  // the chain the network preset expects; 0 skips the check
 	RPCURL      string // one or more JSON-RPC URLs, comma separated
 	OperatorKey string // hex private key of the platform operator (also the testnet treasury)
 	MemberSeed  string // hex secret that member addresses are derived from
@@ -63,7 +65,27 @@ type Config struct {
 	ExplorerURL string
 }
 
+// Network presets: BODHI_CHAIN_NETWORK picks the chain and its default nodes and explorer.
+type Network struct {
+	ChainID  int64
+	RPCs     string
+	Explorer string
+}
+
+var Networks = map[string]Network{
+	"amoy":    {80002, "https://rpc-amoy.polygon.technology,https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org", "https://amoy.polygonscan.com"},
+	"polygon": {137, "https://polygon-rpc.com,https://polygon-bor-rpc.publicnode.com,https://polygon.drpc.org", "https://polygonscan.com"},
+}
+
 func ConfigFromEnv() Config {
+	name := strings.ToLower(strings.TrimSpace(os.Getenv("BODHI_CHAIN_NETWORK")))
+	if name == "" {
+		name = "amoy"
+	}
+	net, ok := Networks[name]
+	if !ok {
+		net = Network{RPCs: "", Explorer: ""}
+	}
 	get := func(k, def string) string {
 		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
 			return v
@@ -71,11 +93,13 @@ func ConfigFromEnv() Config {
 		return def
 	}
 	return Config{
-		RPCURL:      get("BODHI_CHAIN_RPC", DefaultRPCs),
+		Network:     name,
+		ChainID:     net.ChainID,
+		RPCURL:      get("BODHI_CHAIN_RPC", net.RPCs),
 		OperatorKey: get("BODHI_CHAIN_OPERATOR_KEY", ""),
 		MemberSeed:  get("BODHI_CHAIN_MEMBER_SEED", ""),
 		Contract:    get("BODHI_CHAIN_CONTRACT", ""),
-		ExplorerURL: strings.TrimRight(get("BODHI_CHAIN_EXPLORER", "https://amoy.polygonscan.com"), "/"),
+		ExplorerURL: strings.TrimRight(get("BODHI_CHAIN_EXPLORER", net.Explorer), "/"),
 	}
 }
 
@@ -154,9 +178,6 @@ func (h *Holder) Get() *Service {
 }
 
 func (h *Holder) Set(s *Service) { h.p.Store(s) }
-
-// DefaultRPCs are public Polygon Amoy nodes, tried in order.
-const DefaultRPCs = "https://rpc-amoy.polygon.technology,https://polygon-amoy-bor-rpc.publicnode.com,https://polygon-amoy.drpc.org"
 
 // RPCs splits BODHI_CHAIN_RPC, which may list several nodes separated by commas.
 func (c Config) RPCs() []string {

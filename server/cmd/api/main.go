@@ -60,6 +60,10 @@ func startChain(pool *pgxpool.Pool) *chain.Holder {
 		log.Printf("chain: off (set BODHI_CHAIN_OPERATOR_KEY and BODHI_CHAIN_MEMBER_SEED to turn it on)")
 		return h
 	}
+	if len(cc.RPCs()) == 0 {
+		log.Printf("chain: off, unknown BODHI_CHAIN_NETWORK %q and no BODHI_CHAIN_RPC", cc.Network)
+		return h
+	}
 	go func() {
 		for {
 			for _, url := range cc.RPCs() {
