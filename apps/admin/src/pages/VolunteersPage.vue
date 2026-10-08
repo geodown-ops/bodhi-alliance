@@ -15,6 +15,7 @@ type Volunteer = {
   wants_coach: boolean
   is_coach: boolean
   is_group_leader: boolean
+  is_committee: boolean
   status: 'pending' | 'verified' | 'rejected'
   review_note: string
   verified_at: string | null
@@ -33,14 +34,16 @@ const statusLabel: Record<string, string> = { pending: '待核可', verified: '�
 const statuses = [{ label: '全部', value: '' }, ...Object.entries(statusLabel).map(([value, label]) => ({ label, value }))]
 const centerOptions = computed(() => [{ label: '全部中心', value: '' }, ...centers.value.map((c) => ({ label: c.name, value: c.id }))])
 
+// 每一欄都可以點標題排序
 const columns = [
   { name: 'legal_name', label: '真實姓名', field: 'legal_name', sortable: true },
-  { name: 'display_name', label: '暱稱', field: 'display_name' },
+  { name: 'display_name', label: '暱稱', field: 'display_name', sortable: true },
   { name: 'center_name', label: '所屬中心', field: (v: Volunteer) => v.center_name || '—', sortable: true },
-  { name: 'line_id', label: 'LINE ID', field: 'line_id' },
-  { name: 'is_coach', label: '教練', field: 'is_coach', align: 'center' as const },
-  { name: 'is_group_leader', label: '覺行小組長', field: 'is_group_leader', align: 'center' as const },
-  { name: 'status', label: '狀態', field: (v: Volunteer) => (v.frozen ? '已凍結' : statusLabel[v.status]) },
+  { name: 'line_id', label: 'LINE ID', field: 'line_id', sortable: true },
+  { name: 'is_coach', label: '教練', field: 'is_coach', align: 'center' as const, sortable: true },
+  { name: 'is_group_leader', label: '覺行小組長', field: 'is_group_leader', align: 'center' as const, sortable: true },
+  { name: 'is_committee', label: '菩提幣決策小組', field: 'is_committee', align: 'center' as const, sortable: true },
+  { name: 'status', label: '狀態', field: (v: Volunteer) => (v.frozen ? '已凍結' : statusLabel[v.status]), sortable: true },
   { name: 'created_at', label: '註冊日', field: 'created_at', format: (v: string) => new Date(v).toLocaleDateString('zh-TW'), sortable: true },
 ]
 
@@ -69,10 +72,10 @@ function open(v: Volunteer) {
 }
 
 // 名冊上直接打勾：教練、覺行小組長，打勾就表示有這個身分
-async function setFlag(v: Volunteer, key: 'is_coach' | 'is_group_leader', on: boolean) {
+async function setFlag(v: Volunteer, key: 'is_coach' | 'is_group_leader' | 'is_committee', on: boolean) {
   v[key] = on
   try {
-    await api.send('PATCH', `/api/admin/volunteers/${v.id}`, { status: v.status, is_coach: v.is_coach, is_group_leader: v.is_group_leader, review_note: v.review_note, frozen: v.frozen })
+    await api.send('PATCH', `/api/admin/volunteers/${v.id}`, { status: v.status, is_coach: v.is_coach, is_group_leader: v.is_group_leader, is_committee: v.is_committee, review_note: v.review_note, frozen: v.frozen })
   } catch (e) {
     v[key] = !on
     toast(e)
@@ -83,7 +86,7 @@ async function save() {
   const v = editing.value
   if (!v) return
   try {
-    await api.send('PATCH', `/api/admin/volunteers/${v.id}`, { status: v.next, is_coach: v.is_coach, is_group_leader: v.is_group_leader, review_note: v.review_note, frozen: v.frozen })
+    await api.send('PATCH', `/api/admin/volunteers/${v.id}`, { status: v.next, is_coach: v.is_coach, is_group_leader: v.is_group_leader, is_committee: v.is_committee, review_note: v.review_note, frozen: v.frozen })
     editing.value = null
     load()
   } catch (e) {
@@ -96,7 +99,7 @@ async function save() {
   <q-page class="admin-page">
     <h1>會員名冊</h1>
     <p class="text-grey-8">
-      會員在官網自己註冊並選所屬中心。請核對真實姓名與身分後按「核可」，核可後才能列入核發名單；核可後會員不能自己改姓名。教練、覺行小組長直接在表格打勾設定。
+      會員在官網自己註冊並選所屬中心。請核對真實姓名與身分後按「核可」，核可後才能列入核發名單；核可後會員不能自己改姓名。教練、覺行小組長、菩提幣決策小組直接在表格打勾設定；點欄位標題可以排序。
     </p>
     <div class="row q-gutter-sm q-mb-md">
       <q-select v-model="status" :options="statuses" emit-value map-options outlined dense label="狀態" style="min-width: 140px" />
@@ -112,6 +115,11 @@ async function save() {
       <template #body-cell-is_group_leader="props">
         <q-td :props="props" @click.stop>
           <q-checkbox :model-value="props.row.is_group_leader" color="secondary" dense @update:model-value="(on: boolean) => setFlag(props.row, 'is_group_leader', on)" />
+        </q-td>
+      </template>
+      <template #body-cell-is_committee="props">
+        <q-td :props="props" @click.stop>
+          <q-checkbox :model-value="props.row.is_committee" color="secondary" dense @update:model-value="(on: boolean) => setFlag(props.row, 'is_committee', on)" />
         </q-td>
       </template>
     </q-table>
@@ -143,6 +151,7 @@ async function save() {
           />
           <q-toggle v-model="editing.is_coach" :label="editing.wants_coach ? '禪修教練（本人有申請）' : '禪修教練'" />
           <q-toggle v-model="editing.is_group_leader" label="覺行小組長" />
+          <q-toggle v-model="editing.is_committee" label="菩提幣決策小組" />
           <q-toggle v-model="editing.frozen" color="negative" label="凍結（遺失手機或疑似冒用時，暫停兌換）" />
         </q-card-section>
         <q-card-actions align="right">
