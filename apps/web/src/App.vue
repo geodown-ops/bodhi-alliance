@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { menu } from './router'
 import { account } from './account'
+import { wordmark } from './wordmark'
 
 const drawer = ref(false)
 </script>
@@ -13,7 +14,7 @@ const drawer = ref(false)
         <q-btn flat round dense icon="menu" class="lt-md" aria-label="選單" @click="drawer = !drawer" />
         <router-link to="/" class="brand">
           <img src="/favicon.svg" alt="" width="32" height="32" />
-          <span>Sunny life</span>
+          <svg class="wordmark" :viewBox="wordmark.viewBox" role="img" aria-label="Sunny life"><path fill="currentColor" stroke="currentColor" stroke-linejoin="round" :stroke-width="wordmark.stroke" :d="wordmark.d" /></svg>
         </router-link>
         <q-space />
         <nav class="gt-sm row no-wrap">
@@ -69,9 +70,13 @@ const drawer = ref(false)
   gap: 10px;
   color: inherit;
   text-decoration: none;
-  font-family: var(--wenkai);
-  font-size: 1.3rem;
   margin-left: 4px;
+}
+.wordmark {
+  /* 整個字（S 頂到 y 尾）不高過左邊的菩提葉（約 20px） */
+  height: 20px;
+  width: auto;
+  display: block;
 }
 .footer {
   background: var(--ground-sunk);
