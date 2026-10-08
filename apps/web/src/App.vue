@@ -14,7 +14,7 @@ const drawer = ref(false)
         <q-btn flat round dense icon="menu" class="lt-md" aria-label="選單" @click="drawer = !drawer" />
         <router-link to="/" class="brand">
           <img src="/favicon.svg" alt="" width="32" height="32" />
-          <svg class="wordmark" :viewBox="wordmark.viewBox" role="img" aria-label="Sunny life"><path fill="currentColor" :d="wordmark.d" /></svg>
+          <svg class="wordmark" :viewBox="wordmark.viewBox" role="img" aria-label="Sunny life"><path fill="currentColor" stroke="currentColor" stroke-linejoin="round" :stroke-width="wordmark.stroke" :d="wordmark.d" /></svg>
         </router-link>
         <q-space />
         <nav class="gt-sm row no-wrap">
@@ -73,7 +73,8 @@ const drawer = ref(false)
   margin-left: 4px;
 }
 .wordmark {
-  height: 34px;
+  /* 整個字（S 頂到 y 尾）不高過左邊的菩提葉（約 20px） */
+  height: 20px;
   width: auto;
   display: block;
 }
