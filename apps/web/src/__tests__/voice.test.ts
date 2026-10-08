@@ -14,9 +14,9 @@ describe('voice', () => {
     expect(splitSentences(long)).toEqual({ sentences: ['一'.repeat(70) + '，'], rest: '二'.repeat(5) })
   })
 
-  it('reads 覺 as jué except in 睡覺', () => {
+  it('reads 覺行 as jué xíng and 覺 as jué except in 睡覺', () => {
     expect(fixPronunciation('歡迎加入覺行小組，覺察呼吸；睡覺前、午覺後也可以練')).toBe(
-      '歡迎加入絕行小組，絕察呼吸；睡覺前、午覺後也可以練',
+      '歡迎加入絕形小組，絕察呼吸；睡覺前、午覺後也可以練',
     )
   })
 

@@ -31,10 +31,12 @@ export function cleanForSpeech(text: string): string {
 }
 
 // 語音引擎常把多音字唸錯，朗讀前換成同音字（畫面上的字不變）。
-// 「覺」在覺行、覺知、覺悟、感覺都唸 jué，常被唸成睡覺的 jiào；只有睡覺、午覺這類才唸 jiào。
+// 「覺行」唸 jué xíng。「覺」在覺行、覺知、覺悟、感覺都唸 jué，常被唸成睡覺的 jiào；只有睡覺、午覺這類才唸 jiào。
 /** 把容易唸錯的字換成唸起來正確的同音字，只用在朗讀 */
 export function fixPronunciation(text: string): string {
-  return text.replace(/([睡午晚一]?)覺/g, (m, sleep: string) => (sleep ? m : '絕'))
+  return text
+    .replace(/覺行/g, '絕形') // 「行」唸 xíng，不是銀行的 háng
+    .replace(/([睡午晚一]?)覺/g, (m, sleep: string) => (sleep ? m : '絕'))
 }
 
 // 優先挑臺灣華語，其次其他華語語音（不唸粵語）；同一種語言裡先挑自然的女聲：
