@@ -1,4 +1,6 @@
-# 菩提幣資料模型（草案）
+# 菩提幣資料模型（SPEC 目標模型）
+
+> 本文件是 SPEC v2.0 的**目標**資料模型，屬於尚未實作的 M3–M5（決議、核發名單、券、帳本分錄）。**目前線上實際的資料表見 [spec/04-data-model.md](spec/04-data-model.md)。**
 
 2026-09-30 草案 · 未經決策小組決議 · 線上可編輯版本：[Bodhi Coin Data Model (Draft)](https://claude.ai/code/artifact/699a87ca-717d-4abe-bd00-019be6fcd103)
 
