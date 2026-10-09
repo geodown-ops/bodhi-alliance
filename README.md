@@ -1,10 +1,10 @@
 # Sunny life
 
-世界佛教教育協會菩提幣系統的官網、管理後台與後端服務。架構見 [docs/architecture.md](docs/architecture.md)，資料模型見 [docs/data-model.md](docs/data-model.md)。
+世界佛教教育協會菩提幣系統的官網、管理後台與後端服務。正式技術規格書見 [docs/spec/README.md](docs/spec/README.md)。
 
-目前做到「階段 A 官網先行」加 M2 的會員部分：七個選單的公開頁、覺行小組報名、共好企業登記、線上覺行小組 AI 組長與它的知識庫後台，以及志工註冊、中心管理員核可與覺行小組成員。錢包、核發與券要等法務結論（見架構文件〈分期〉）。
+目前上線範圍：官網全部選單、系統會員（覺行小組／世界佛教教育協會）、覺行小組共修與菩提幣審核（站內帳本）、協會通知與行事曆、線上覺行小組組長 Sunny（3D 場景、對話、語音、知識庫後台），以及入會贈幣在 Polygon 上鏈。決策小組表決、核發名單與券要等法務結論（見規格書第 10 章）。
 
-根目錄的 `index.html` 是原本的招募頁，正式站上線前繼續放在 GitHub Pages。
+正式站是 https://www.sunnylife.world，後台是 https://admin.sunnylife.world。根目錄的 `index.html` 是原本的招募頁（GitHub Pages）。
 
 ## 目錄
 
@@ -49,6 +49,8 @@ npm test
 需要資料庫的測試會為每個測試套件建一個暫時的資料庫，跑完刪掉；沒設 `TEST_DATABASE_URL` 時會跳過。
 
 ## 環境變數
+
+完整清單（含 Sunny 語音與上鏈）見 [docs/spec/08-deployment.md](docs/spec/08-deployment.md)。
 
 | 變數 | 服務 | 說明 |
 | --- | --- | --- |
