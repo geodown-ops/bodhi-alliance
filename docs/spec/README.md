@@ -18,6 +18,7 @@
 | 8 | [08-deployment.md](08-deployment.md) | 雲端部署設計（Railway）、網域、CI、維運 |
 | 9 | [09-accounts.md](09-accounts.md) | 關鍵帳號、金鑰存放位置與存取權 |
 | 10 | [10-roadmap.md](10-roadmap.md) | 尚未實作的部分與待決事項 |
+| 11 | [11-diagrams.md](11-diagrams.md) | 服務架構圖與流程圖（會員註冊與上鏈、共修到菩提幣發放、Sunny 問答與語音、部署等） |
 
 ## 一句話
 
