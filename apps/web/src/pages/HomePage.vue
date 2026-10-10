@@ -399,7 +399,7 @@ function again() {
   bottom: 92px;   /* 輸入欄上方 */
   margin: 0;
   text-align: right;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: clamp(27px, 3.33vw, 48px);
   line-height: 1.3;
@@ -427,7 +427,6 @@ function again() {
   --band-soft: #cdbfaf;
   --band-gold: #b8d8a0;
   --band-rule: #5a4536;
-  --mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   background: var(--ground);
   color: var(--ink);
@@ -441,7 +440,7 @@ function again() {
   padding: 0 30px;
 }
 .eyebrow {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.2em;
@@ -450,7 +449,7 @@ function again() {
   margin: 0;
 }
 h2 {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: clamp(27px, 3.6vw, 38px);
   line-height: 1.4;
@@ -459,7 +458,7 @@ h2 {
   text-wrap: balance;
 }
 h3 {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: 20px;
   line-height: 1.5;
@@ -561,7 +560,7 @@ header {
   background: rgba(184, 216, 160, 0.14);
 }
 .hero-note {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   letter-spacing: 0.06em;
   color: var(--band-soft);
@@ -590,7 +589,7 @@ header {
 }
 .r-sub {
   fill: var(--band-soft);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
 }
 .r-arc {
@@ -606,7 +605,7 @@ header {
 }
 .r-actsub {
   fill: var(--band-soft);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 10.5px;
 }
 .r-mid {
@@ -646,7 +645,7 @@ section.band > .shell {
   border-top: 2px solid var(--gold);
 }
 .pair-k {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   letter-spacing: 0.14em;
   color: var(--ink-faint);
@@ -683,7 +682,7 @@ section.band > .shell {
   gap: 0 28px;
 }
 .origin .k {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -720,7 +719,7 @@ section.band > .shell {
 }
 .pull {
   margin-top: 38px;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: clamp(20px, 2.6vw, 26px);
   line-height: 1.65;
@@ -742,7 +741,7 @@ table {
 }
 caption {
   text-align: left;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -751,7 +750,7 @@ caption {
 }
 th {
   text-align: left;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-weight: 500;
   font-size: 11.5px;
   letter-spacing: 0.1em;
@@ -776,7 +775,7 @@ td:last-child {
   padding-right: 0;
 }
 .num {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -808,7 +807,7 @@ th.num {
   border-left: 1px solid var(--rule);
 }
 .vouchers h4 {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 1.6;
@@ -850,7 +849,7 @@ th.num {
   border-left-color: var(--gold);
 }
 .roles .rk {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -873,7 +872,7 @@ th.num {
   gap: 6px 10px;
 }
 .roles .gives span {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   letter-spacing: 0.05em;
   padding: 3px 10px;
@@ -901,7 +900,7 @@ th.num {
 }
 .steps li::before {
   content: '0' counter(s);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 13px;
   font-weight: 500;
   color: var(--gold);
@@ -912,7 +911,7 @@ th.num {
   display: block;
   font-weight: 500;
   color: var(--ink);
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 18px;
 }
 .steps span {
@@ -928,7 +927,7 @@ th.num {
   padding: 24px 28px;
 }
 .disclose .tag {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -980,7 +979,7 @@ form {
   grid-column: 1/-1;
 }
 label {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1045,7 +1044,7 @@ textarea:focus {
   margin-top: 6px;
 }
 .form-foot .fine {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.05em;
   color: var(--band-soft);
@@ -1053,7 +1052,7 @@ textarea:focus {
   line-height: 1.8;
 }
 .err {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   color: #efa0a0;
   grid-column: 1/-1;
@@ -1143,7 +1142,7 @@ textarea:focus {
     border-bottom: 1px solid var(--band-rule);
   }
   .ring-list .rs {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 11px;
     letter-spacing: 0.1em;
     color: var(--band-gold);
@@ -1156,7 +1155,7 @@ textarea:focus {
   .ring-list .rd {
     color: var(--band-soft);
     font-size: 13.5px;
-    font-family: var(--mono);
+    font-family: var(--sans);
   }
   .origin {
     grid-template-columns: 1fr;

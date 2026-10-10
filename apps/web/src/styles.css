@@ -8,8 +8,9 @@
   --rule: #ddd3c2;
   --leaf: #426631;
   --leaf-soft: #8dae78;
-  --wenkai: 'LXGW WenKai TC', 'Kaiti TC', KaiTi, 'Noto Serif TC', serif;
+  /* 全站字體統一為黑體 */
   --sans: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --wenkai: var(--sans);   /* 舊名稱：頁首站名還在用，之後換成手寫標準字就可刪除 */
 }
 body {
   background: var(--ground);
@@ -26,13 +27,13 @@ body {
   max-width: 960px;
 }
 .page h1 {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 2.2rem;
   line-height: 1.3;
   margin: 0 0 8px;
 }
 .page h2 {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.5rem;
   line-height: 1.4;
   margin: 40px 0 12px;
@@ -53,6 +54,12 @@ body {
 .lead {
   font-size: 1.2rem !important;
   color: var(--ink) !important;
+}
+.card-form {
+  /* 表單卡片：欄位上下排列（不用 q-gutter，它的負邊距會讓卡片頂到上方標題） */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .card {
   background: var(--ground-raised);

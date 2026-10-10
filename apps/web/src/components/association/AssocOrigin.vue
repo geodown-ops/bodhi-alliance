@@ -242,7 +242,7 @@ const dharma = [
   margin: 0 0 6px;
 }
 .big {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.8rem !important;
   font-weight: 700;
   line-height: 1.3 !important;
@@ -302,7 +302,7 @@ const dharma = [
 }
 .master p {
   margin: 0;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.5rem !important;
   line-height: 1.9 !important;
   color: var(--ink) !important;
@@ -515,7 +515,7 @@ const dharma = [
 }
 .good-quote {
   margin: 0;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.12rem !important;
   color: var(--ink) !important;
 }
@@ -545,7 +545,7 @@ const dharma = [
   border-radius: 14px;
   background: var(--ink-soft);
   color: #fff;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 2rem;
   line-height: 1.25;
   text-align: center;
