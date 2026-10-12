@@ -1,8 +1,35 @@
 :{$PORT:8080} {
 	root * /srv
-	encode zstd gzip
+	# 3D 模型（.vrm/.glb）也壓縮：Sunny 的模型 15 MB，壓縮後約 8 MB
+	@models path *.vrm *.glb
+	header @models Content-Type model/gltf-binary
+	encode {
+		zstd
+		gzip
+		match {
+			header Content-Type text/*
+			header Content-Type application/json*
+			header Content-Type application/javascript*
+			header Content-Type image/svg+xml*
+			header Content-Type model/gltf-binary*
+		}
+	}
 	@assets path /assets/*
-	header @assets Cache-Control "public, max-age=31536000, immutable"
-	try_files {path} /index.html
-	file_server
+	@hashed {
+		path /assets/*
+		file
+	}
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	# 舊版頁面檔不存在時回 404，不要回首頁的 HTML（否則換頁會卡住，見 router.ts）
+	handle @assets {
+		file_server
+	}
+	handle {
+		# 網頁本身（index.html）每次都向伺服器確認，網站更新後馬上拿到新版
+		@page not path *.*
+		header @page Cache-Control "no-cache"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
 }
