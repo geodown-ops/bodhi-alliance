@@ -122,7 +122,7 @@ const flow = [
   margin-bottom: 12px;
 }
 .part-head h3 {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   color: var(--leaf);
 }
 .part-head span {
@@ -139,7 +139,7 @@ const flow = [
   border-color: var(--leaf);
 }
 .dedication {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.15rem;
   line-height: 2;
   color: var(--ink);
@@ -160,7 +160,7 @@ const flow = [
 }
 .flow li::before {
   content: counter(step);
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: 1.3rem;
   color: var(--leaf);

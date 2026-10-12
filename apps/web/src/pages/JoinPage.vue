@@ -58,7 +58,7 @@ async function submit() {
     </p>
     <p>已經是會員？<router-link :to="{ path: '/login', query: { next: '/me' } }">直接登入</router-link>，在個人頁就能加入另一邊。</p>
 
-    <q-form class="card q-gutter-md" @submit.prevent="submit">
+    <q-form class="card card-form" @submit.prevent="submit">
       <div class="choices">
         <q-checkbox v-model="form.in_groups" class="choice">
           <div>

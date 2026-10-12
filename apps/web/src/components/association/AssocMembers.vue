@@ -55,7 +55,7 @@ const joinTo = computed(() => (account.user ? { path: '/me', query: { join: 'ass
 }
 .role {
   margin: 0 0 10px;
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-size: 1.5rem !important;
   font-weight: 700;
   color: #ba5854 !important;

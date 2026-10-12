@@ -138,7 +138,7 @@ const foundations = [
   border-top: 2px solid var(--leaf);
 }
 .glyph {
-  font-family: var(--wenkai);
+  font-family: var(--sans);
   font-weight: 700;
   font-size: 2.4rem;
   line-height: 1.1;
