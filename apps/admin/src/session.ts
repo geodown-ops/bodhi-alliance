@@ -23,7 +23,7 @@ export function isAdmin(u = session.user) {
 export function isKnowledgeManager(u = session.user) {
   return isAdmin(u) || !!u?.roles.some((r) => r.role === 'knowledge_manager' && r.scope === 'guide')
 }
-// 中心管理員：管理自己中心的志工名冊與小組成員
+// 中心管理員：管理自己中心的會員名冊與小組成員
 export function isCenterStaff(u = session.user) {
   return isAdmin(u) || !!u?.roles.some((r) => r.role === 'center_admin')
 }

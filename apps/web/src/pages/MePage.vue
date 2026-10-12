@@ -10,11 +10,14 @@ import {
   publicEvents,
   publicVenues,
   type AssociationFeed,
+  type ChainAccount,
   type PracticeEvent,
   type Venue,
   type Volunteer,
   type Wallet,
 } from '../account'
+import CalendarBoard from '../../../shared/calendar/CalendarBoard.vue'
+import { kindOf, rangeText, type CalEvent, type CalView } from '../../../shared/calendar/cal'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +28,18 @@ const groups = ref<Group[]>([])
 const myEvents = ref<PracticeEvent[]>([])
 const openEvents = ref<PracticeEvent[]>([])
 const kind = ref<'all' | 'online' | 'offline'>('all')
+const chainAcct = ref<ChainAccount>({ enabled: false })
+const joinGift = computed(() => chainAcct.value.grants?.find((g) => g.kind === 'join'))
+const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+const giftStatus = { pending: '排隊上鏈中', sent: '上鏈中', confirmed: '已上鏈', failed: '上鏈失敗，管理員會處理' }
+async function copyAddress() {
+  try {
+    await navigator.clipboard.writeText(chainAcct.value.address ?? '')
+    Notify.create({ type: 'positive', message: '已複製鏈上地址' })
+  } catch {
+    Notify.create({ type: 'negative', message: '無法複製，請手動選取地址' })
+  }
+}
 const feed = ref<AssociationFeed>({ issues: [], events: [], notices: [] })
 const notVolunteer = ref(false)
 const loading = ref(true)
@@ -47,13 +62,14 @@ async function load() {
   const p = profile.value
   const none = Promise.reject()
   none.catch(() => {})
-  const [w, mine, open, g, v, f] = await Promise.allSettled([
+  const [w, mine, open, g, v, f, ch] = await Promise.allSettled([
     p.in_groups ? me.wallet() : none,
     p.in_groups ? me.events() : none,
     p.in_groups ? publicEvents() : none,
     p.in_groups ? api.groups() : none,
     p.in_groups ? publicVenues() : none,
     p.in_association ? me.association() : none,
+    me.chain(),
   ])
   if (w.status === 'fulfilled') wallet.value = w.value
   if (mine.status === 'fulfilled') myEvents.value = mine.value
@@ -61,6 +77,7 @@ async function load() {
   if (g.status === 'fulfilled') groups.value = g.value
   if (v.status === 'fulfilled') venues.value = v.value
   if (f.status === 'fulfilled') feed.value = f.value
+  if (ch.status === 'fulfilled') chainAcct.value = ch.value
   loading.value = false
 }
 
@@ -112,6 +129,28 @@ const now = Date.now()
 const ended = (e: PracticeEvent) => new Date(e.ends_at).getTime() <= now
 
 const roleText = { organizer: '發起人', helper: '協辦', participant: '參加' } as const
+
+// 我的行事曆（照 dengo 的日程表）：協會行程、我參加或發起的共修、還可以報名的共修放在同一個行事曆
+const calView = ref<CalView>('list')
+const calShow = reactive({ assoc: true, mine: true, open: true })
+type CalItem = { kind: 'assoc'; e: AssociationFeed['events'][number] } | { kind: 'mine' | 'open'; e: PracticeEvent }
+const calItems = computed(() => {
+  const items = new Map<string, CalItem>()
+  if (calShow.assoc) for (const e of feed.value.events) items.set('a' + e.id, { kind: 'assoc', e })
+  if (calShow.mine) for (const e of myEvents.value) if (e.status === 'open') items.set('m' + e.id, { kind: 'mine', e })
+  if (calShow.open) for (const e of openEvents.value) if (!joinedEvents.value.has(e.id)) items.set('o' + e.id, { kind: 'open', e })
+  return items
+})
+const calEvents = computed<CalEvent[]>(() =>
+  [...calItems.value].map(([id, it]) => {
+    const base = { id, title: it.e.title, start: it.e.starts_at, end: it.e.ends_at, location: it.e.location, description: it.e.description }
+    if (it.kind === 'assoc')
+      return { ...base, color: kindOf(it.e.kind).color, prefix: '協會', badge: it.e.tag_name ? `#${it.e.tag_name}` : undefined }
+    if (it.kind === 'mine') return { ...base, color: '#426631', bg: '#eef4e8', prefix: roleText[it.e.my_role!] }
+    return { ...base, color: '#8dae78', dashed: true, prefix: '可報名', location: it.e.is_online ? '線上' : it.e.location }
+  }),
+)
+const calOpen = ref<CalItem | null>(null)
 function claimText(e: PracticeEvent) {
   if (e.status === 'cancelled') return '已取消'
   switch (e.claim_status) {
@@ -187,7 +226,23 @@ function pad(n: number) {
 function localInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
-const draft = reactive({ title: '', is_online: false, venue_id: null as string | null, location: '', starts_at: '', ends_at: '', capacity: 6, description: '' })
+const draft = reactive({ title: '', is_online: false, venue_id: null as string | null, location: '', date: '', start: '', end: '', capacity: 6, description: '' })
+// 時間一律 24 小時制（HH:mm）；選了開始時間，結束自動帶開始 +2 小時
+const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
+const timeRule = (v: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v) || '請用 24 小時制，例如 19:00'
+function pickStart(v: string | null) {
+  draft.start = v ?? ''
+  if (timeRule(draft.start) !== true) return
+  const [h, m] = draft.start.split(':').map(Number)
+  draft.end = hhmm(new Date(2000, 0, 1, h + 2, m))
+}
+// 組成開始／結束時刻；結束時間早於開始，就當作隔天
+function eventRange() {
+  const s = new Date(`${draft.date.replace(/\//g, '-')}T${draft.start}`)
+  const e = new Date(`${draft.date.replace(/\//g, '-')}T${draft.end}`)
+  if (e <= s) e.setDate(e.getDate() + 1)
+  return { s, e }
+}
 const venueOptions = computed(() => venues.value.map((v) => ({ label: `${v.name}（${v.center_name}）`, value: v.id })))
 // 選了場域，地點自動帶場域地址（還可以再改）
 function pickVenue(id: string | null) {
@@ -204,8 +259,9 @@ function startCreate() {
     is_online: false,
     venue_id: null,
     location: '',
-    starts_at: localInput(s),
-    ends_at: localInput(new Date(s.getTime() + 90 * 60 * 1000)),
+    date: localInput(s).slice(0, 10).replace(/-/g, '/'),
+    start: hhmm(s),
+    end: hhmm(new Date(s.getTime() + 2 * 3600 * 1000)),
     capacity: 6,
     description: '',
   })
@@ -213,12 +269,14 @@ function startCreate() {
 }
 async function create() {
   try {
+    const { date: _d, start: _s, end: _e, ...rest } = draft
+    const { s, e } = eventRange()
     await me.createEvent({
-      ...draft,
+      ...rest,
       venue_id: draft.is_online ? '' : (draft.venue_id ?? ''),
       capacity: Number(draft.capacity),
-      starts_at: new Date(draft.starts_at).toISOString(),
-      ends_at: new Date(draft.ends_at).toISOString(),
+      starts_at: s.toISOString(),
+      ends_at: e.toISOString(),
     })
     creating.value = false
     Notify.create({ type: 'positive', message: '活動已發起，覺行小組頁上看得到' })
@@ -323,6 +381,74 @@ async function signOut() {
         </div>
       </div>
 
+      <div v-if="chainAcct.enabled" class="card q-mt-lg">
+        <h2 class="q-mt-none q-mb-xs">鏈上菩提幣</h2>
+        <p class="text-caption q-mb-md">
+          每位會員入會都會得到 1 枚菩提幣，記錄在區塊鏈上，任何人都能在公開的區塊瀏覽器查到。地址由平台替你保管，會員之間不能互轉。
+        </p>
+        <template v-if="chainAcct.address">
+          <div class="chain-grid">
+            <div>
+              <div class="text-caption">鏈上餘額</div>
+              <div class="balance">{{ chainAcct.balance ?? '—' }} <span>菩提幣</span></div>
+            </div>
+            <div>
+              <div class="text-caption">入會贈幣</div>
+              <div class="q-mt-xs">
+                {{ joinGift?.amount ?? '1.00' }} 枚
+                <span class="status-chip q-ml-sm">{{ giftStatus[joinGift?.status ?? 'pending'] }}</span>
+              </div>
+              <a v-if="joinGift?.tx_url" :href="joinGift.tx_url" target="_blank" rel="noopener" class="text-caption">查看這筆交易</a>
+            </div>
+            <div>
+              <div class="text-caption">我的鏈上地址</div>
+              <div class="q-mt-xs row items-center no-wrap">
+                <a :href="chainAcct.token_url ?? chainAcct.address_url" target="_blank" rel="noopener" class="mono" :title="chainAcct.address">{{ shortAddr(chainAcct.address) }}</a>
+                <q-btn flat dense round size="sm" icon="content_copy" aria-label="複製地址" @click="copyAddress" />
+              </div>
+              <div class="text-caption">{{ chainAcct.network }}</div>
+            </div>
+          </div>
+        </template>
+        <p v-else class="q-mb-none">正在為你建立鏈上地址，入會贈幣 1 枚稍後入帳。</p>
+      </div>
+
+      <h2>我的行事曆</h2>
+      <CalendarBoard v-model:view="calView" :events="calEvents" :empty-text="profile.in_groups ? '還沒有行程。從下面挑一場共修參加，或自己發起一場。' : '近期沒有排定的協會活動。'" @select="(id) => (calOpen = calItems.get(id) ?? null)">
+        <template v-if="profile.in_groups" #filters>
+          <div class="row items-center cal-legend">
+            <q-checkbox v-if="profile.in_association" v-model="calShow.assoc" dense label="協會" color="secondary" />
+            <q-checkbox v-model="calShow.mine" dense label="我的共修" color="secondary" />
+            <q-checkbox v-model="calShow.open" dense label="可報名" color="secondary" />
+          </div>
+        </template>
+      </CalendarBoard>
+
+      <q-dialog :model-value="!!calOpen" @update:model-value="calOpen = null">
+        <q-card v-if="calOpen" style="width: 480px; max-width: 95vw">
+          <q-card-section>
+            <div class="row q-gutter-xs q-mb-sm">
+              <span class="status-chip">{{ calOpen.kind === 'assoc' ? '協會' : calOpen.kind === 'mine' ? roleText[calOpen.e.my_role!] : '可報名' }}</span>
+              <span v-if="calOpen.kind === 'assoc'" class="status-chip">{{ kindOf(calOpen.e.kind).label }}</span>
+              <span v-if="calOpen.kind === 'assoc' && calOpen.e.tag_name" class="status-chip">#{{ calOpen.e.tag_name }}</span>
+              <span v-if="calOpen.kind !== 'assoc'" class="status-chip">{{ calOpen.e.is_online ? '線上' : '線下' }}</span>
+            </div>
+            <div class="text-h6">{{ calOpen.e.title }}</div>
+            <div class="q-mt-xs">{{ rangeText(calOpen.e.starts_at, calOpen.e.ends_at) }}</div>
+            <div v-if="calOpen.e.location">{{ calOpen.kind !== 'assoc' && calOpen.e.venue_name ? `${calOpen.e.venue_name} · ` : '' }}{{ calOpen.e.location }}</div>
+            <div v-if="calOpen.kind !== 'assoc'" class="text-caption q-mt-xs">發起人 {{ calOpen.e.organizer_name }} · 已報名 {{ calOpen.e.joined }}／{{ calOpen.e.capacity }} 人</div>
+            <p v-if="calOpen.e.description" class="pre q-mt-sm q-mb-none">{{ calOpen.e.description }}</p>
+          </q-card-section>
+          <q-card-actions align="right">
+            <template v-if="calOpen.kind === 'open' && calOpen.e.joined < calOpen.e.capacity">
+              <q-btn flat color="secondary" no-caps label="我來協辦" @click="joinEvent(calOpen.e, 'helper'), (calOpen = null)" />
+              <q-btn outline color="secondary" no-caps label="報名參加" @click="joinEvent(calOpen.e, 'participant'), (calOpen = null)" />
+            </template>
+            <q-btn flat no-caps label="關閉" @click="calOpen = null" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <template v-if="profile.in_association">
         <h2>世界佛教教育協會</h2>
         <div class="assoc">
@@ -333,16 +459,6 @@ async function signOut() {
               <div class="text-caption">{{ day(n.created_at) }}</div>
               <div class="text-weight-bold">{{ n.title }}</div>
               <p v-if="n.body" class="q-mb-none pre">{{ n.body }}</p>
-            </div>
-          </div>
-          <div class="card">
-            <h3 class="q-mt-none">會員行事曆</h3>
-            <p v-if="!feed.events.length" class="q-mb-none">近期沒有排定的協會活動。</p>
-            <div v-for="e in feed.events" :key="e.id" class="item">
-              <div class="text-caption">{{ e.ends_at ? eventTime({ starts_at: e.starts_at, ends_at: e.ends_at }) : day(e.starts_at) }}</div>
-              <div class="text-weight-bold">{{ e.title }}</div>
-              <div v-if="e.location" class="text-caption">{{ e.location }}</div>
-              <p v-if="e.description" class="q-mb-none pre">{{ e.description }}</p>
             </div>
           </div>
           <div class="card">
@@ -470,14 +586,15 @@ async function signOut() {
     <q-dialog v-model="creating">
       <q-card style="width: 560px; max-width: 95vw">
         <q-form @submit.prevent="create">
-          <q-card-section>
+          <q-card-section class="q-pb-none">
             <div class="text-h6">發起共修活動</div>
             <div class="text-caption">三人以上（含你自己）就可以進行一次正念減壓實作。</div>
           </q-card-section>
-          <q-card-section class="q-gutter-md">
-            <q-input v-model="draft.title" label="活動名稱 *" outlined dense :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
+          <q-card-section class="create-form">
+            <q-input v-model="draft.title" label="活動名稱 *" outlined dense hide-bottom-space :rules="[(v) => !!v.trim() || '請填寫活動名稱']" />
             <q-btn-toggle
               v-model="draft.is_online"
+              class="self-start mode-toggle"
               no-caps
               unelevated
               toggle-color="secondary"
@@ -494,7 +611,7 @@ async function signOut() {
               map-options
               clearable
               label="活動場域"
-              hint="選了場域，活動會列在覺行小組頁的這個場域底下；也可以不選，自己填地點"
+              hint="選了場域，活動會列在覺行小組頁的場域底下；不選也可以，自己填地點"
               outlined
               dense
               @update:model-value="pickVenue"
@@ -502,16 +619,45 @@ async function signOut() {
             <q-input
               v-model="draft.location"
               :label="draft.is_online ? '會議連結或集合方式 *' : '地點 *'"
-              :hint="draft.is_online ? '只有報名的人看得到' : ''"
+              :hint="draft.is_online ? '只有報名的人看得到' : undefined"
               outlined
               dense
+              hide-bottom-space
               :rules="[(v) => !!v.trim() || '請填寫地點']"
             />
-            <div class="row q-col-gutter-sm">
-              <q-input v-model="draft.starts_at" type="datetime-local" label="開始 *" stack-label outlined dense class="col-12 col-sm-6" />
-              <q-input v-model="draft.ends_at" type="datetime-local" label="結束 *" stack-label outlined dense class="col-12 col-sm-6" />
+            <div class="time-row">
+              <q-input v-model="draft.date" label="日期 *" stack-label outlined dense readonly class="cursor-pointer date-field">
+                <template #append><q-icon name="event" /></template>
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="draft.date" mask="YYYY/MM/DD" minimal>
+                    <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-input>
+              <q-input :model-value="draft.start" label="開始 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space @update:model-value="(v) => pickStart(String(v ?? ''))">
+                <template #append>
+                  <q-icon name="schedule" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-time :model-value="draft.start" format24h :minute-options="[0, 15, 30, 45]" @update:model-value="pickStart">
+                        <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                      </q-time>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+              <q-input v-model="draft.end" label="結束 *" stack-label outlined dense mask="##:##" :rules="[timeRule]" hide-bottom-space :hint="draft.end && draft.end <= draft.start ? '隔天結束' : undefined">
+                <template #append>
+                  <q-icon name="schedule" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-time v-model="draft.end" format24h :minute-options="[0, 15, 30, 45]">
+                        <div class="row justify-end"><q-btn v-close-popup flat no-caps label="確定" /></div>
+                      </q-time>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
             </div>
-            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" />
+            <q-input v-model.number="draft.capacity" type="number" label="開放人數（含你自己）*" outlined dense :rules="[(v) => v >= 3 || '至少三人']" hide-bottom-space />
             <q-input v-model="draft.description" type="textarea" autogrow label="說明" hint="例如：帶一張瑜伽墊、第一次參加也歡迎" outlined dense />
           </q-card-section>
           <q-card-actions align="right">
@@ -561,7 +707,10 @@ async function signOut() {
 .assoc {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cal-legend {
+  gap: 4px 12px;
 }
 .item + .item {
   margin-top: 12px;
@@ -577,6 +726,19 @@ async function signOut() {
     grid-template-columns: 1fr;
   }
 }
+.chain-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .chain-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
 .balance {
   font-size: 2.2rem;
   font-variant-numeric: tabular-nums;
@@ -585,5 +747,32 @@ async function signOut() {
 .balance span {
   font-size: 1rem;
   color: var(--ink-soft);
+}
+/* 日期欄點了會跳出月曆；不要顯示成唯讀的虛線框 */
+.date-field :deep(.q-field__control:before) {
+  border-style: solid;
+}
+/* 發起共修表單：欄位等距排列，日期／開始／結束同一列（手機上日期獨佔一列） */
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mode-toggle {
+  border: 1px solid rgba(0, 0, 0, 0.24);
+}
+.time-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 599px) {
+  .time-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .time-row .date-field {
+    grid-column: 1 / -1;
+  }
 }
 </style>

@@ -55,7 +55,7 @@ func TestSignUpsAndReview(t *testing.T) {
 	if err := authSvc.Bootstrap(ctx, "admin@example.org", "ignored-second-time"); err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(config.Config{}, authSvc)
+	r := NewRouter(config.Config{}, authSvc, nil)
 
 	if w := call(t, r, http.MethodPost, "/api/auth/login", "", map[string]string{"email": "admin@example.org", "password": "wrong"}); w.Code != http.StatusUnauthorized {
 		t.Errorf("bad password: got %d", w.Code)

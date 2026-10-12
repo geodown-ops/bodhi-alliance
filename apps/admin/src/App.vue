@@ -18,11 +18,11 @@ const items = computed(() => [
         { to: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
       ]
     : []),
-  ...(isCenterStaff() ? [{ to: '/volunteers', label: '志工名冊', icon: 'badge' }] : []),
+  ...(isCenterStaff() ? [{ to: '/volunteers', label: '會員名冊', icon: 'badge' }] : []),
   ...(isKnowledgeManager()
     ? [
         { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
-        { to: '/guide-settings', label: 'AI 組長設定', icon: 'tune' },
+        { to: '/guide-settings', label: 'Sunny訓練設定', icon: 'tune' },
       ]
     : []),
   ...(isAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),

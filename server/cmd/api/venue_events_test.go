@@ -22,7 +22,7 @@ func TestVenueEvents(t *testing.T) {
 	if err := authSvc.Bootstrap(context.Background(), "admin@example.org", "a-long-admin-password"); err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(config.Config{}, authSvc)
+	r := NewRouter(config.Config{}, authSvc, nil)
 	admin := login(t, r, "admin@example.org", "a-long-admin-password")
 
 	w := call(t, r, http.MethodPost, "/api/admin/centers", admin, map[string]any{"name": "台中禪修中心", "region": "台中", "status": "active"})

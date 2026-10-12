@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { menu } from './router'
 import { account } from './account'
+import { wordmark } from './wordmark'
 
 const drawer = ref(false)
 </script>
@@ -13,23 +14,22 @@ const drawer = ref(false)
         <q-btn flat round dense icon="menu" class="lt-md" aria-label="選單" @click="drawer = !drawer" />
         <router-link to="/" class="brand">
           <img src="/favicon.svg" alt="" width="32" height="32" />
-          <span>Sunny life</span>
+          <svg class="wordmark" :viewBox="wordmark.viewBox" role="img" aria-label="Sunny life"><path fill="currentColor" stroke="currentColor" stroke-linejoin="round" :stroke-width="wordmark.stroke" :d="wordmark.d" /></svg>
         </router-link>
         <q-space />
         <nav class="gt-sm row no-wrap">
           <q-btn v-for="item in menu" :key="item.path" :to="item.path" flat no-caps :label="item.label" />
         </nav>
+        <!-- 文字直接寫在按鈕上（原本只有圖示＋滑過才出現的提示，提示本身按不到） -->
         <q-btn
           :to="account.user ? '/me' : '/login'"
-          flat
-          round
-          dense
+          outline
+          rounded
+          no-caps
           icon="account_circle"
-          class="q-ml-xs"
-          :aria-label="account.user ? '我的個人頁' : '登入'"
-        >
-          <q-tooltip>{{ account.user ? '我的個人頁' : '登入' }}</q-tooltip>
-        </q-btn>
+          :label="account.user ? '個人頁' : '登入'"
+          class="q-ml-xs account-btn"
+        />
       </q-toolbar>
     </q-header>
 
@@ -69,9 +69,20 @@ const drawer = ref(false)
   gap: 10px;
   color: inherit;
   text-decoration: none;
-  font-family: var(--wenkai);
-  font-size: 1.3rem;
   margin-left: 4px;
+}
+.wordmark {
+  /* 整個字（S 頂到 y 尾）不高過左邊的菩提葉（約 20px） */
+  height: 20px;
+  width: auto;
+  display: block;
+}
+.account-btn {
+  padding: 2px 12px 2px 8px;
+  white-space: nowrap;
+}
+.account-btn :deep(.q-icon) {
+  margin-right: 6px;
 }
 .footer {
   background: var(--ground-sunk);

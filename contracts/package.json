@@ -1,0 +1,12 @@
+{
+  "name": "bodhi-contracts",
+  "private": true,
+  "description": "菩提幣合約；npm run build 會把編譯結果寫進 server/internal/chain/",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.1.0",
+    "solc": "0.8.28"
+  }
+}

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PasswordInput from '../components/PasswordInput.vue'
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../api'
@@ -74,7 +75,7 @@ async function submit() {
       </div>
       <q-input v-model="form.legal_name" label="真實姓名 *" hint="核對身分用，不會公開" outlined :rules="[(v) => !!v.trim() || '請填寫真實姓名']" />
       <q-input v-model="form.email" type="email" label="電子郵件 *" hint="登入帳號" autocomplete="username" outlined :rules="[(v) => /.+@.+\..+/.test(v) || '請填寫正確的電子郵件']" />
-      <q-input v-model="form.password" type="password" label="密碼 *" autocomplete="new-password" outlined :rules="[(v) => v.length >= 10 || '至少 10 個字元']" />
+      <PasswordInput v-model="form.password" label="密碼 *" autocomplete="new-password" outlined :rules="[(v: string) => v.length >= 10 || '至少 10 個字元']" />
       <q-input v-model="form.display_name" label="暱稱" hint="活動頁上顯示的名字；不填就用真實姓名" outlined />
       <q-input v-model="form.line_id" label="LINE ID" hint="方便我們用 LINE 聯絡你" outlined />
       <input v-model="form.website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />

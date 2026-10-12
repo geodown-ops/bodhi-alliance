@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PasswordInput from '../components/PasswordInput.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Dialog, Notify } from 'quasar'
 import { api, session, type User } from '../session'
@@ -68,11 +69,11 @@ function disable(u: User) {
         <q-card-section class="q-gutter-md">
           <q-input v-model="form.display_name" label="名稱" outlined dense />
           <q-input v-model="form.email" type="email" label="電子郵件" outlined dense />
-          <q-input v-model="form.password" type="password" label="初始密碼（至少 10 個字元）" outlined dense />
+          <PasswordInput v-model="form.password" label="初始密碼（至少 10 個字元）" outlined dense />
           <q-select
             v-model="form.role"
             :options="[
-              { label: '知識管理員：只能管理 AI 組長與知識庫', value: 'knowledge_manager' },
+              { label: '知識管理員：只能管理 Sunny 訓練設定與知識庫', value: 'knowledge_manager' },
               { label: '中心管理員：核可自己中心的志工、管理小組成員', value: 'center_admin' },
               { label: '超級管理員：全部功能', value: 'alliance_admin' },
             ]"

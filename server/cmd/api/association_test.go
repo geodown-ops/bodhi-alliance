@@ -22,7 +22,7 @@ func TestAssociationMembership(t *testing.T) {
 	if err := authSvc.Bootstrap(context.Background(), "admin@example.org", "a-long-admin-password"); err != nil {
 		t.Fatal(err)
 	}
-	r := NewRouter(config.Config{}, authSvc)
+	r := NewRouter(config.Config{}, authSvc, nil)
 	admin := login(t, r, "admin@example.org", "a-long-admin-password")
 
 	signup := func(body map[string]any) string {
@@ -86,6 +86,37 @@ func TestAssociationMembership(t *testing.T) {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Errorf("association page missing %s: %s", want, w.Body)
 		}
+	}
+
+	// Calendar tags and kinds (dengo 的行程管理): a tagged event shows its tag to members;
+	// deleting the tag keeps the event.
+	w = call(t, r, http.MethodPost, "/api/admin/association/tags", admin, map[string]any{"name": "#講座"})
+	var tag struct{ ID, Name string }
+	json.Unmarshal(w.Body.Bytes(), &tag)
+	if w.Code != http.StatusOK || tag.Name != "講座" {
+		t.Fatalf("add tag: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodPost, "/api/admin/association/tags", admin, map[string]any{"name": "講座"}); w.Code != http.StatusConflict {
+		t.Errorf("duplicate tag: %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPost, "/api/admin/association/events", admin, map[string]any{"title": "x", "starts_at": start, "kind": "party"}); w.Code != http.StatusBadRequest {
+		t.Errorf("bad kind: %d", w.Code)
+	}
+	w = call(t, r, http.MethodPost, "/api/admin/association/events", admin, map[string]any{"title": "唯識講座", "starts_at": start,
+		"ends_at": start.Add(2 * time.Hour), "kind": "training", "tag_id": tag.ID})
+	if w.Code != http.StatusOK {
+		t.Fatalf("tagged event: %d %s", w.Code, w.Body)
+	}
+	w = call(t, r, http.MethodGet, "/api/me/association", assoc, nil)
+	if !strings.Contains(w.Body.String(), `"kind":"training","tag_id":"`+tag.ID+`","tag_name":"講座"`) {
+		t.Errorf("member calendar missing tag: %s", w.Body)
+	}
+	if w := call(t, r, http.MethodDelete, "/api/admin/association/tags/"+tag.ID, admin, nil); w.Code != http.StatusNoContent {
+		t.Errorf("delete tag: %d", w.Code)
+	}
+	w = call(t, r, http.MethodGet, "/api/admin/association/events", admin, nil)
+	if !strings.Contains(w.Body.String(), `"title":"唯識講座"`) || strings.Contains(w.Body.String(), tag.ID) {
+		t.Errorf("event after tag deleted: %s", w.Body)
 	}
 
 	// Switching: the 覺行小組 member joins the association too; nobody can leave both.

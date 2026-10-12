@@ -40,7 +40,7 @@ async function save() {
   saving.value = true
   try {
     await api.guideSend('PUT', `/guide/admin/documents/${id}`, { title: doc.value.title, category: doc.value.category, body: doc.value.body })
-    Notify.create({ type: 'positive', message: doc.value.status === 'published' ? '已儲存，AI 組長立即使用新內容' : '已儲存' })
+    Notify.create({ type: 'positive', message: doc.value.status === 'published' ? '已儲存，Sunny 立即使用新內容' : '已儲存' })
     load()
   } catch (e) {
     Notify.create({ type: 'negative', message: (e as Error).message })
@@ -60,7 +60,7 @@ async function setStatus(status: 'draft' | 'published' | 'archived') {
 }
 
 function archive() {
-  Dialog.create({ title: '移除文件', message: 'AI 組長將不再使用這份文件。內容與版本紀錄會保留供稽核。', cancel: true }).onOk(() => setStatus('archived'))
+  Dialog.create({ title: '移除文件', message: 'Sunny 將不再使用這份文件。內容與版本紀錄會保留供稽核。', cancel: true }).onOk(() => setStatus('archived'))
 }
 
 const question = ref('')
@@ -120,7 +120,7 @@ async function ask() {
         <q-card flat bordered class="q-mb-md">
           <q-card-section>
             <div class="text-subtitle1 q-mb-sm">試問</div>
-            <p class="text-caption text-grey-8">用目前已上架的知識，加上這份文件（即使還是草稿），看看 AI 組長會怎麼回答。共修腳本會用「帶我共修」的方式試，可以輸入「開始」。</p>
+            <p class="text-caption text-grey-8">用目前已上架的知識，加上這份文件（即使還是草稿），看看 Sunny 會怎麼回答。共修腳本會用「帶我共修」的方式試，可以輸入「開始」。</p>
             <q-input v-model="question" type="textarea" autogrow outlined dense placeholder="輸入一個問題" />
             <q-btn class="q-mt-sm" color="secondary" unelevated no-caps label="問問看" :loading="asking" :disable="!question.trim() || dirty" @click="ask" />
             <p v-if="dirty" class="text-caption text-grey-7 q-mt-sm">請先儲存再試問。</p>
