@@ -204,4 +204,64 @@ func TestVolunteersAndCenterAdmins(t *testing.T) {
 	if w := call(t, r, http.MethodGet, "/api/auth/users", mgr, nil); w.Code != http.StatusForbidden {
 		t.Errorf("after super revoke: got %d", w.Code)
 	}
+
+	// 忘記密碼：中心管理員能重設自己中心一般會員的密碼，拿到臨時密碼；舊登入失效
+	reset := func(token, path string) (int, string) {
+		w := call(t, r, http.MethodPost, path, token, nil)
+		var res struct{ Password string }
+		json.Unmarshal(w.Body.Bytes(), &res)
+		return w.Code, res.Password
+	}
+	if code, _ := reset(tc, "/api/admin/volunteers/"+me.ID+"/password"); code != http.StatusForbidden {
+		t.Errorf("other center resets: got %d", code)
+	}
+	code, temp := reset(tp, "/api/admin/volunteers/"+me.ID+"/password")
+	if code != http.StatusOK || len(temp) != 12 {
+		t.Fatalf("reset: %d %q", code, temp)
+	}
+	if w := call(t, r, http.MethodGet, "/api/me/volunteer", vol, nil); w.Code != http.StatusUnauthorized {
+		t.Errorf("old session after reset: got %d", w.Code)
+	}
+	vol = login(t, r, "mei@example.org", temp)
+	// 拿到臨時密碼後自己改密碼
+	if w := call(t, r, http.MethodPut, "/api/auth/password", vol, map[string]string{"current_password": "wrong-password", "new_password": "a-new-lotus-pond"}); w.Code != http.StatusBadRequest {
+		t.Errorf("change with wrong current: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPut, "/api/auth/password", vol, map[string]string{"current_password": temp, "new_password": "short"}); w.Code != http.StatusBadRequest {
+		t.Errorf("change to short: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPut, "/api/auth/password", vol, map[string]string{"current_password": temp, "new_password": "a-new-lotus-pond"}); w.Code != http.StatusNoContent {
+		t.Fatalf("change password: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/me/volunteer", vol, nil); w.Code != http.StatusOK {
+		t.Errorf("session kept after change: got %d", w.Code)
+	}
+	login(t, r, "mei@example.org", "a-new-lotus-pond")
+	// 有後台權限的會員只有超級管理員能重設
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, admin, makeAdmin); w.Code != http.StatusNoContent {
+		t.Fatalf("grant manager again: %d %s", w.Code, w.Body)
+	}
+	if code, _ := reset(tp, "/api/admin/volunteers/"+me.ID+"/password"); code != http.StatusForbidden {
+		t.Errorf("center admin resets manager: got %d", code)
+	}
+	if code, temp = reset(admin, "/api/admin/volunteers/"+me.ID+"/password"); code != http.StatusOK || temp == "" {
+		t.Errorf("super resets manager: %d", code)
+	}
+	// 後台帳號：超級管理員重設
+	var tcID string
+	w = call(t, r, http.MethodGet, "/api/auth/users", admin, nil)
+	var staff []struct{ ID, Email string }
+	json.Unmarshal(w.Body.Bytes(), &staff)
+	for _, u := range staff {
+		if u.Email == "tc@example.org" {
+			tcID = u.ID
+		}
+	}
+	if code, temp = reset(admin, "/api/auth/users/"+tcID+"/password"); code != http.StatusOK || temp == "" {
+		t.Fatalf("reset staff: %d", code)
+	}
+	login(t, r, "tc@example.org", temp)
+	if code, _ := reset(tp, "/api/auth/users/"+tcID+"/password"); code != http.StatusForbidden {
+		t.Errorf("center admin resets staff: got %d", code)
+	}
 }

@@ -13,11 +13,11 @@ export const router = createRouter({
     { path: '/claims', component: () => import('./pages/ClaimsPage.vue'), meta: { admin: true, superAdmin: true, title: '菩提幣審核' } },
     { path: '/site-issues', component: () => import('./pages/SiteIssuesPage.vue'), meta: { admin: true, superAdmin: true, title: '使用問題' } },
     { path: '/association', component: () => import('./pages/AssociationPage.vue'), meta: { admin: true, title: '世界佛教教育協會' } },
-    { path: '/volunteers', component: () => import('./pages/VolunteersPage.vue'), meta: { center: true, title: '會員名冊' } },
+    { path: '/volunteers', component: () => import('./pages/VolunteersPage.vue'), meta: { center: true, title: '帳號' } },
     { path: '/knowledge', component: () => import('./pages/KnowledgePage.vue'), meta: { knowledge: true, title: '知識庫' } },
     { path: '/knowledge/:id', component: () => import('./pages/DocumentPage.vue'), meta: { knowledge: true, title: '知識文件' } },
     { path: '/guide-settings', component: () => import('./pages/GuideSettingsPage.vue'), meta: { knowledge: true, title: 'Sunny訓練設定' } },
-    { path: '/users', component: () => import('./pages/UsersPage.vue'), meta: { admin: true, superAdmin: true, title: '帳號' } },
+    { path: '/users', component: () => import('./pages/UsersPage.vue'), meta: { admin: true, superAdmin: true, title: '管理員' } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
