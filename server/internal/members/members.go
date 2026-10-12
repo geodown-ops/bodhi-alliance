@@ -42,12 +42,14 @@ type Volunteer struct {
 	// 菩提幣決策小組成員：會員身分，後台會員名冊打勾設定
 	IsCommittee bool `json:"is_committee"`
 	// 管理員：可登入後台；只有超級管理員能在會員名冊打勾設定
-	IsAdmin    bool       `json:"is_admin"`
-	Status     string     `json:"status"`
-	ReviewNote string     `json:"review_note"`
-	VerifiedAt *time.Time `json:"verified_at"`
-	Frozen     bool       `json:"frozen"`
-	CreatedAt  time.Time  `json:"created_at"`
+	IsAdmin bool `json:"is_admin"`
+	// 超級管理員：全部後台功能；只有超級管理員能在會員名冊打勾設定
+	IsSuperAdmin bool       `json:"is_super_admin"`
+	Status       string     `json:"status"`
+	ReviewNote   string     `json:"review_note"`
+	VerifiedAt   *time.Time `json:"verified_at"`
+	Frozen       bool       `json:"frozen"`
+	CreatedAt    time.Time  `json:"created_at"`
 	// 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
 	InGroups            bool         `json:"in_groups"`
 	InAssociation       bool         `json:"in_association"`
@@ -59,6 +61,7 @@ const volunteerSelect = `
 	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.line_id, coalesce(v.home_center_id::text, ''), coalesce(c.name, ''),
 	       v.wants_coach, v.is_coach, v.is_group_leader, v.is_committee,
 	       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = 'manager' AND r.scope = 'alliance'),
+	       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = 'alliance_admin' AND r.scope = 'alliance'),
 	       v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
 	       v.in_groups, v.in_association, v.association_joined_at,
 	       coalesce((SELECT json_agg(json_build_object('group_id', g.id, 'name', g.name, 'role', m.role, 'joined_at', m.joined_at) ORDER BY m.joined_at)
@@ -68,7 +71,7 @@ const volunteerSelect = `
 func scanVolunteer(row pgx.CollectableRow) (Volunteer, error) {
 	var v Volunteer
 	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.LineID, &v.HomeCenterID, &v.CenterName,
-		&v.WantsCoach, &v.IsCoach, &v.IsGroupLeader, &v.IsCommittee, &v.IsAdmin, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
+		&v.WantsCoach, &v.IsCoach, &v.IsGroupLeader, &v.IsCommittee, &v.IsAdmin, &v.IsSuperAdmin, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
 		&v.InGroups, &v.InAssociation, &v.AssociationJoinedAt, &v.Groups)
 	return v, err
 }
@@ -400,6 +403,7 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		IsGroupLeader *bool  `json:"is_group_leader"`
 		IsCommittee   *bool  `json:"is_committee"`
 		IsAdmin       *bool  `json:"is_admin"`
+		IsSuperAdmin  *bool  `json:"is_super_admin"`
 		ReviewNote    string `json:"review_note" binding:"max=2000"`
 		Frozen        bool   `json:"frozen"`
 	}
@@ -412,21 +416,39 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		return
 	}
 	var center, userID string
-	var isAdmin bool
+	var isAdmin, isSuper bool
 	if err := h.DB.QueryRow(c, `
 		SELECT coalesce(home_center_id::text, ''), user_id,
-		       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = $2 AND r.scope = $3)
-		FROM volunteer v WHERE id = $1`, c.Param("id"), auth.RoleManager, auth.ScopeAlliance).Scan(&center, &userID, &isAdmin); err != nil {
+		       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = $2 AND r.scope = $4),
+		       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = $3 AND r.scope = $4)
+		FROM volunteer v WHERE id = $1`, c.Param("id"), auth.RoleManager, auth.RoleAllianceAdmin, auth.ScopeAlliance).Scan(&center, &userID, &isAdmin, &isSuper); err != nil {
 		fail(c, err)
 		return
 	}
 	if !canManage(c, center) {
 		return
 	}
-	setAdmin := req.IsAdmin != nil && *req.IsAdmin != isAdmin
-	if setAdmin && !auth.CurrentUser(c).IsAllianceAdmin() {
+	// 管理員、超級管理員只有超級管理員能改；值沒變就照常儲存其他欄位
+	type roleChange struct {
+		role string
+		on   bool
+	}
+	var changes []roleChange
+	if req.IsAdmin != nil && *req.IsAdmin != isAdmin {
+		changes = append(changes, roleChange{auth.RoleManager, *req.IsAdmin})
+	}
+	if req.IsSuperAdmin != nil && *req.IsSuperAdmin != isSuper {
+		changes = append(changes, roleChange{auth.RoleAllianceAdmin, *req.IsSuperAdmin})
+	}
+	if len(changes) > 0 && !auth.CurrentUser(c).IsAllianceAdmin() {
 		httpx.Error(c, http.StatusForbidden, "只有超級管理員能設定管理員")
 		return
+	}
+	for _, ch := range changes {
+		if ch.role == auth.RoleAllianceAdmin && !ch.on && userID == auth.CurrentUser(c).ID {
+			httpx.Error(c, http.StatusBadRequest, "不能取消自己的超級管理員")
+			return
+		}
 	}
 	tx, err := h.DB.Begin(c)
 	if err != nil {
@@ -443,13 +465,16 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		       qr_frozen_at = CASE WHEN $6 THEN coalesce(qr_frozen_at, now()) END
 		WHERE id = $1`,
 		c.Param("id"), req.Status, req.IsCoach, strings.TrimSpace(req.ReviewNote), auth.CurrentUser(c).ID, req.Frozen, req.IsGroupLeader, req.IsCommittee)
-	if err == nil && setAdmin {
-		if *req.IsAdmin {
+	for _, ch := range changes {
+		if err != nil {
+			break
+		}
+		if ch.on {
 			_, err = tx.Exec(c, `INSERT INTO role_assignment (user_id, role, scope) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-				userID, auth.RoleManager, auth.ScopeAlliance)
+				userID, ch.role, auth.ScopeAlliance)
 		} else {
 			_, err = tx.Exec(c, `DELETE FROM role_assignment WHERE user_id = $1 AND role = $2 AND scope = $3`,
-				userID, auth.RoleManager, auth.ScopeAlliance)
+				userID, ch.role, auth.ScopeAlliance)
 		}
 	}
 	if err == nil {
