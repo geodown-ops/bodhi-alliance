@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Notify } from 'quasar'
+import { Dialog, Notify } from 'quasar'
 import { api, isAdmin, isSuperAdmin, session } from '../session'
 
 type Volunteer = {
@@ -87,6 +87,20 @@ async function setFlag(v: Volunteer, key: 'is_coach' | 'is_group_leader' | 'is_c
   }
 }
 
+// 忘記密碼：產生一組臨時密碼給會員，舊的登入全部失效（網站還不會寄信）
+const esc = (t: string) => t.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`)
+
+function resetPassword(v: Volunteer) {
+  Dialog.create({ title: '重設密碼', message: `幫 ${v.legal_name}（${v.email}）產生一組臨時密碼？舊密碼會失效，對方會被登出。`, cancel: true }).onOk(async () => {
+    try {
+      const { password } = await api.send<{ password: string }>('POST', `/api/admin/volunteers/${v.id}/password`)
+      Dialog.create({ title: '臨時密碼', message: `<div class="text-h6 q-my-sm" style="font-family: monospace">${password}</div>請轉告 ${esc(v.legal_name)}，登入後到個人頁按「修改密碼」換成自己的。這組密碼只會顯示這一次。`, html: true })
+    } catch (e) {
+      toast(e)
+    }
+  })
+}
+
 async function save() {
   const v = editing.value
   if (!v) return
@@ -102,7 +116,7 @@ async function save() {
 
 <template>
   <q-page class="admin-page">
-    <h1>會員名冊</h1>
+    <h1>帳號</h1>
     <p class="text-grey-8">
       會員在官網自己註冊並選所屬中心。請核對真實姓名與身分後按「核可」，核可後才能列入核發名單；核可後會員不能自己改姓名。教練、覺行小組長、菩提幣決策小組、管理員、超級管理員直接在表格打勾設定。管理員可用自己的會員帳密登入後台（帳號與菩提幣審核除外）；超級管理員可用全部功能。只有超級管理員能設定這兩項。點欄位標題可以排序。
     </p>
@@ -172,6 +186,8 @@ async function save() {
           <q-toggle v-model="editing.frozen" color="negative" label="凍結（遺失手機或疑似冒用時，暫停兌換）" />
         </q-card-section>
         <q-card-actions align="right">
+          <q-btn flat no-caps color="secondary" icon="key" label="重設密碼" @click="resetPassword(editing)" />
+          <q-space />
           <q-btn flat no-caps label="取消" @click="editing = null" />
           <q-btn color="secondary" unelevated no-caps label="儲存" :disable="editing.next === 'rejected' && !editing.review_note.trim()" @click="save" />
         </q-card-actions>

@@ -142,6 +142,9 @@ export async function logout() {
   }
 }
 
+export const changePassword = (current: string, next: string) =>
+  call('PUT', '/api/auth/password', { current_password: current, new_password: next })
+
 export const me = {
   centers: () => call<Center[]>('GET', '/api/centers'),
   profile: () => call<Volunteer>('GET', '/api/me/volunteer'),

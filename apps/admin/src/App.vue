@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { isAdmin, isCenterStaff, isKnowledgeManager, isSuperAdmin, logout, session } from './session'
+import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
+import { api, isAdmin, isCenterStaff, isKnowledgeManager, isSuperAdmin, logout, session } from './session'
 
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
+const changingPassword = ref(false)
+const changePassword = (current: string, next: string) =>
+  api.send('PUT', '/api/auth/password', { current_password: current, new_password: next })
 
 const items = computed(() => [
   ...(isAdmin()
@@ -18,14 +22,14 @@ const items = computed(() => [
         { to: '/association', label: '世界佛教教育協會', icon: 'img:/images/association/logo.webp' },
       ]
     : []),
-  ...(isCenterStaff() ? [{ to: '/volunteers', label: '會員名冊', icon: 'badge' }] : []),
+  ...(isCenterStaff() ? [{ to: '/volunteers', label: '帳號', icon: 'badge' }] : []),
   ...(isKnowledgeManager()
     ? [
         { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
         { to: '/guide-settings', label: 'Sunny訓練設定', icon: 'tune' },
       ]
     : []),
-  ...(isSuperAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),
+  ...(isSuperAdmin() ? [{ to: '/users', label: '管理員', icon: 'manage_accounts' }] : []),
 ])
 
 async function signOut() {
@@ -42,6 +46,7 @@ async function signOut() {
         <q-btn flat round dense icon="menu" aria-label="選單" @click="drawer = !drawer" />
         <q-toolbar-title>菩提幣管理後台</q-toolbar-title>
         <span class="gt-xs q-mr-sm">{{ session.user?.display_name }}</span>
+        <q-btn flat dense no-caps icon="key" label="修改密碼" class="q-mr-sm" @click="changingPassword = true" />
         <q-btn flat dense no-caps icon="logout" label="登出" @click="signOut" />
       </q-toolbar>
     </q-header>
@@ -56,6 +61,7 @@ async function signOut() {
     <q-page-container>
       <router-view />
     </q-page-container>
+    <ChangePasswordDialog v-model="changingPassword" :save="changePassword" />
   </q-layout>
 </template>
 
