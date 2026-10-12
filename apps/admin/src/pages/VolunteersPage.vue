@@ -115,7 +115,8 @@ async function save() {
 </script>
 
 <template>
-  <div>
+  <q-page class="admin-page">
+    <h1>帳號</h1>
     <p class="text-grey-8">
       會員在官網自己註冊並選所屬中心。請核對真實姓名與身分後按「核可」，核可後才能列入核發名單；核可後會員不能自己改姓名。教練、覺行小組長、菩提幣決策小組、管理員、超級管理員直接在表格打勾設定。管理員可用自己的會員帳密登入後台（帳號與菩提幣審核除外）；超級管理員可用全部功能。只有超級管理員能設定這兩項。點欄位標題可以排序。
     </p>
@@ -192,5 +193,5 @@ async function save() {
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </div>
+  </q-page>
 </template>

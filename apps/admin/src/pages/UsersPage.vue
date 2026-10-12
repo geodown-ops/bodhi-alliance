@@ -62,12 +62,13 @@ function disable(u: User) {
 </script>
 
 <template>
-  <div>
-    <div class="row items-center q-mb-md">
-      <div class="text-grey-8">另外建立的後台帳號（不是會員）。會員要進後台，請在「會員」分頁勾選管理員或超級管理員。</div>
+  <q-page class="admin-page">
+    <div class="row items-center q-mb-sm">
+      <h1 class="q-mb-none">管理員</h1>
       <q-space />
       <q-btn color="secondary" unelevated no-caps icon="person_add" label="新增帳號" @click="show = true" />
     </div>
+    <p class="text-grey-8">另外建立的後台帳號（不是會員）。會員要進後台，請在「帳號」勾選管理員或超級管理員。</p>
     <q-table :rows="users" :columns="columns" row-key="id" flat bordered hide-pagination :rows-per-page-options="[0]">
       <template #body-cell-actions="props">
         <q-td :props="props" class="text-right">
@@ -123,5 +124,5 @@ function disable(u: User) {
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </div>
+  </q-page>
 </template>

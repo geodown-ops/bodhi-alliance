@@ -22,13 +22,14 @@ const items = computed(() => [
         { to: '/association', label: '世界佛教教育協會', icon: 'img:/images/association/logo.webp' },
       ]
     : []),
-  ...(isCenterStaff() ? [{ to: '/accounts', label: '帳號', icon: 'manage_accounts' }] : []),
+  ...(isCenterStaff() ? [{ to: '/volunteers', label: '帳號', icon: 'badge' }] : []),
   ...(isKnowledgeManager()
     ? [
         { to: '/knowledge', label: '知識庫', icon: 'menu_book' },
         { to: '/guide-settings', label: 'Sunny訓練設定', icon: 'tune' },
       ]
     : []),
+  ...(isSuperAdmin() ? [{ to: '/users', label: '管理員', icon: 'manage_accounts' }] : []),
 ])
 
 async function signOut() {
