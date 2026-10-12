@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { isAdmin, isCenterStaff, isKnowledgeManager, logout, session } from './session'
+import { isAdmin, isCenterStaff, isKnowledgeManager, isSuperAdmin, logout, session } from './session'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,7 +12,7 @@ const items = computed(() => [
     ? [
         { to: '/applications', label: '報名與登記', icon: 'inbox' },
         { to: '/groups', label: '覺行小組', icon: 'groups' },
-        { to: '/claims', label: '菩提幣審核', icon: 'paid' },
+        ...(isSuperAdmin() ? [{ to: '/claims', label: '菩提幣審核', icon: 'paid' }] : []),
         { to: '/venues', label: '場域管理', icon: 'place' },
         { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
         { to: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
@@ -25,7 +25,7 @@ const items = computed(() => [
         { to: '/guide-settings', label: 'Sunny訓練設定', icon: 'tune' },
       ]
     : []),
-  ...(isAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),
+  ...(isSuperAdmin() ? [{ to: '/users', label: '帳號', icon: 'manage_accounts' }] : []),
 ])
 
 async function signOut() {

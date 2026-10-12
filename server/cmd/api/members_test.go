@@ -136,4 +136,46 @@ func TestVolunteersAndCenterAdmins(t *testing.T) {
 		"password": "center-admin-password", "role": "center_admin"}); w.Code != http.StatusBadRequest {
 		t.Errorf("center admin without center: got %d", w.Code)
 	}
+
+	// 管理員：只有超級管理員能打勾；打勾後會員用自己的帳密進後台，但不能管帳號、審菩提幣或指派管理員
+	makeAdmin := map[string]any{"status": "verified", "is_coach": true, "is_admin": true}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, tp, makeAdmin); w.Code != http.StatusForbidden {
+		t.Errorf("center admin grants manager: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/centers", vol, nil); w.Code != http.StatusForbidden {
+		t.Errorf("member before manager: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, admin, makeAdmin); w.Code != http.StatusNoContent {
+		t.Fatalf("grant manager: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/volunteers", admin, nil); !strings.Contains(w.Body.String(), `"is_admin":true`) {
+		t.Errorf("is_admin missing: %s", w.Body)
+	}
+	mgr := login(t, r, "mei@example.org", "lotus-pond-evening")
+	for _, path := range []string{"/api/admin/centers", "/api/admin/groups", "/api/admin/merchant-applications", "/api/admin/association/notices"} {
+		if w := call(t, r, http.MethodGet, path, mgr, nil); w.Code != http.StatusOK {
+			t.Errorf("manager GET %s: got %d", path, w.Code)
+		}
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/volunteers", mgr, nil); !strings.Contains(w.Body.String(), `"email":"mei@example.org"`) {
+		t.Errorf("manager roster = %s", w.Body)
+	}
+	for _, path := range []string{"/api/auth/users", "/api/admin/claims"} {
+		if w := call(t, r, http.MethodGet, path, mgr, nil); w.Code != http.StatusForbidden {
+			t.Errorf("manager GET %s: got %d", path, w.Code)
+		}
+	}
+	// 管理員自己不能取消或指派管理員；照原值儲存其他欄位可以
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, mgr, map[string]any{"status": "verified", "is_admin": false}); w.Code != http.StatusForbidden {
+		t.Errorf("manager revokes manager: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, mgr, makeAdmin); w.Code != http.StatusNoContent {
+		t.Errorf("manager saves unchanged: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, admin, map[string]any{"status": "verified", "is_admin": false}); w.Code != http.StatusNoContent {
+		t.Fatalf("revoke manager: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/centers", mgr, nil); w.Code != http.StatusForbidden {
+		t.Errorf("after revoke: got %d", w.Code)
+	}
 }

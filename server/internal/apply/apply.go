@@ -71,7 +71,7 @@ func (h *Handler) Routes(r *gin.RouterGroup) {
 	r.POST("/group-applications", limit, h.createGroupApplication)
 	r.POST("/merchant-applications", limit, h.createMerchantApplication)
 
-	admin := r.Group("/admin", h.Auth.Require(auth.RoleAllianceAdmin, auth.ScopeAlliance))
+	admin := r.Group("/admin", h.Auth.Require(auth.RoleManager, auth.ScopeAlliance))
 	admin.GET("/groups", h.listGroups(false))
 	admin.POST("/groups", h.saveGroup)
 	admin.PUT("/groups/:id", h.saveGroup)

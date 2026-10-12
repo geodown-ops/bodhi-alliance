@@ -7,7 +7,7 @@ import { api, session, type User } from '../session'
 const users = ref<User[]>([])
 const centers = ref<{ id: string; name: string }[]>([])
 const centerName = (scope: string) => centers.value.find((c) => `center:${c.id}` === scope)?.name ?? ''
-const roleLabel: Record<string, string> = { alliance_admin: '超級管理員', knowledge_manager: '知識管理員', center_admin: '中心管理員' }
+const roleLabel: Record<string, string> = { alliance_admin: '超級管理員', knowledge_manager: '知識管理員', center_admin: '中心管理員', manager: '管理員' }
 const describe = (r: { role: string; scope: string }) =>
   r.role === 'center_admin' ? `${roleLabel[r.role]}（${centerName(r.scope)}）` : (roleLabel[r.role] ?? r.role)
 const columns = [

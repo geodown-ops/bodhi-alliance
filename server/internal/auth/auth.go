@@ -24,6 +24,8 @@ const (
 	RoleAllianceAdmin    = "alliance_admin"
 	RoleKnowledgeManager = "knowledge_manager"
 	RoleCenterAdmin      = "center_admin"
+	// RoleManager（管理員）可用後台大部分功能，但不能管理帳號、審核菩提幣或指派管理員。
+	RoleManager = "manager"
 
 	ScopeAlliance = "alliance"
 	ScopeGuide    = "guide"
@@ -44,10 +46,14 @@ type User struct {
 	Roles       []Role `json:"roles"`
 }
 
-// Has reports whether the user holds role in scope. Alliance admins hold every role.
+// Has reports whether the user holds role in scope. Alliance admins hold every role;
+// managers hold every role except alliance admin.
 func (u *User) Has(role, scope string) bool {
 	for _, r := range u.Roles {
 		if r.Role == RoleAllianceAdmin && r.Scope == ScopeAlliance {
+			return true
+		}
+		if r.Role == RoleManager && r.Scope == ScopeAlliance && role != RoleAllianceAdmin {
 			return true
 		}
 		if r.Role == role && r.Scope == scope {
@@ -62,6 +68,10 @@ func CenterScope(centerID string) string { return "center:" + centerID }
 
 // IsAllianceAdmin reports whether the user administers the whole alliance.
 func (u *User) IsAllianceAdmin() bool { return u.Has(RoleAllianceAdmin, ScopeAlliance) }
+
+// IsManager reports whether the user is a manager (管理員) or alliance admin, i.e. sees
+// every center.
+func (u *User) IsManager() bool { return u.Has(RoleManager, ScopeAlliance) }
 
 // CenterIDs lists the centers the user administers as a center admin.
 func (u *User) CenterIDs() []string {
@@ -231,10 +241,10 @@ func (s *Service) RequireUser() gin.HandlerFunc {
 	return s.RequireThat(func(*User) bool { return true })
 }
 
-// RequireCenterStaff lets alliance admins and center admins through; handlers still
+// RequireCenterStaff lets alliance admins, managers and center admins through; handlers still
 // check which centers a center admin may see.
 func (s *Service) RequireCenterStaff() gin.HandlerFunc {
-	return s.RequireThat(func(u *User) bool { return u.IsAllianceAdmin() || len(u.CenterIDs()) > 0 })
+	return s.RequireThat(func(u *User) bool { return u.IsManager() || len(u.CenterIDs()) > 0 })
 }
 
 // RequireThat lets the request through only if the bearer token's user passes allowed.
