@@ -110,6 +110,39 @@ func (s *Service) CreateUser(ctx context.Context, email, name, password string, 
 	return id, err
 }
 
+// tempAlphabet leaves out look-alike characters (0/O, 1/l/I) so a temporary password
+// can be read out over the phone.
+const tempAlphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+// ResetPassword gives the user a new random temporary password, signs them out
+// everywhere and returns the password so staff can pass it on (the site sends no email).
+func (s *Service) ResetPassword(ctx context.Context, userID string) (string, error) {
+	b := make([]byte, 12)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	for i := range b {
+		b[i] = tempAlphabet[int(b[i])%len(tempAlphabet)]
+	}
+	password := string(b)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	err = pgx.BeginFunc(ctx, s.DB, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `UPDATE app_user SET password_hash = $2 WHERE id = $1 AND disabled_at IS NULL`, userID, string(hash))
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return pgx.ErrNoRows
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM user_session WHERE user_id = $1`, userID)
+		return err
+	})
+	return password, err
+}
+
 // CreateUserTx is CreateUser inside the caller's transaction.
 func CreateUserTx(ctx context.Context, tx pgx.Tx, email, name, password string, roles ...Role) (string, error) {
 	if len(password) < 10 {
@@ -307,6 +340,38 @@ func (s *Service) Routes(g *gin.RouterGroup) {
 		}
 		c.JSON(http.StatusOK, gin.H{"token": token, "user": u})
 	})
+	// 修改密碼：要先輸入目前的密碼（含管理員給的臨時密碼）；其他裝置的登入會被登出
+	g.PUT("/password", s.RequireUser(), func(c *gin.Context) {
+		var req struct {
+			Current string `json:"current_password" binding:"required,max=200"`
+			New     string `json:"new_password" binding:"required,max=200"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			httpx.Error(c, http.StatusBadRequest, "請輸入目前的密碼和新密碼")
+			return
+		}
+		if len(req.New) < 10 {
+			httpx.Error(c, http.StatusBadRequest, "新密碼至少 10 個字元")
+			return
+		}
+		u := CurrentUser(c)
+		var hash string
+		if err := s.DB.QueryRow(c, `SELECT password_hash FROM app_user WHERE id = $1`, u.ID).Scan(&hash); err != nil ||
+			bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Current)) != nil {
+			httpx.Error(c, http.StatusBadRequest, "目前的密碼不正確")
+			return
+		}
+		newHash, err := bcrypt.GenerateFromPassword([]byte(req.New), bcrypt.DefaultCost)
+		if err == nil {
+			_, err = s.DB.Exec(c, `UPDATE app_user SET password_hash = $2 WHERE id = $1`, u.ID, string(newHash))
+		}
+		if err != nil {
+			httpx.Error(c, http.StatusInternalServerError, "修改失敗，請稍後再試")
+			return
+		}
+		_, _ = s.DB.Exec(c, `DELETE FROM user_session WHERE user_id = $1 AND token_hash <> $2`, u.ID, hashToken(bearer(c)))
+		c.Status(http.StatusNoContent)
+	})
 	g.POST("/logout", func(c *gin.Context) {
 		if t := bearer(c); t != "" {
 			_ = s.Logout(c, t)
@@ -374,6 +439,14 @@ func (s *Service) Routes(g *gin.RouterGroup) {
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"id": id})
+	})
+	admin.POST("/:id/password", func(c *gin.Context) {
+		password, err := s.ResetPassword(c, c.Param("id"))
+		if err != nil {
+			httpx.Error(c, http.StatusNotFound, "找不到這個帳號")
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"password": password})
 	})
 	admin.DELETE("/:id", func(c *gin.Context) {
 		if c.Param("id") == CurrentUser(c).ID {

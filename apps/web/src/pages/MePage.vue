@@ -3,7 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Dialog, Notify } from 'quasar'
 import { api, ApiError, type Group } from '../api'
+import ChangePasswordDialog from '../components/ChangePasswordDialog.vue'
 import {
+  changePassword,
   eventTime,
   logout,
   me,
@@ -44,6 +46,7 @@ const feed = ref<AssociationFeed>({ issues: [], events: [], notices: [] })
 const notVolunteer = ref(false)
 const loading = ref(true)
 const editing = ref(false)
+const changingPassword = ref(false)
 const form = reactive({ display_name: '', legal_name: '', phone: '', line_id: '', wants_coach: false })
 
 const toast = (e: unknown) => Notify.create({ type: 'negative', message: e instanceof ApiError ? e.message : '發生錯誤' })
@@ -341,7 +344,10 @@ async function signOut() {
                 {{ profile.email }}{{ profile.line_id ? ` · LINE ${profile.line_id}` : '' }}{{ profile.phone ? ` · ${profile.phone}` : '' }}
               </div>
             </div>
-            <q-btn v-if="!editing" flat no-caps color="secondary" icon="edit" label="修改" @click="startEdit" />
+            <div v-if="!editing" class="column items-end">
+              <q-btn flat no-caps color="secondary" icon="edit" label="修改" @click="startEdit" />
+              <q-btn flat no-caps color="secondary" icon="key" label="修改密碼" @click="changingPassword = true" />
+            </div>
           </div>
           <p :class="['q-mt-md', 'q-mb-none', profile.status === 'rejected' ? 'text-negative' : '']">
             <span class="status-chip q-mr-sm">{{ { pending: '待核對', verified: '已核對', rejected: '已退回' }[profile.status] }}</span>{{ statusText }}
@@ -687,6 +693,7 @@ async function signOut() {
         </q-form>
       </q-card>
     </q-dialog>
+    <ChangePasswordDialog v-model="changingPassword" :save="changePassword" />
   </q-page>
 </template>
 

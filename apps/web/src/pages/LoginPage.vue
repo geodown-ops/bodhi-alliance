@@ -35,7 +35,8 @@ async function submit() {
       <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
       <q-btn type="submit" color="secondary" unelevated no-caps size="lg" :loading="loading" label="登入" />
     </q-form>
-    <p class="q-mt-md">還沒有帳號？<router-link to="/join">加入會員</router-link>。忘記密碼請聯絡管理員。</p>
+    <p class="q-mt-md">還沒有帳號？<router-link to="/join">加入會員</router-link>。</p>
+    <p>忘記密碼？請聯絡協會或所屬中心的管理員重設，你會拿到一組臨時密碼；登入後到個人頁按「修改密碼」換成自己的。</p>
   </q-page>
 </template>
 

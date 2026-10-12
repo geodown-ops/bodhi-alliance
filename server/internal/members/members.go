@@ -95,6 +95,7 @@ func (h *Handler) Routes(r *gin.RouterGroup) {
 	staff := r.Group("/admin", h.Auth.RequireCenterStaff())
 	staff.GET("/volunteers", h.listVolunteers)
 	staff.PATCH("/volunteers/:id", h.reviewVolunteer)
+	staff.POST("/volunteers/:id/password", h.resetPassword)
 	staff.GET("/groups/:id/members", h.listMembers)
 	staff.PUT("/groups/:id/members/:vid", h.setMemberRole)
 	staff.DELETE("/groups/:id/members/:vid", h.removeMember)
@@ -485,6 +486,33 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// resetPassword gives a member a temporary password for 忘記密碼. Staff may reset members
+// of centers they manage; a member who holds any back-office role needs a super admin.
+func (h *Handler) resetPassword(c *gin.Context) {
+	var center, userID string
+	var hasRole bool
+	if err := h.DB.QueryRow(c, `
+		SELECT coalesce(home_center_id::text, ''), user_id,
+		       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id)
+		FROM volunteer v WHERE id = $1`, c.Param("id")).Scan(&center, &userID, &hasRole); err != nil {
+		fail(c, err)
+		return
+	}
+	if !canManage(c, center) {
+		return
+	}
+	if hasRole && !auth.CurrentUser(c).IsAllianceAdmin() {
+		httpx.Error(c, http.StatusForbidden, "這位會員有後台權限，只有超級管理員能重設密碼")
+		return
+	}
+	password, err := h.Auth.ResetPassword(c, userID)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"password": password})
 }
 
 // groupCenter returns the group's center, or "" when it has none (alliance admins only).

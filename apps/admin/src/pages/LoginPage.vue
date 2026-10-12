@@ -46,6 +46,7 @@ async function submit() {
           <p v-if="error" class="text-negative q-mb-none">{{ error }}</p>
           <q-btn type="submit" color="primary" unelevated no-caps class="full-width" label="登入" :loading="loading" />
         </q-form>
+        <p class="text-grey-8 q-mt-md q-mb-none">忘記密碼？請超級管理員在「帳號」重設，會拿到一組臨時密碼；登入後按右上角「修改密碼」換成自己的。</p>
       </q-card-section>
     </q-card>
   </div>

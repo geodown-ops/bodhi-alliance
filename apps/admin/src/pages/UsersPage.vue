@@ -40,6 +40,19 @@ async function create() {
   }
 }
 
+const esc = (t: string) => t.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`)
+
+function resetPassword(u: User) {
+  Dialog.create({ title: '重設密碼', message: `幫 ${u.display_name}（${u.email}）產生一組臨時密碼？舊密碼會失效，對方會被登出。`, cancel: true }).onOk(async () => {
+    try {
+      const { password } = await api.send<{ password: string }>('POST', `/api/auth/users/${u.id}/password`)
+      Dialog.create({ title: '臨時密碼', message: `<div class="text-h6 q-my-sm" style="font-family: monospace">${password}</div>請轉告 ${esc(u.display_name)}，登入後按右上角「修改密碼」換成自己的。這組密碼只會顯示這一次。`, html: true })
+    } catch (e) {
+      Notify.create({ type: 'negative', message: (e as Error).message })
+    }
+  })
+}
+
 function disable(u: User) {
   Dialog.create({ title: '停用帳號', message: `停用 ${u.display_name}（${u.email}）？對方會立刻被登出。`, cancel: true }).onOk(async () => {
     await api.send('DELETE', `/api/auth/users/${u.id}`)
@@ -58,7 +71,10 @@ function disable(u: User) {
     <q-table :rows="users" :columns="columns" row-key="id" flat bordered hide-pagination :rows-per-page-options="[0]">
       <template #body-cell-actions="props">
         <q-td :props="props" class="text-right">
-          <q-btn v-if="props.row.id !== session.user?.id" flat dense no-caps color="negative" label="停用" @click="disable(props.row)" />
+          <template v-if="props.row.id !== session.user?.id">
+            <q-btn flat dense no-caps color="secondary" label="重設密碼" @click="resetPassword(props.row)" />
+            <q-btn flat dense no-caps color="negative" label="停用" @click="disable(props.row)" />
+          </template>
         </q-td>
       </template>
     </q-table>

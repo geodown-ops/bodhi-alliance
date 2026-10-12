@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { isAdmin, isCenterStaff, isKnowledgeManager, isSuperAdmin, logout, session } from './session'
+import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
+import { api, isAdmin, isCenterStaff, isKnowledgeManager, isSuperAdmin, logout, session } from './session'
 
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
+const changingPassword = ref(false)
+const changePassword = (current: string, next: string) =>
+  api.send('PUT', '/api/auth/password', { current_password: current, new_password: next })
 
 const items = computed(() => [
   ...(isAdmin()
@@ -41,6 +45,7 @@ async function signOut() {
         <q-btn flat round dense icon="menu" aria-label="選單" @click="drawer = !drawer" />
         <q-toolbar-title>菩提幣管理後台</q-toolbar-title>
         <span class="gt-xs q-mr-sm">{{ session.user?.display_name }}</span>
+        <q-btn flat dense no-caps icon="key" label="修改密碼" class="q-mr-sm" @click="changingPassword = true" />
         <q-btn flat dense no-caps icon="logout" label="登出" @click="signOut" />
       </q-toolbar>
     </q-header>
@@ -55,6 +60,7 @@ async function signOut() {
     <q-page-container>
       <router-view />
     </q-page-container>
+    <ChangePasswordDialog v-model="changingPassword" :save="changePassword" />
   </q-layout>
 </template>
 
