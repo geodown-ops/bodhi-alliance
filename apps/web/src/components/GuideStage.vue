@@ -3,6 +3,7 @@
 // compact（首頁用）：只留一個輸入欄位，有問答時才在上方顯示最近一問一答。
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api, ApiError, type ChatMessage } from '../api'
+import { account } from '../account'
 import { createVoice } from '../voice'
 import GuideScene from './GuideScene.vue'
 
@@ -21,6 +22,10 @@ const error = ref('')
 const subtitle = ref<HTMLElement>()
 const scene = ref<InstanceType<typeof GuideScene>>()
 
+// 這次對話的代號：Sunny 記下使用問題後，訪客再留的 email 會補到同一次對話的問題上
+const newConversation = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 12)
+const conversation = ref(newConversation())
+
 const storeKey = 'bodhi.guide.v1'
 try {
   const saved = JSON.parse(sessionStorage.getItem(storeKey) ?? 'null')
@@ -28,6 +33,7 @@ try {
     messages.value = saved.messages
     mode.value = saved.mode ?? 'chat'
     scriptId.value = saved.scriptId ?? null
+    if (saved.conversation) conversation.value = saved.conversation
   }
 } catch {
   /* 無法使用 sessionStorage 時就不保留對話 */
@@ -35,7 +41,10 @@ try {
 if (props.compact) mode.value = 'chat'
 watch([messages, mode, scriptId], () => {
   try {
-    sessionStorage.setItem(storeKey, JSON.stringify({ messages: messages.value, mode: mode.value, scriptId: scriptId.value }))
+    sessionStorage.setItem(
+      storeKey,
+      JSON.stringify({ messages: messages.value, mode: mode.value, scriptId: scriptId.value, conversation: conversation.value }),
+    )
   } catch {
     /* ignore */
   }
@@ -121,13 +130,14 @@ async function send(text = input.value) {
   scene.value?.think()
   try {
     const res = await api.chatStream(
-      { messages: messages.value, mode: mode.value, script_id: scriptId.value ?? undefined },
+      { messages: messages.value, mode: mode.value, script_id: scriptId.value ?? undefined, conversation: conversation.value },
       (t) => {
         streaming.value += t
         if (voicing) voice.feed(t)
         else scene.value?.speak(t)
         follow()
       },
+      account.token,
     )
     messages.value.push({ role: 'assistant', content: res.reply })
     if (voicing && res.refused) {
@@ -153,6 +163,7 @@ async function send(text = input.value) {
 
 function startPractice() {
   messages.value = []
+  conversation.value = newConversation()
   send('我準備好了，一起開始吧。')
 }
 
@@ -160,10 +171,11 @@ function reset() {
   hush()
   scene.value?.rest()
   messages.value = []
+  conversation.value = newConversation()
   error.value = ''
 }
 
-const suggestions = ['你是誰？', '覺行小組在做什麼？', '第一次靜坐要注意什麼？', '菩提幣怎麼拿到？']
+const suggestions = ['你是誰？', '怎麼加入會員？', '覺行小組在做什麼？', '菩提幣怎麼拿到？']
 </script>
 
 <template>

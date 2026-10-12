@@ -2,6 +2,7 @@ package guide
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -65,6 +66,16 @@ type Turn struct {
 	Knowledge string
 	Script    *Script
 	Messages  []Message
+	// Issues, when set, lets Sunny record usage problems for the admin (public chat only).
+	Issues Reporter
+	// Visitor says whether the person chatting is a signed-in member.
+	Visitor string
+}
+
+// Reporter records usage problems Sunny can't solve; *IssueReporter in production.
+type Reporter interface {
+	Record(ctx context.Context, summary, email string) error
+	SetEmail(ctx context.Context, email string) error
 }
 
 // LLM is the model behind the guide; tests use a fake. onText receives the answer as
@@ -182,6 +193,67 @@ func practiceInstructions(s *Script) string {
 </script>`, s.Title, s.Body)
 }
 
+// issueRules tells Sunny when and how to record a usage problem; it is sent only with the tools.
+const issueRules = `網站使用問題（官網怎麼用、加入會員、登入、個人頁、錢包、共修活動等）：
+- 先依知識庫「官網使用說明」回答。
+- 知識庫查不到答案、你不確定，或對方說遇到錯誤、按了沒反應、登不進去、資料不對等狀況時，不要猜，用 record_site_issue 把問題記下來交給管理員，再告訴對方已經記下、管理員會回覆。
+- 記錄前不必再三確認；摘要寫清楚對方想做什麼、在哪一頁、發生什麼事，用對方的話。
+- 同一個問題只記一次。對方補充細節時不要重複記錄，除非是另一個新問題。
+- 對方已登入時，告訴對方管理員的回覆會出現在個人頁的「我的使用問題」。
+- 對方沒有登入時，問對方願不願意留 email 讓管理員聯絡（可以不留）；對方給了 email，用 set_issue_email 補上。不要追問，也不要要求電話或其他個資。
+- 忘記密碼目前要由管理員協助，也要記下來。`
+
+var issueTools = []anthropic.BetaToolUnionParam{
+	{OfTool: &anthropic.BetaToolParam{
+		Name:        "record_site_issue",
+		Description: anthropic.String("把對方遇到的網站使用問題記到後台「使用問題」，讓超級管理員回答。只在知識庫答不了，或對方回報錯誤、異常時使用。"),
+		InputSchema: anthropic.BetaToolInputSchemaParam{
+			Properties: map[string]any{
+				"summary":       map[string]any{"type": "string", "description": "問題摘要（繁體中文，三百字以內）：對方想做什麼、在哪一頁、發生了什麼。"},
+				"contact_email": map[string]any{"type": "string", "description": "對方主動提供的 email；沒有就不要填。"},
+			},
+			Required: []string{"summary"},
+		},
+	}},
+	{OfTool: &anthropic.BetaToolParam{
+		Name:        "set_issue_email",
+		Description: anthropic.String("對方在記下問題之後才留 email 時，把 email 補到這次對話記下的問題上。"),
+		InputSchema: anthropic.BetaToolInputSchemaParam{
+			Properties: map[string]any{
+				"email": map[string]any{"type": "string", "description": "對方留下的 email。"},
+			},
+			Required: []string{"email"},
+		},
+	}},
+}
+
+// maxToolRounds bounds how many times one answer may call tools.
+const maxToolRounds = 3
+
+// runTool executes one tool call and returns the text sent back to the model.
+func runTool(ctx context.Context, r Reporter, name string, input any) (string, bool) {
+	raw, _ := json.Marshal(input)
+	var in struct {
+		Summary      string `json:"summary"`
+		ContactEmail string `json:"contact_email"`
+		Email        string `json:"email"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	var err error
+	switch name {
+	case "record_site_issue":
+		err = r.Record(ctx, in.Summary, in.ContactEmail)
+	case "set_issue_email":
+		err = r.SetEmail(ctx, in.Email)
+	default:
+		err = errors.New("沒有這個工具")
+	}
+	if err != nil {
+		return "沒有成功：" + err.Error(), true
+	}
+	return "已記下。", false
+}
+
 func (c *Claude) Complete(ctx context.Context, t Turn, onText func(string)) (Reply, Usage, error) {
 	// Persona and knowledge are stable between requests, so they are cached; the script
 	// (practice mode only) comes after the breakpoint.
@@ -192,6 +264,14 @@ func (c *Claude) Complete(ctx context.Context, t Turn, onText func(string)) (Rep
 	}
 	if t.Script != nil {
 		system = append(system, anthropic.BetaTextBlockParam{Text: practiceInstructions(t.Script)})
+	}
+	var tools []anthropic.BetaToolUnionParam
+	if t.Issues != nil {
+		system = append(system, anthropic.BetaTextBlockParam{Text: issueRules})
+		tools = issueTools
+	}
+	if t.Visitor != "" {
+		system = append(system, anthropic.BetaTextBlockParam{Text: t.Visitor})
 	}
 	msgs := make([]anthropic.BetaMessageParam, 0, len(t.Messages))
 	for _, m := range t.Messages {
@@ -204,23 +284,65 @@ func (c *Claude) Complete(ctx context.Context, t Turn, onText func(string)) (Rep
 			Content: []anthropic.BetaContentBlockParamUnion{anthropic.NewBetaTextBlock(m.Content)},
 		})
 	}
-	stream := c.Client.Beta.Messages.NewStreaming(ctx, anthropic.BetaMessageNewParams{
-		Model:        c.Model,
-		MaxTokens:    4096,
-		System:       system,
-		Messages:     msgs,
-		OutputConfig: anthropic.BetaOutputConfigParam{Effort: c.Effort},
-		// On a safety refusal the API re-serves the request on a fallback model, on the
-		// same stream; text already streamed stays valid and the answer continues.
-		Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
-		Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
-	})
+	var u Usage
+	var b strings.Builder
+	for round := 0; ; round++ {
+		params := anthropic.BetaMessageNewParams{
+			Model:        c.Model,
+			MaxTokens:    4096,
+			System:       system,
+			Messages:     msgs,
+			OutputConfig: anthropic.BetaOutputConfigParam{Effort: c.Effort},
+			// On a safety refusal the API re-serves the request on a fallback model, on the
+			// same stream; text already streamed stays valid and the answer continues.
+			Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
+			Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
+		}
+		if len(tools) > 0 && round < maxToolRounds {
+			params.Tools = tools
+		}
+		resp, err := c.stream(ctx, params, onText)
+		if err != nil {
+			return Reply{}, u, err
+		}
+		u.Model = string(resp.Model)
+		u.Input += resp.Usage.InputTokens
+		u.Output += resp.Usage.OutputTokens
+		u.CacheRead += resp.Usage.CacheReadInputTokens
+		u.CacheW += resp.Usage.CacheCreationInputTokens
+		if resp.StopReason == anthropic.BetaStopReasonRefusal {
+			return Reply{Text: "這個問題我沒辦法回答。若有其他關於覺行或共修的問題，歡迎再問我。", Refused: true}, u, nil
+		}
+		var results []anthropic.BetaContentBlockParamUnion
+		for _, block := range resp.Content {
+			switch v := block.AsAny().(type) {
+			case anthropic.BetaTextBlock:
+				b.WriteString(v.Text)
+			case anthropic.BetaToolUseBlock:
+				text, isErr := runTool(ctx, t.Issues, v.Name, v.Input)
+				results = append(results, anthropic.NewBetaToolResultBlock(v.ID, text, isErr))
+			}
+		}
+		if resp.StopReason != anthropic.BetaStopReasonToolUse || len(results) == 0 || t.Issues == nil {
+			break
+		}
+		msgs = append(msgs, resp.ToParam(), anthropic.BetaMessageParam{
+			Role:    anthropic.BetaMessageParamRoleUser,
+			Content: results,
+		})
+	}
+	return Reply{Text: strings.TrimSpace(b.String())}, u, nil
+}
+
+// stream runs one request, passing text to onText as it arrives.
+func (c *Claude) stream(ctx context.Context, params anthropic.BetaMessageNewParams, onText func(string)) (anthropic.BetaMessage, error) {
+	stream := c.Client.Beta.Messages.NewStreaming(ctx, params)
 	defer stream.Close()
 	var resp anthropic.BetaMessage
 	for stream.Next() {
 		ev := stream.Current()
 		if err := resp.Accumulate(ev); err != nil {
-			return Reply{}, Usage{}, err
+			return resp, err
 		}
 		if d, ok := ev.AsAny().(anthropic.BetaRawContentBlockDeltaEvent); ok && onText != nil {
 			if td, ok := d.Delta.AsAny().(anthropic.BetaTextDelta); ok {
@@ -228,24 +350,5 @@ func (c *Claude) Complete(ctx context.Context, t Turn, onText func(string)) (Rep
 			}
 		}
 	}
-	if err := stream.Err(); err != nil {
-		return Reply{}, Usage{}, err
-	}
-	u := Usage{
-		Model:     string(resp.Model),
-		Input:     resp.Usage.InputTokens,
-		Output:    resp.Usage.OutputTokens,
-		CacheRead: resp.Usage.CacheReadInputTokens,
-		CacheW:    resp.Usage.CacheCreationInputTokens,
-	}
-	if resp.StopReason == anthropic.BetaStopReasonRefusal {
-		return Reply{Text: "這個問題我沒辦法回答。若有其他關於覺行或共修的問題，歡迎再問我。", Refused: true}, u, nil
-	}
-	var b strings.Builder
-	for _, block := range resp.Content {
-		if tb, ok := block.AsAny().(anthropic.BetaTextBlock); ok {
-			b.WriteString(tb.Text)
-		}
-	}
-	return Reply{Text: strings.TrimSpace(b.String())}, u, nil
+	return resp, stream.Err()
 }
