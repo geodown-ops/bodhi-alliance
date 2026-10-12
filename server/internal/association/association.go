@@ -69,7 +69,7 @@ func (h *Handler) now() time.Time {
 func (h *Handler) Routes(r *gin.RouterGroup) {
 	r.GET("/me/association", h.Auth.RequireUser(), h.mine)
 
-	admin := r.Group("/admin/association", h.Auth.Require(auth.RoleAllianceAdmin, auth.ScopeAlliance))
+	admin := r.Group("/admin/association", h.Auth.Require(auth.RoleManager, auth.ScopeAlliance))
 	admin.GET("/issues", h.listIssues)
 	admin.POST("/issues", h.saveIssue)
 	admin.PUT("/issues/:id", h.saveIssue)

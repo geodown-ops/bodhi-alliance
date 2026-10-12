@@ -40,12 +40,14 @@ type Volunteer struct {
 	// 覺行小組長：會員身分，後台會員名冊打勾設定
 	IsGroupLeader bool `json:"is_group_leader"`
 	// 菩提幣決策小組成員：會員身分，後台會員名冊打勾設定
-	IsCommittee bool       `json:"is_committee"`
-	Status      string     `json:"status"`
-	ReviewNote  string     `json:"review_note"`
-	VerifiedAt  *time.Time `json:"verified_at"`
-	Frozen      bool       `json:"frozen"`
-	CreatedAt   time.Time  `json:"created_at"`
+	IsCommittee bool `json:"is_committee"`
+	// 管理員：可登入後台；只有超級管理員能在會員名冊打勾設定
+	IsAdmin    bool       `json:"is_admin"`
+	Status     string     `json:"status"`
+	ReviewNote string     `json:"review_note"`
+	VerifiedAt *time.Time `json:"verified_at"`
+	Frozen     bool       `json:"frozen"`
+	CreatedAt  time.Time  `json:"created_at"`
 	// 系統會員可以加入覺行小組、世界佛教教育協會，或兩者都加入
 	InGroups            bool         `json:"in_groups"`
 	InAssociation       bool         `json:"in_association"`
@@ -55,7 +57,9 @@ type Volunteer struct {
 
 const volunteerSelect = `
 	SELECT v.id, v.user_id, u.email, u.display_name, v.legal_name, v.phone, v.line_id, coalesce(v.home_center_id::text, ''), coalesce(c.name, ''),
-	       v.wants_coach, v.is_coach, v.is_group_leader, v.is_committee, v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
+	       v.wants_coach, v.is_coach, v.is_group_leader, v.is_committee,
+	       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = 'manager' AND r.scope = 'alliance'),
+	       v.status, v.review_note, v.verified_at, v.qr_frozen_at IS NOT NULL, v.created_at,
 	       v.in_groups, v.in_association, v.association_joined_at,
 	       coalesce((SELECT json_agg(json_build_object('group_id', g.id, 'name', g.name, 'role', m.role, 'joined_at', m.joined_at) ORDER BY m.joined_at)
 	                 FROM group_member m JOIN practice_group g ON g.id = m.group_id WHERE m.volunteer_id = v.id), '[]')
@@ -64,7 +68,7 @@ const volunteerSelect = `
 func scanVolunteer(row pgx.CollectableRow) (Volunteer, error) {
 	var v Volunteer
 	err := row.Scan(&v.ID, &v.UserID, &v.Email, &v.DisplayName, &v.LegalName, &v.Phone, &v.LineID, &v.HomeCenterID, &v.CenterName,
-		&v.WantsCoach, &v.IsCoach, &v.IsGroupLeader, &v.IsCommittee, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
+		&v.WantsCoach, &v.IsCoach, &v.IsGroupLeader, &v.IsCommittee, &v.IsAdmin, &v.Status, &v.ReviewNote, &v.VerifiedAt, &v.Frozen, &v.CreatedAt,
 		&v.InGroups, &v.InAssociation, &v.AssociationJoinedAt, &v.Groups)
 	return v, err
 }
@@ -349,10 +353,10 @@ func (h *Handler) leaveGroup(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// visibleCenters returns nil for an alliance admin (every center) or the centers a
-// center admin manages.
+// visibleCenters returns nil for an alliance admin or manager (every center) or the
+// centers a center admin manages.
 func visibleCenters(u *auth.User) []string {
-	if u.IsAllianceAdmin() {
+	if u.IsManager() {
 		return nil
 	}
 	return u.CenterIDs()
@@ -381,7 +385,7 @@ func (h *Handler) listVolunteers(c *gin.Context) {
 // canManage checks that the signed-in staff member may manage volunteers of center.
 func canManage(c *gin.Context, center string) bool {
 	u := auth.CurrentUser(c)
-	if u.IsAllianceAdmin() || u.ManagesCenter(center) {
+	if u.IsManager() || u.ManagesCenter(center) {
 		return true
 	}
 	httpx.Error(c, http.StatusForbidden, "只能管理自己中心的志工")
@@ -395,6 +399,7 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		// 沒送就維持原值（舊版後台不會送這個欄位）
 		IsGroupLeader *bool  `json:"is_group_leader"`
 		IsCommittee   *bool  `json:"is_committee"`
+		IsAdmin       *bool  `json:"is_admin"`
 		ReviewNote    string `json:"review_note" binding:"max=2000"`
 		Frozen        bool   `json:"frozen"`
 	}
@@ -406,15 +411,30 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		httpx.Error(c, http.StatusBadRequest, "退回時請寫原因，志工會看到")
 		return
 	}
-	var center string
-	if err := h.DB.QueryRow(c, `SELECT coalesce(home_center_id::text, '') FROM volunteer WHERE id = $1`, c.Param("id")).Scan(&center); err != nil {
+	var center, userID string
+	var isAdmin bool
+	if err := h.DB.QueryRow(c, `
+		SELECT coalesce(home_center_id::text, ''), user_id,
+		       EXISTS (SELECT 1 FROM role_assignment r WHERE r.user_id = v.user_id AND r.role = $2 AND r.scope = $3)
+		FROM volunteer v WHERE id = $1`, c.Param("id"), auth.RoleManager, auth.ScopeAlliance).Scan(&center, &userID, &isAdmin); err != nil {
 		fail(c, err)
 		return
 	}
 	if !canManage(c, center) {
 		return
 	}
-	_, err := h.DB.Exec(c, `
+	setAdmin := req.IsAdmin != nil && *req.IsAdmin != isAdmin
+	if setAdmin && !auth.CurrentUser(c).IsAllianceAdmin() {
+		httpx.Error(c, http.StatusForbidden, "只有超級管理員能設定管理員")
+		return
+	}
+	tx, err := h.DB.Begin(c)
+	if err != nil {
+		fail(c, err)
+		return
+	}
+	defer tx.Rollback(c)
+	_, err = tx.Exec(c, `
 		UPDATE volunteer SET status = $2, is_coach = $3, review_note = $4, updated_at = now(),
 		       is_group_leader = coalesce($7, is_group_leader),
 		       is_committee = coalesce($8, is_committee),
@@ -423,6 +443,18 @@ func (h *Handler) reviewVolunteer(c *gin.Context) {
 		       qr_frozen_at = CASE WHEN $6 THEN coalesce(qr_frozen_at, now()) END
 		WHERE id = $1`,
 		c.Param("id"), req.Status, req.IsCoach, strings.TrimSpace(req.ReviewNote), auth.CurrentUser(c).ID, req.Frozen, req.IsGroupLeader, req.IsCommittee)
+	if err == nil && setAdmin {
+		if *req.IsAdmin {
+			_, err = tx.Exec(c, `INSERT INTO role_assignment (user_id, role, scope) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+				userID, auth.RoleManager, auth.ScopeAlliance)
+		} else {
+			_, err = tx.Exec(c, `DELETE FROM role_assignment WHERE user_id = $1 AND role = $2 AND scope = $3`,
+				userID, auth.RoleManager, auth.ScopeAlliance)
+		}
+	}
+	if err == nil {
+		err = tx.Commit(c)
+	}
 	if err != nil {
 		fail(c, err)
 		return
@@ -438,7 +470,7 @@ func (h *Handler) groupCenter(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	if center == nil {
-		if !auth.CurrentUser(c).IsAllianceAdmin() {
+		if !auth.CurrentUser(c).IsManager() {
 			httpx.Error(c, http.StatusForbidden, "只能管理自己中心的小組")
 			return "", false
 		}

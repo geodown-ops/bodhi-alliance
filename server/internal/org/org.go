@@ -72,7 +72,7 @@ type Handler struct {
 func (h *Handler) Routes(r *gin.RouterGroup) {
 	r.GET("/venues", h.publicVenues)
 
-	admin := r.Group("/admin", h.Auth.Require(auth.RoleAllianceAdmin, auth.ScopeAlliance))
+	admin := r.Group("/admin", h.Auth.Require(auth.RoleManager, auth.ScopeAlliance))
 	admin.GET("/centers", h.listCenters)
 	admin.POST("/centers", h.saveCenter)
 	admin.PUT("/centers/:id", h.saveCenter)

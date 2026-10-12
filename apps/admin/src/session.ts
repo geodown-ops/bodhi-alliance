@@ -17,8 +17,13 @@ function readToken() {
 
 export const session = reactive({ token: readToken(), user: null as User | null })
 
-export function isAdmin(u = session.user) {
+// 超級管理員：全部功能，含帳號、菩提幣審核與指派管理員
+export function isSuperAdmin(u = session.user) {
   return !!u?.roles.some((r) => r.role === 'alliance_admin' && r.scope === 'alliance')
+}
+// 管理員（會員名冊打勾）或超級管理員：可用後台大部分頁面
+export function isAdmin(u = session.user) {
+  return isSuperAdmin(u) || !!u?.roles.some((r) => r.role === 'manager' && r.scope === 'alliance')
 }
 export function isKnowledgeManager(u = session.user) {
   return isAdmin(u) || !!u?.roles.some((r) => r.role === 'knowledge_manager' && r.scope === 'guide')
