@@ -35,7 +35,7 @@ export function isCenterStaff(u = session.user) {
 // 登入者能進後台的第一頁；沒有任何後台角色時回傳空字串
 export function homePath(u = session.user) {
   if (isAdmin(u)) return '/applications'
-  if (isCenterStaff(u)) return '/volunteers'
+  if (isCenterStaff(u)) return '/accounts'
   if (isKnowledgeManager(u)) return '/knowledge'
   return ''
 }

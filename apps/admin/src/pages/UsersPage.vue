@@ -49,9 +49,9 @@ function disable(u: User) {
 </script>
 
 <template>
-  <q-page class="admin-page">
+  <div>
     <div class="row items-center q-mb-md">
-      <h1 class="q-mb-none">帳號</h1>
+      <div class="text-grey-8">另外建立的後台帳號（不是會員）。會員要進後台，請在「會員」分頁勾選管理員或超級管理員。</div>
       <q-space />
       <q-btn color="secondary" unelevated no-caps icon="person_add" label="新增帳號" @click="show = true" />
     </div>
@@ -107,5 +107,5 @@ function disable(u: User) {
         </q-card-actions>
       </q-card>
     </q-dialog>
-  </q-page>
+  </div>
 </template>
