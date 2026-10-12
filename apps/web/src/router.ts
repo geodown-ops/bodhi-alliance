@@ -51,3 +51,21 @@ router.afterEach((to) => {
   const t = to.meta.title as string
   document.title = t ? `${t}｜Sunny life` : 'Sunny life｜世界佛教教育協會'
 })
+
+// 網站剛更新時，還開著舊版網頁的人點選單，要載入的是舊版的頁面檔（檔名帶雜湊），
+// 新版已經沒有它，換頁就會失敗、停在原頁。遇到這種情況直接整頁重新載入新版。
+const staleChunk = /dynamically imported module|Importing a module script failed|Unable to preload CSS/i
+function reloadOnce(path: string) {
+  const key = 'bodhi.reloaded'
+  try {
+    // 十秒內已經重新載入過一次還失敗，就不要一直重載
+    if (Date.now() - Number(sessionStorage.getItem(key) ?? 0) < 10_000) return
+    sessionStorage.setItem(key, String(Date.now()))
+  } catch {
+    // sessionStorage 不能用時照樣重載
+  }
+  location.assign(path)
+}
+router.onError((err, to) => {
+  if (staleChunk.test(String(err?.message ?? err))) reloadOnce(to.fullPath)
+})

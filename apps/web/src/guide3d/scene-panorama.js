@@ -120,7 +120,10 @@ export function buildPanoramaScene(scene, camera, renderer, cfg) {
     sky.position.set(0, height - 0.01, CAM_Z);
     sky.rotation.y = yaw;
     scene.add(sky);
-    if ((renderer?.capabilities.maxTextureSize ?? 0) >= 8192) {
+    // 8K 只給電腦的大螢幕：手機畫面小、4K 已經夠清楚，8K 圖要多下載 3.5 MB、
+    // 解開後佔 100 多 MB 顯示記憶體，換上那一下會讓手機卡住好幾秒
+    const bigScreen = matchMedia('(pointer: fine) and (min-width: 1024px)').matches;
+    if (bigScreen && (renderer?.capabilities.maxTextureSize ?? 0) >= 8192) {
       loader.load(cfg.panorama8k, hd => {
         if (!sky) return;
         hd.colorSpace = THREE.SRGBColorSpace;
