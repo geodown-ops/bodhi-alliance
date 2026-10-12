@@ -9,7 +9,7 @@ export const menu = [
   { path: '/partners', label: '共好企業', icon: 'storefront' },
   { path: '/wallet', label: '我的錢包', icon: 'account_balance_wallet' },
   { path: '/maitreya', label: '彌勒心流', icon: 'spa' },
-  { path: '/association', label: '世界佛教教育協會', icon: 'temple_buddhist' },
+  { path: '/association', label: '世界佛教教育協會', icon: 'img:/images/association/logo.webp' },
   { path: '/guide', label: '線上問答', icon: 'forum' },
 ] as const
 
