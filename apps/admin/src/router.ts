@@ -11,6 +11,7 @@ export const router = createRouter({
     { path: '/merchants', component: () => import('./pages/MerchantsPage.vue'), meta: { admin: true, title: '共好企業管理' } },
     { path: '/groups', component: () => import('./pages/GroupsPage.vue'), meta: { admin: true, title: '覺行小組' } },
     { path: '/claims', component: () => import('./pages/ClaimsPage.vue'), meta: { admin: true, superAdmin: true, title: '菩提幣審核' } },
+    { path: '/site-issues', component: () => import('./pages/SiteIssuesPage.vue'), meta: { admin: true, superAdmin: true, title: '使用問題' } },
     { path: '/association', component: () => import('./pages/AssociationPage.vue'), meta: { admin: true, title: '世界佛教教育協會' } },
     { path: '/volunteers', component: () => import('./pages/VolunteersPage.vue'), meta: { center: true, title: '帳號' } },
     { path: '/knowledge', component: () => import('./pages/KnowledgePage.vue'), meta: { knowledge: true, title: '知識庫' } },

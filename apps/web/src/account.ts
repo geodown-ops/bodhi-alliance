@@ -64,9 +64,12 @@ export type ChainAccount = {
   balance?: string
   grants?: ChainGrant[]
 }
+// 問 Sunny 時記下的使用問題，超級管理員回答後 answer 才有內容
+export type SiteIssue = { id: string; summary: string; status: 'open' | 'answered'; answer: string; answered_at: string | null; created_at: string }
 export type Wallet = { balance: number; entries: { amount: number; kind: string; memo: string; created_at: string }[] }
 
 const apiBase = import.meta.env.VITE_API_BASE ?? ''
+const guideBase = import.meta.env.VITE_GUIDE_BASE ?? ''
 const tokenKey = 'bodhi.web.token'
 
 function readToken() {
@@ -89,12 +92,12 @@ function setToken(t: string) {
   }
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, base = apiBase): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (account.token) headers.Authorization = `Bearer ${account.token}`
   let res: Response
   try {
-    res = await fetch(apiBase + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    res = await fetch(base + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
   } catch {
     throw new ApiError('連線失敗，請檢查網路後再試一次。')
   }
@@ -161,6 +164,7 @@ export const me = {
   leaveEvent: (id: string) => call('DELETE', `/api/me/events/${id}/join`),
   cancelEvent: (id: string) => call('POST', `/api/me/events/${id}/cancel`),
   claim: (id: string, body: { attendance: number; report: string }) => call('POST', `/api/me/events/${id}/claim`, body),
+  siteIssues: () => call<SiteIssue[]>('GET', '/guide/me/issues', undefined, guideBase),
 }
 
 export const publicEvents = () => call<PracticeEvent[]>('GET', '/api/events')

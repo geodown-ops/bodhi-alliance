@@ -14,6 +14,7 @@ import {
   type AssociationFeed,
   type ChainAccount,
   type PracticeEvent,
+  type SiteIssue,
   type Venue,
   type Volunteer,
   type Wallet,
@@ -42,6 +43,8 @@ async function copyAddress() {
     Notify.create({ type: 'negative', message: '無法複製，請手動選取地址' })
   }
 }
+// 問 Sunny 時記下的使用問題與管理員的回答；沒有就不顯示這一塊
+const siteIssues = ref<SiteIssue[]>([])
 const feed = ref<AssociationFeed>({ issues: [], events: [], notices: [] })
 const notVolunteer = ref(false)
 const loading = ref(true)
@@ -65,7 +68,7 @@ async function load() {
   const p = profile.value
   const none = Promise.reject()
   none.catch(() => {})
-  const [w, mine, open, g, v, f, ch] = await Promise.allSettled([
+  const [w, mine, open, g, v, f, ch, si] = await Promise.allSettled([
     p.in_groups ? me.wallet() : none,
     p.in_groups ? me.events() : none,
     p.in_groups ? publicEvents() : none,
@@ -73,6 +76,7 @@ async function load() {
     p.in_groups ? publicVenues() : none,
     p.in_association ? me.association() : none,
     me.chain(),
+    me.siteIssues(),
   ])
   if (w.status === 'fulfilled') wallet.value = w.value
   if (mine.status === 'fulfilled') myEvents.value = mine.value
@@ -81,6 +85,7 @@ async function load() {
   if (v.status === 'fulfilled') venues.value = v.value
   if (f.status === 'fulfilled') feed.value = f.value
   if (ch.status === 'fulfilled') chainAcct.value = ch.value
+  if (si.status === 'fulfilled') siteIssues.value = si.value
   loading.value = false
 }
 
@@ -419,6 +424,19 @@ async function signOut() {
         <p v-else class="q-mb-none">正在為你建立鏈上地址，入會贈幣 1 枚稍後入帳。</p>
       </div>
 
+      <div v-if="siteIssues.length" class="card q-mt-lg">
+        <h2 class="q-mt-none q-mb-xs">我的使用問題</h2>
+        <p class="text-caption q-mb-sm">問 Sunny 時記下來的網站使用問題，管理員回覆後會顯示在這裡。</p>
+        <div v-for="i in siteIssues" :key="i.id" class="item">
+          <div class="text-caption">
+            {{ day(i.created_at) }}
+            <span class="status-chip q-ml-sm">{{ i.status === 'answered' ? '已回覆' : '等待回覆' }}</span>
+          </div>
+          <div class="pre">{{ i.summary }}</div>
+          <div v-if="i.answer" class="issue-answer pre q-mt-xs"><b>管理員回覆：</b>{{ i.answer }}</div>
+        </div>
+      </div>
+
       <h2>我的行事曆</h2>
       <CalendarBoard v-model:view="calView" :events="calEvents" :empty-text="profile.in_groups ? '還沒有行程。從下面挑一場共修參加，或自己發起一場。' : '近期沒有排定的協會活動。'" @select="(id) => (calOpen = calItems.get(id) ?? null)">
         <template v-if="profile.in_groups" #filters>
@@ -726,6 +744,11 @@ async function signOut() {
 }
 .pre {
   white-space: pre-line;
+}
+.issue-answer {
+  padding: 8px 12px;
+  border-left: 3px solid var(--q-secondary);
+  background: rgba(0, 0, 0, 0.03);
 }
 @media (max-width: 700px) {
   .top,

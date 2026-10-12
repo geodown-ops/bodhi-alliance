@@ -33,6 +33,12 @@ func (h *Handler) Routes(r *gin.RouterGroup) {
 	r.GET("/scripts", h.listScripts)
 	r.POST("/chat", httpx.RateLimit(20, 30*time.Second), h.chat)
 	r.POST("/tts", httpx.RateLimit(40, 3*time.Second), h.tts)
+	r.GET("/me/issues", h.Auth.RequireUser(), h.myIssues)
+
+	// 使用問題只有超級管理員能看、能回答
+	issues := r.Group("/admin/issues", h.Auth.Require(auth.RoleAllianceAdmin, auth.ScopeAlliance))
+	issues.GET("", h.listIssues)
+	issues.PUT("/:id/answer", h.answerIssue)
 
 	admin := r.Group("/admin", h.Auth.Require(auth.RoleKnowledgeManager, auth.ScopeGuide))
 	admin.GET("/documents", h.listDocuments)
@@ -79,6 +85,9 @@ type chatRequest struct {
 	Messages []Message `json:"messages"`
 	Mode     string    `json:"mode"`
 	ScriptID string    `json:"script_id"`
+	// Conversation is a random id the page keeps for one chat, so a later email can be
+	// added to the problems recorded earlier in it.
+	Conversation string `json:"conversation"`
 }
 
 func (h *Handler) chat(c *gin.Context) {
@@ -101,12 +110,13 @@ func (h *Handler) chat(c *gin.Context) {
 		httpx.Error(c, http.StatusInternalServerError, "暫時無法回應")
 		return
 	}
-	h.respond(c, req, chunks, nil)
+	h.respond(c, req, chunks, nil, true)
 }
 
 // respond runs one turn against the given knowledge chunks and records usage.
 // script, when set, is used instead of looking up req.ScriptID (試問 on a draft script).
-func (h *Handler) respond(c *gin.Context, req chatRequest, chunks []Chunk, script *Script) {
+// public chats may record usage problems for the admin; 試問 in the admin does not.
+func (h *Handler) respond(c *gin.Context, req chatRequest, chunks []Chunk, script *Script, public bool) {
 	msgs, err := CleanHistory(req.Messages)
 	if err != nil {
 		httpx.Error(c, http.StatusBadRequest, err.Error())
@@ -131,6 +141,16 @@ func (h *Handler) respond(c *gin.Context, req chatRequest, chunks []Chunk, scrip
 			return
 		}
 		turn.Script = &sc
+	}
+	if public && turn.Script == nil {
+		rep := &IssueReporter{store: h.Store, conversation: clip(strings.TrimSpace(req.Conversation), 64), transcript: msgs}
+		if u := h.optionalUser(c); u != nil {
+			rep.userID = &u.ID
+			turn.Visitor = "對方已登入官網，是會員「" + u.DisplayName + "」。"
+		} else {
+			turn.Visitor = "對方目前沒有登入官網。"
+		}
+		turn.Issues = rep
 	}
 	ctx, cancel := context.WithTimeout(c, 2*time.Minute)
 	defer cancel()
@@ -214,7 +234,7 @@ func (h *Handler) try(c *gin.Context) {
 			}
 		}
 	}
-	h.respond(c, req.chatRequest, chunks, script)
+	h.respond(c, req.chatRequest, chunks, script, false)
 }
 
 func (h *Handler) listDocuments(c *gin.Context) {

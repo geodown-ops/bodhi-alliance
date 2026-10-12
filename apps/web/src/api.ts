@@ -27,18 +27,20 @@ export type Group = {
 }
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
-export type ChatRequest = { messages: ChatMessage[]; mode: 'chat' | 'practice'; script_id?: string }
+export type ChatRequest = { messages: ChatMessage[]; mode: 'chat' | 'practice'; script_id?: string; conversation?: string }
 export type ChatReply = { reply: string; refused?: boolean }
 
 // chatStream asks the guide and calls onText with each piece of the answer as it is
 // written. The resolved reply is the whole answer; on a refusal it replaces what was
-// streamed.
-async function chatStream(body: ChatRequest, onText: (text: string) => void): Promise<ChatReply> {
+// streamed. token is the signed-in member's, so Sunny knows who is asking.
+async function chatStream(body: ChatRequest, onText: (text: string) => void, token = ''): Promise<ChatReply> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }
+  if (token) headers.Authorization = `Bearer ${token}`
   let res: Response
   try {
     res = await fetch(`${guideBase}/guide/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      headers,
       body: JSON.stringify(body),
     })
   } catch {

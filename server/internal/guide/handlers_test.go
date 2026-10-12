@@ -18,9 +18,20 @@ import (
 	"github.com/geodown-ops/bodhi-alliance/server/internal/testdb"
 )
 
-type fakeLLM struct{ last Turn }
+// fakeLLM answers "好的"; with report/email set it uses the issue tools like Sunny would.
+type fakeLLM struct {
+	last          Turn
+	report, email string
+	toolErr       error
+}
 
-func (f *fakeLLM) Complete(_ context.Context, t Turn, onText func(string)) (Reply, Usage, error) {
+func (f *fakeLLM) Complete(ctx context.Context, t Turn, onText func(string)) (Reply, Usage, error) {
+	f.toolErr = nil
+	if t.Issues != nil && f.report != "" {
+		f.toolErr = t.Issues.Record(ctx, f.report, "")
+	} else if t.Issues != nil && f.email != "" {
+		f.toolErr = t.Issues.SetEmail(ctx, f.email)
+	}
 	if onText != nil {
 		onText("好")
 		onText("的")

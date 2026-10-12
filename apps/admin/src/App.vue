@@ -16,7 +16,12 @@ const items = computed(() => [
     ? [
         { to: '/applications', label: '報名與登記', icon: 'inbox' },
         { to: '/groups', label: '覺行小組', icon: 'groups' },
-        ...(isSuperAdmin() ? [{ to: '/claims', label: '菩提幣審核', icon: 'paid' }] : []),
+        ...(isSuperAdmin()
+          ? [
+              { to: '/claims', label: '菩提幣審核', icon: 'paid' },
+              { to: '/site-issues', label: '使用問題', icon: 'support_agent' },
+            ]
+          : []),
         { to: '/venues', label: '場域管理', icon: 'place' },
         { to: '/merchants', label: '共好企業管理', icon: 'storefront' },
         { to: '/association', label: '世界佛教教育協會', icon: 'img:/images/association/logo.webp' },
