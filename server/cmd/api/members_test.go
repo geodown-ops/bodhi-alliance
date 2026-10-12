@@ -178,4 +178,30 @@ func TestVolunteersAndCenterAdmins(t *testing.T) {
 	if w := call(t, r, http.MethodGet, "/api/admin/centers", mgr, nil); w.Code != http.StatusForbidden {
 		t.Errorf("after revoke: got %d", w.Code)
 	}
+
+	// 超級管理員：一樣只有超級管理員能打勾，打勾後全部功能都能用
+	makeSuper := map[string]any{"status": "verified", "is_coach": true, "is_super_admin": true}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, tp, makeSuper); w.Code != http.StatusForbidden {
+		t.Errorf("center admin grants super: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, admin, makeSuper); w.Code != http.StatusNoContent {
+		t.Fatalf("grant super: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/admin/volunteers", admin, nil); !strings.Contains(w.Body.String(), `"is_super_admin":true`) {
+		t.Errorf("is_super_admin missing: %s", w.Body)
+	}
+	for _, path := range []string{"/api/auth/users", "/api/admin/claims"} {
+		if w := call(t, r, http.MethodGet, path, mgr, nil); w.Code != http.StatusOK {
+			t.Errorf("super member GET %s: got %d", path, w.Code)
+		}
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, mgr, map[string]any{"status": "verified", "is_super_admin": false}); w.Code != http.StatusBadRequest {
+		t.Errorf("revoke own super: got %d", w.Code)
+	}
+	if w := call(t, r, http.MethodPatch, "/api/admin/volunteers/"+me.ID, admin, map[string]any{"status": "verified", "is_super_admin": false}); w.Code != http.StatusNoContent {
+		t.Fatalf("revoke super: %d %s", w.Code, w.Body)
+	}
+	if w := call(t, r, http.MethodGet, "/api/auth/users", mgr, nil); w.Code != http.StatusForbidden {
+		t.Errorf("after super revoke: got %d", w.Code)
+	}
 }
